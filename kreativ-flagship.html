@@ -756,7 +756,6 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         <div class="term-chips" id="termChips">
           <button class="term-chip" data-cmd="help">help</button>
           <button class="term-chip" data-cmd="services">services</button>
-          <button class="term-chip" data-cmd="pricing">pricing</button>
           <button class="term-chip" data-cmd="contact">contact</button>
           <button class="term-chip" data-cmd="social">social</button>
           <button class="term-chip" data-cmd="pitch">pitch</button>
@@ -1419,7 +1418,6 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       help(){ return [
         '<span class="c-bone">Available commands:</span>',
         '  <span class="c-red">services</span>   — what we build',
-        '  <span class="c-red">pricing</span>    — packages & rates',
         '  <span class="c-red">pitch</span>      — why work with us',
         '  <span class="c-red">contact</span>    — how to reach us',
         '  <span class="c-red">social</span>     — find us online',
@@ -1434,22 +1432,6 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         '  ◻ Auth      — OTP flow (6-digit, 5-min TTL, 5 attempts)',
         '  ◬ Services  — Pricing engine, email, file upload (Multer)',
         '<span class="c-dim">  + KnottBox AI (Claude API, 14 tools) · try: <span class="c-red">about</span></span>',
-        '&nbsp;'
-      ];},
-      pricing(){ return [
-        '<span class="c-white">// Packages — starting from</span>',
-        '  <span class="c-bone">RECON</span>     ₹5,000   — Landing page, responsive, basic SEO',
-        '  <span class="c-red">STRIKE</span>    ₹8,000   — Multi-page, GSAP, CMS, unlimited revisions',
-        '  <span class="c-bone">OVERWATCH</span> ₹15,000  — Full-stack app, auth, dashboard, 6mo support',
-        '&nbsp;',
-        '<span class="c-white">// Service rates (Basic → Pro → Premium)</span>',
-        '  Web Dev    ₹12K → ₹30K → ₹75K',
-        '  Design     ₹8K  → ₹20K → ₹50K',
-        '  Content    ₹5K  → ₹12K → ₹30K',
-        '  Marketing  ₹6K  → ₹15K → ₹40K',
-        '  Branding   ₹7K  → ₹18K → ₹45K',
-        '  Video      ₹8K  → ₹22K → ₹60K',
-        '<span class="c-dim">  Custom packages available → type <span class="c-red">contact</span></span>',
         '&nbsp;'
       ];},
       pitch(){ return [
@@ -1484,7 +1466,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       ];},
       clear(){ out.innerHTML=''; return null; },
       whoami(){ return ['<span class="c-bone">a brand that wants to be impossible to ignore.</span>','&nbsp;']; },
-      ls(){ return ['<span class="c-red">services</span>  <span class="c-red">pricing</span>  <span class="c-red">pitch</span>  <span class="c-red">contact</span>  <span class="c-red">social</span>  <span class="c-red">about</span>','&nbsp;']; }
+      ls(){ return ['<span class="c-red">services</span>  <span class="c-red">pitch</span>  <span class="c-red">contact</span>  <span class="c-red">social</span>  <span class="c-red">about</span>','&nbsp;']; }
     };
 
     function run(raw){
