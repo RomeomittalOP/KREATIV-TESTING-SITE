@@ -217,9 +217,6 @@ html.light ::selection { background: var(--red); color: #F5F5F5; }
 html.light .cursor { background: var(--red); }
 html.light .cursor-ring { border-color: rgba(255,30,30,0.3); }
 html.light .menu-overlay { background: #ECECEC; }
-html.light .nav { background: rgba(245,245,245,0.85); backdrop-filter: blur(20px); border-bottom-color: rgba(5,5,5,0.08); }
-html.light .nav-signin { border-color: rgba(5,5,5,0.15); }
-html.light .nav-signin:hover { background: var(--red); color: #F5F5F5; border-color: var(--red); }
 html.light .section--light { background: #0C0C0C; color: #F5F5F5; }
 html.light .section--light .grid-bg span { border-color: rgba(245,245,245,0.06); }
 html.light .term { background: rgba(240,240,240,0.9); border-color: rgba(5,5,5,0.12); }
@@ -230,15 +227,16 @@ html.light .cap-card:hover { border-color: var(--red); }
 html.light .work-card { background: rgba(5,5,5,0.03); border-color: rgba(5,5,5,0.08); }
 html.light .pillar-card { background: rgba(5,5,5,0.03); border-color: rgba(5,5,5,0.08); }
 html.light .theme-toggle { background: #E0E0E0; border-color: rgba(5,5,5,0.12); }
-html.light .hero { background: var(--pitch); }
+html.light .hero { background: #050505; }
 html.light .hero-title { color: #F5F5F5; }
 html.light .hero-eyebrow span { color: #A8A8A8; }
 html.light .hero-sub { color: #A8A8A8; }
 html.light .hero-sub b { color: #F5F5F5; }
 html.light #heroScroll, html.light #scrollBadge { color: #A8A8A8; }
-html.light .nav { background: rgba(5,5,5,0.85); }
+html.light .nav { background: rgba(5,5,5,0.85); backdrop-filter: blur(20px); border-bottom-color: rgba(245,245,245,0.08); }
 html.light .nav .brand-name, html.light .nav-time, html.light .nav-signin, html.light #menuLabel { color: #F5F5F5; }
 html.light .nav-signin { border-color: rgba(245,245,245,0.2); }
+html.light .nav-signin:hover { background: var(--red); color: #F5F5F5; border-color: var(--red); }
 html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 
 /* ── BACK TO TOP ── */
@@ -355,7 +353,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
 /* ── CAPABILITIES (horizontal) ── */
-.cap-section { overflow: hidden; padding: clamp(5rem,12vh,9rem) 0; }
+.cap-section { overflow: clip; padding: clamp(5rem,12vh,9rem) 0; position: relative; z-index: 1; }
 .cap-head { padding: 0 clamp(1.2rem,4vw,3rem); max-width: 1500px; margin: 0 auto 3rem; }
 .cap-h2 { font-family: var(--f-disp); font-size: clamp(2.5rem,7vw,6rem); line-height: 0.95; letter-spacing: 0.02em; }
 .cap-track-wrap { width: 100%; overflow: hidden; }
