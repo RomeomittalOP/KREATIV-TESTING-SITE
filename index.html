@@ -230,6 +230,16 @@ html.light .cap-card:hover { border-color: var(--red); }
 html.light .work-card { background: rgba(5,5,5,0.03); border-color: rgba(5,5,5,0.08); }
 html.light .pillar-card { background: rgba(5,5,5,0.03); border-color: rgba(5,5,5,0.08); }
 html.light .theme-toggle { background: #E0E0E0; border-color: rgba(5,5,5,0.12); }
+html.light .hero { background: var(--pitch); }
+html.light .hero-title { color: #F5F5F5; }
+html.light .hero-eyebrow span { color: #A8A8A8; }
+html.light .hero-sub { color: #A8A8A8; }
+html.light .hero-sub b { color: #F5F5F5; }
+html.light #heroScroll, html.light #scrollBadge { color: #A8A8A8; }
+html.light .nav { background: rgba(5,5,5,0.85); }
+html.light .nav .brand-name, html.light .nav-time, html.light .nav-signin, html.light #menuLabel { color: #F5F5F5; }
+html.light .nav-signin { border-color: rgba(245,245,245,0.2); }
+html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 
 /* ── BACK TO TOP ── */
 .back-to-top { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(10px); transition: opacity .3s, transform .3s, background .3s; }
@@ -878,17 +888,24 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ CLOCK ════ */
+  /* ════ CLOCK + GEOLOCATION ════ */
   const navTime=document.getElementById('navTime');
+  let cityCode='NOI';
   if(navTime){
     function tick(){
       const now=new Date();
-      // IST = UTC+5:30
-      const ist=new Date(now.getTime()+(now.getTimezoneOffset()*60000)+(5.5*3600000));
-      const h=String(ist.getHours()).padStart(2,'0'), m=String(ist.getMinutes()).padStart(2,'0');
-      navTime.textContent='NOI · '+h+':'+m;
+      const h=String(now.getHours()).padStart(2,'0'), m=String(now.getMinutes()).padStart(2,'0');
+      navTime.textContent=cityCode+' · '+h+':'+m;
     }
     tick(); setInterval(tick,10000);
+    fetch('https://ipapi.co/json/',{mode:'cors'}).then(r=>r.json()).then(d=>{
+      if(d.city){
+        cityCode=d.city.substring(0,3).toUpperCase();
+        const eyebrow=document.querySelector('.hero-eyebrow span');
+        if(eyebrow) eyebrow.textContent='Full-Stack Creative Agency · '+d.city+', '+d.region_code;
+        tick();
+      }
+    }).catch(()=>{});
   }
 
   /* ════ MENU ════ */
@@ -915,7 +932,10 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 
   /* ════ SCROLL TO TOP ON RELOAD ════ */
   if('scrollRestoration' in history) history.scrollRestoration='manual';
-  window.scrollTo(0,0);
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+  document.documentElement.scrollTop=0;
+  document.body.scrollTop=0;
+  window.addEventListener('beforeunload',()=>{ window.scrollTo(0,0); });
 
   /* ════ CLEAN URL — remove hash fragments after scroll ════ */
   document.querySelectorAll('a[href^="#"]').forEach(a=>{
