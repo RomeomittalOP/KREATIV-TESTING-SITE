@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Kreativ by 4Knotts — Client Portal.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#050505">
+<title>Client Portal — Kreativ Testing Site</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch:#050505; --ink:#0C0C0C; --ash:#141414; --smoke:#1E1E1E; --line:#262626;
+  --red:#FF1E1E; --red-dk:#C81414; --white:#F5F5F5; --bone:#A8A8A8; --bone-d:#6E6E6E;
+  --green:#28C840; --amber:#FEBC2E; --blue:#4D9DE0;
+  --grid:rgba(245,245,245,0.04);
+  --f-disp:'Bebas Neue',Impact,sans-serif;
+  --f-body:'Inter',system-ui,sans-serif;
+  --f-mono:'DM Mono',monospace;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+  --sidebar:248px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--pitch); color:var(--white); font-family:var(--f-body); font-size:15px; line-height:1.5}
+::selection{background:var(--red); color:var(--white)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
+a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--red); outline-offset:2px; border-radius:3px}
+::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px} ::-webkit-scrollbar-track{background:transparent}
+
+/* ── LAYOUT ── */
+.app{display:grid; grid-template-columns:var(--sidebar) 1fr; min-height:100svh}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--ink); border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100svh; z-index:40}
+.sb-brand{display:flex; align-items:center; gap:0.6rem; padding:1.3rem 1.4rem; border-bottom:1px solid var(--line)}
+.sb-brand img{width:30px;height:30px;object-fit:contain}
+.sb-brand .bn{font-family:var(--f-disp); font-size:1.15rem; letter-spacing:0.03em; line-height:1}
+.sb-brand .bn b{color:var(--red);font-weight:400}
+.sb-nav{flex:1; padding:1rem 0.8rem; display:flex; flex-direction:column; gap:0.2rem; overflow-y:auto}
+.sb-section{font-family:var(--f-mono); font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--bone-d); padding:1rem 0.7rem 0.5rem}
+.sb-link{display:flex; align-items:center; gap:0.8rem; padding:0.65rem 0.7rem; border-radius:8px; color:var(--bone); font-size:0.9rem; transition:background .2s, color .2s; cursor:pointer; position:relative}
+.sb-link svg{width:18px;height:18px;flex-shrink:0;stroke-width:1.7}
+.sb-link:hover{background:var(--ash); color:var(--white)}
+.sb-link.active{background:rgba(255,30,30,0.1); color:var(--white)}
+.sb-link.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--red);border-radius:0 3px 3px 0}
+.sb-link .badge{margin-left:auto; background:var(--red); color:var(--pitch); font-family:var(--f-mono); font-size:0.62rem; font-weight:500; min-width:18px; height:18px; border-radius:9px; display:grid; place-items:center; padding:0 5px}
+.sb-foot{padding:1rem; border-top:1px solid var(--line)}
+.sb-user{display:flex; align-items:center; gap:0.7rem; padding:0.6rem; border-radius:8px; transition:background .2s; cursor:pointer}
+.sb-user:hover{background:var(--ash)}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--red-dk));display:grid;place-items:center;font-family:var(--f-disp);font-size:1rem;color:var(--white);flex-shrink:0}
+.sb-user .un{font-size:0.82rem;font-weight:500;line-height:1.2}
+.sb-user .uc{font-size:0.7rem;color:var(--bone-d)}
+
+/* ── MAIN ── */
+.main{display:flex; flex-direction:column; min-height:100svh; overflow:hidden}
+.topbar{display:flex; align-items:center; justify-content:space-between; padding:1rem 1.8rem; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(5,5,5,0.85); backdrop-filter:blur(10px); z-index:30}
+.tb-left{display:flex; align-items:center; gap:1rem}
+.menu-btn{display:none; width:36px;height:36px;border:1px solid var(--line);border-radius:8px;align-items:center;justify-content:center}
+.menu-btn svg{width:18px;height:18px}
+.tb-title{font-family:var(--f-disp); font-size:1.5rem; letter-spacing:0.03em}
+.tb-search{display:flex; align-items:center; gap:0.6rem; background:var(--ash); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.9rem; width:260px; color:var(--bone-d)}
+.tb-search input{flex:1;background:none;border:none;outline:none;color:var(--white);font-size:0.85rem}
+.tb-search svg{width:16px;height:16px}
+.tb-search .kbd{font-family:var(--f-mono);font-size:0.65rem;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--bone-d)}
+.tb-right{display:flex; align-items:center; gap:0.8rem}
+.icon-btn{width:38px;height:38px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;color:var(--bone);transition:border-color .2s,color .2s;position:relative}
+.icon-btn:hover{border-color:var(--red);color:var(--white)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--pitch)}
+.tb-clock{font-family:var(--f-mono);font-size:0.72rem;color:var(--bone-d);letter-spacing:0.05em}
+@media(max-width:680px){.tb-search,.tb-clock{display:none}}
+
+.content{flex:1; padding:1.8rem; overflow-y:auto; max-width:1400px; width:100%}
+
+/* views */
+.view{display:none; animation:fade .4s var(--ease)}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* welcome strip */
+.welcome{display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.8rem}
+.welcome h1{font-family:var(--f-disp); font-size:clamp(2rem,4vw,3rem); line-height:1; letter-spacing:0.02em}
+.welcome .sub{color:var(--bone); font-size:0.95rem; margin-top:0.4rem}
+.welcome .sub b{color:var(--red); font-weight:600}
+.welcome .date{font-family:var(--f-mono); font-size:0.75rem; color:var(--bone-d)}
+
+/* stat cards */
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.8rem}
+@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--ink); border:1px solid var(--line); border-radius:12px; padding:1.2rem; transition:border-color .25s}
+.stat:hover{border-color:rgba(255,30,30,0.3)}
+.stat .sl{font-family:var(--f-mono); font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--bone-d); display:flex; align-items:center; gap:0.5rem}
+.stat .sl svg{width:14px;height:14px;color:var(--red)}
+.stat .sv{font-family:var(--f-disp); font-size:2.6rem; line-height:1; margin:0.6rem 0 0.3rem; letter-spacing:0.02em}
+.stat .sc{font-size:0.78rem; color:var(--bone)}
+.stat .sc .up{color:var(--green)} .stat .sc .down{color:var(--red)}
+
+/* section headers */
+.sec-head{display:flex; align-items:center; justify-content:space-between; margin:0 0 1rem}
+.sec-head h2{font-family:var(--f-disp); font-size:1.5rem; letter-spacing:0.03em}
+.sec-head a{font-family:var(--f-mono); font-size:0.74rem; color:var(--bone); transition:color .2s}
+.sec-head a:hover{color:var(--red)}
+
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.8rem}
+@media(max-width:950px){.grid-2{grid-template-columns:1fr}}
+
+/* project cards */
+.proj{background:var(--ink); border:1px solid var(--line); border-radius:12px; padding:1.3rem; margin-bottom:1rem; transition:border-color .25s}
+.proj:hover{border-color:rgba(255,30,30,0.3)}
+.proj-top{display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.1rem}
+.proj-name{font-family:var(--f-disp); font-size:1.4rem; letter-spacing:0.02em; line-height:1}
+.proj-meta{font-size:0.78rem; color:var(--bone-d); margin-top:0.3rem; font-family:var(--f-mono)}
+.proj-stage{font-family:var(--f-mono); font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; padding:0.3rem 0.7rem; border-radius:20px; white-space:nowrap}
+.stage-active{background:rgba(255,30,30,0.12); color:var(--red); border:1px solid rgba(255,30,30,0.3)}
+.stage-review{background:rgba(254,188,46,0.12); color:var(--amber); border:1px solid rgba(254,188,46,0.3)}
+.stage-done{background:rgba(40,200,64,0.12); color:var(--green); border:1px solid rgba(40,200,64,0.3)}
+/* progress pipeline */
+.pipeline{display:flex; gap:4px; margin-bottom:0.8rem}
+.pipe-step{flex:1; height:5px; border-radius:3px; background:var(--smoke); position:relative; overflow:hidden}
+.pipe-step.done{background:var(--red)}
+.pipe-step.current{background:var(--smoke)}
+.pipe-step.current::after{content:'';position:absolute;inset:0;width:60%;background:var(--red);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.pipe-labels{display:flex; justify-content:space-between; font-family:var(--f-mono); font-size:0.62rem; color:var(--bone-d); text-transform:uppercase; letter-spacing:0.06em}
+.pipe-labels span.on{color:var(--red)}
+.proj-foot{display:flex; align-items:center; justify-content:space-between; margin-top:1.1rem; padding-top:1.1rem; border-top:1px solid var(--line)}
+.proj-next{font-size:0.82rem;color:var(--bone)}
+.proj-next b{color:var(--white);font-weight:500}
+.proj-pct{font-family:var(--f-disp);font-size:1.8rem;color:var(--red);letter-spacing:0.02em}
+
+/* approval cards */
+.approve{background:var(--ink); border:1px solid var(--line); border-radius:12px; padding:1.1rem; margin-bottom:0.9rem; display:flex; gap:1rem; align-items:center; transition:border-color .25s}
+.approve:hover{border-color:rgba(254,188,46,0.4)}
+.approve-thumb{width:64px;height:64px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--smoke),var(--ash));display:grid;place-items:center;font-family:var(--f-disp);color:var(--bone-d);font-size:0.7rem;border:1px solid var(--line);position:relative;overflow:hidden}
+.approve-thumb canvas{position:absolute;inset:0;width:100%;height:100%}
+.approve-info{flex:1;min-width:0}
+.approve-info .at{font-weight:500;font-size:0.92rem;margin-bottom:0.2rem}
+.approve-info .am{font-family:var(--f-mono);font-size:0.72rem;color:var(--bone-d)}
+.approve-actions{display:flex;gap:0.5rem;flex-shrink:0}
+.btn{font-family:var(--f-mono);font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;padding:0.55rem 0.9rem;border-radius:7px;transition:all .2s;white-space:nowrap}
+.btn-approve{background:var(--red);color:var(--pitch)} .btn-approve:hover{background:var(--white)}
+.btn-ghost{border:1px solid var(--line);color:var(--bone)} .btn-ghost:hover{border-color:var(--white);color:var(--white)}
+
+/* files table */
+.panel{background:var(--ink); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:1.8rem}
+.panel-head{padding:1.1rem 1.3rem; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between}
+.panel-head h3{font-family:var(--f-disp);font-size:1.25rem;letter-spacing:0.02em}
+.file-row{display:grid; grid-template-columns:32px 1fr auto auto auto; gap:1rem; align-items:center; padding:0.9rem 1.3rem; border-bottom:1px solid var(--line); transition:background .2s}
+.file-row:last-child{border-bottom:none} .file-row:hover{background:var(--ash)}
+.file-ico{width:32px;height:32px;border-radius:7px;background:var(--smoke);display:grid;place-items:center;color:var(--red);font-family:var(--f-mono);font-size:0.6rem;font-weight:500}
+.file-name{font-size:0.88rem;font-weight:500} .file-sub{font-family:var(--f-mono);font-size:0.7rem;color:var(--bone-d)}
+.file-size,.file-date{font-family:var(--f-mono);font-size:0.74rem;color:var(--bone)}
+.file-dl{width:34px;height:34px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;color:var(--bone);transition:all .2s}
+.file-dl:hover{border-color:var(--red);color:var(--red)}
+.file-dl svg{width:15px;height:15px}
+@media(max-width:680px){.file-row{grid-template-columns:32px 1fr auto} .file-size,.file-date{display:none}}
+
+/* messages */
+.msg{display:flex; gap:0.9rem; padding:1rem 1.3rem; border-bottom:1px solid var(--line)}
+.msg:last-child{border-bottom:none}
+.msg-av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-family:var(--f-disp);font-size:0.9rem}
+.msg-av.studio{background:linear-gradient(135deg,var(--red),var(--red-dk))}
+.msg-av.you{background:var(--smoke);color:var(--bone)}
+.msg-body{flex:1}
+.msg-head{display:flex;align-items:baseline;gap:0.6rem;margin-bottom:0.2rem}
+.msg-name{font-weight:600;font-size:0.85rem} .msg-time{font-family:var(--f-mono);font-size:0.68rem;color:var(--bone-d)}
+.msg-text{font-size:0.88rem;color:var(--bone);line-height:1.5}
+.msg-compose{display:flex;gap:0.7rem;padding:1rem 1.3rem;border-top:1px solid var(--line)}
+.msg-compose input{flex:1;background:var(--ash);border:1px solid var(--line);border-radius:8px;padding:0.7rem 1rem;color:var(--white);outline:none;font-size:0.88rem}
+.msg-compose input:focus{border-color:var(--red)}
+.msg-send{background:var(--red);color:var(--pitch);width:42px;height:42px;border-radius:8px;display:grid;place-items:center}
+.msg-send svg{width:18px;height:18px}
+
+/* invoices */
+.inv-row{display:grid;grid-template-columns:1fr auto auto auto;gap:1rem;align-items:center;padding:1rem 1.3rem;border-bottom:1px solid var(--line)}
+.inv-row:last-child{border-bottom:none}
+.inv-id{font-family:var(--f-mono);font-size:0.78rem} .inv-desc{font-size:0.82rem;color:var(--bone-d);margin-top:0.15rem}
+.inv-amt{font-family:var(--f-disp);font-size:1.3rem;letter-spacing:0.02em}
+.inv-status{font-family:var(--f-mono);font-size:0.64rem;letter-spacing:0.06em;text-transform:uppercase;padding:0.3rem 0.7rem;border-radius:20px}
+.paid{background:rgba(40,200,64,0.12);color:var(--green)} .due{background:rgba(254,188,46,0.12);color:var(--amber)} .overdue{background:rgba(255,30,30,0.12);color:var(--red)}
+.inv-btn{font-family:var(--f-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;border:1px solid var(--line);border-radius:7px;padding:0.45rem 0.8rem;color:var(--bone);transition:all .2s}
+.inv-btn:hover{border-color:var(--red);color:var(--red)}
+@media(max-width:680px){.inv-row{grid-template-columns:1fr auto}.inv-status,.inv-btn{display:none}}
+
+/* activity timeline */
+.timeline{position:relative;padding-left:1.5rem}
+.timeline::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.tl-item{position:relative;padding-bottom:1.3rem}
+.tl-item::before{content:'';position:absolute;left:-1.5rem;top:4px;width:11px;height:11px;border-radius:50%;background:var(--ink);border:2px solid var(--red)}
+.tl-item:last-child{padding-bottom:0}
+.tl-time{font-family:var(--f-mono);font-size:0.68rem;color:var(--bone-d);margin-bottom:0.2rem}
+.tl-text{font-size:0.86rem;color:var(--bone)} .tl-text b{color:var(--white);font-weight:500}
+
+/* toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9500;background:var(--ash);border:1px solid rgba(40,200,64,0.4);border-radius:10px;padding:0.9rem 1.3rem;font-size:0.86rem;display:flex;align-items:center;gap:0.7rem;box-shadow:0 20px 60px rgba(0,0,0,0.5);transform:translateY(140%);transition:transform .4s var(--ease);max-width:90vw}
+.toast.show{transform:translateY(0)}
+.toast .ti{color:var(--green);font-family:var(--f-mono)}
+
+/* mobile sidebar */
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:35;backdrop-filter:blur(2px)}
+.scrim.show{display:block}
+@media(max-width:880px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;width:var(--sidebar);transform:translateX(-100%);transition:transform .35s var(--ease)}
+  .sidebar.open{transform:translateX(0)}
+  .menu-btn{display:flex}
+}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+</head>
+<body>
+
+<div class="scrim" id="scrim"></div>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <img src="data:image/png;base64,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" alt="Kreativ logo">
+      <span class="bn">KREATIV<b>/</b>4KNOTTS</span>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Portal</div>
+      <a class="sb-link active" data-view="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+      <a class="sb-link" data-view="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Projects</a>
+      <a class="sb-link" data-view="approvals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Approvals<span class="badge">2</span></a>
+      <a class="sb-link" data-view="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>Files</a>
+      <a class="sb-link" data-view="messages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Messages<span class="badge">1</span></a>
+      <a class="sb-link" data-view="invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Invoices</a>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="sb-avatar">L</div>
+        <div><div class="un">Lena Okafor</div><div class="uc">Lumen Co.</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="tb-left">
+        <button class="menu-btn" id="menuBtn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <h1 class="tb-title" id="tbTitle">Overview</h1>
+      </div>
+      <div class="tb-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" placeholder="Search projects, files…" aria-label="Search">
+        <span class="kbd">/</span>
+      </div>
+      <div class="tb-right">
+        <span class="tb-clock" id="clock">—</span>
+        <button class="icon-btn" id="bellBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span class="dot"></span></button>
+        <button class="icon-btn" id="signout" aria-label="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ═══ OVERVIEW ═══ -->
+      <section class="view active" id="v-overview">
+        <div class="welcome">
+          <div>
+            <h1>Welcome back, Lena.</h1>
+            <p class="sub">You have <b>2 deliverables</b> awaiting review and <b>1 new message</b> from the studio.</p>
+          </div>
+          <div class="date" id="welcomeDate">—</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Active projects</div><div class="sv">3</div><div class="sc">2 on track · <span class="up">1 ahead</span></div></div>
+          <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/></svg>Awaiting you</div><div class="sv">2</div><div class="sc"><span class="down">Action needed</span></div></div>
+          <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/></svg>Files shared</div><div class="sv">52</div><div class="sc"><span class="up">+8</span> this week</div></div>
+          <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>Next invoice</div><div class="sv">₹45K</div><div class="sc">Due Jul 5</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="sec-head"><h2>Active projects</h2><a data-jump="projects">View all →</a></div>
+            <div id="ovProjects"></div>
+          </div>
+          <div>
+            <div class="sec-head"><h2>Recent activity</h2></div>
+            <div class="panel" style="padding:1.3rem">
+              <div class="timeline" id="timeline"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-head"><h2>Needs your approval</h2><a data-jump="approvals">View all →</a></div>
+        <div id="ovApprovals"></div>
+      </section>
+
+      <!-- ═══ PROJECTS ═══ -->
+      <section class="view" id="v-projects">
+        <div id="allProjects"></div>
+      </section>
+
+      <!-- ═══ APPROVALS ═══ -->
+      <section class="view" id="v-approvals">
+        <p style="color:var(--bone);margin-bottom:1.3rem;font-size:0.92rem">Review and approve deliverables. Approving moves the project to its next stage.</p>
+        <div id="allApprovals"></div>
+      </section>
+
+      <!-- ═══ FILES ═══ -->
+      <section class="view" id="v-files">
+        <div class="panel">
+          <div class="panel-head"><h3>All files</h3><span style="font-family:var(--f-mono);font-size:0.74rem;color:var(--bone-d)">52 files · 248 MB</span></div>
+          <div id="fileList"></div>
+        </div>
+      </section>
+
+      <!-- ═══ MESSAGES ═══ -->
+      <section class="view" id="v-messages">
+        <div class="panel">
+          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">● Kreativ team online</span></div>
+          <div id="msgList"></div>
+          <div class="msg-compose">
+            <input type="text" id="msgInput" placeholder="Message the studio…" aria-label="Message">
+            <button class="msg-send" id="msgSend" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="#050505" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ INVOICES ═══ -->
+      <section class="view" id="v-invoices">
+        <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="sl">Paid to date</div><div class="sv">₹1.6L</div><div class="sc">5 invoices</div></div>
+          <div class="stat"><div class="sl">Outstanding</div><div class="sv">₹45K</div><div class="sc"><span class="down">Due Jul 5</span></div></div>
+          <div class="stat"><div class="sl">Retainer</div><div class="sv">Active</div><div class="sc">₹45K / month</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Invoices</h3></div>
+          <div id="invList"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ti" id="toastIcon">✓</span><span id="toastMsg"></span></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  const $=s=>document.querySelector(s);
+  const $$=s=>[...document.querySelectorAll(s)];
+
+  /* ════════ SAMPLE DATA (replace with backend fetch) ════════ */
+  const STAGES=['Listen','Sharpen','Shape','Broadcast'];
+  const projects=[
+    {name:'Kreativ Platform v2', meta:'Started Apr 10 · 8 deliverables · React + Vite', stage:3, stageType:'active', pct:82, next:'OTP auth flow — final QA', due:'Jul 8'},
+    {name:'Backend API', meta:'Started Apr 18 · 6 deliverables · Node + Express', stage:2, stageType:'active', pct:71, next:'Pricing engine review', due:'Jul 12'},
+    {name:'Build Project Wizard', meta:'Started May 5 · 5 deliverables · 5-step flow', stage:1, stageType:'review', pct:45, next:'File upload + brief step', due:'Jul 15'}
+  ];
+  const approvals=[
+    {title:'Pricing Page — live cost estimator', meta:'Kreativ Platform v2 · uploaded 2h ago', seed:1},
+    {title:'Build Wizard — step 3 mockup', meta:'Build Project Wizard · uploaded yesterday', seed:2}
+  ];
+  const files=[
+    {ext:'JSX', name:'App.jsx', sub:'Kreativ Platform v2', size:'4.2 KB', date:'Jun 28'},
+    {ext:'JS', name:'server.js', sub:'Backend API', size:'3.8 KB', date:'Jun 28'},
+    {ext:'JSX', name:'PricingPage.jsx', sub:'Kreativ Platform v2', size:'12 KB', date:'Jun 27'},
+    {ext:'JSX', name:'BuildProjectPage.jsx', sub:'Build Project Wizard', size:'18 KB', date:'Jun 26'},
+    {ext:'JS', name:'pricingEngine.js', sub:'Backend API', size:'6.1 KB', date:'Jun 25'},
+    {ext:'JSX', name:'AuthModal.jsx', sub:'Kreativ Platform v2', size:'9.4 KB', date:'Jun 24'},
+    {ext:'JS', name:'emailService.js', sub:'Backend API', size:'5.2 KB', date:'Jun 22'},
+    {ext:'JSON', name:'package.json', sub:'Kreativ Platform v2', size:'640 B', date:'Jun 20'}
+  ];
+  const messages=[
+    {who:'studio', name:'Kreativ Studio', time:'2h ago', text:'The pricing page live estimator is up for review — Basic/Pro/Premium tiers with the custom builder. Take a look when you get a chance.'},
+    {who:'you', name:'Lena Okafor', time:'1h ago', text:'Pricing breakdown looks clean. The min–max range display works well. One question on the custom builder flow.'},
+    {who:'studio', name:'Kreativ Studio', time:'45m ago', text:'Sure — the 5-step wizard (services → tier → budget → brief → review) is in the Files tab. Check BuildProjectPage.jsx for the full flow.'}
+  ];
+  const invoices=[
+    {id:'INV-014', desc:'June retainer — Platform v2', amt:'₹45,000', status:'due', statusLabel:'Due Jul 5'},
+    {id:'INV-013', desc:'May retainer — Backend sprint', amt:'₹40,000', status:'paid', statusLabel:'Paid'},
+    {id:'INV-012', desc:'React + Vite frontend build', amt:'₹55,000', status:'paid', statusLabel:'Paid'},
+    {id:'INV-011', desc:'April retainer — OTP auth', amt:'₹35,000', status:'paid', statusLabel:'Paid'},
+    {id:'INV-010', desc:'Discovery & architecture', amt:'₹30,000', status:'paid', statusLabel:'Paid'}
+  ];
+  const activity=[
+    {time:'2h ago', text:'<b>Kreativ</b> uploaded Pricing Page — live estimator for review'},
+    {time:'5h ago', text:'<b>Backend API</b> moved to Shape stage — pricing engine deployed'},
+    {time:'Yesterday', text:'<b>You</b> approved OTP auth flow — Framer transitions'},
+    {time:'Jun 26', text:'<b>Kreativ</b> shared 4 new files in Build Project Wizard'},
+    {time:'Jun 25', text:'Invoice <b>INV-013</b> marked paid'}
+  ];
+
+  /* ════════ RENDER HELPERS ════════ */
+  function pipelineHTML(stage){
+    let steps=STAGES.map((s,i)=>{
+      const cls = i<stage?'done' : i===stage?'current' : '';
+      return `<div class="pipe-step ${cls}"></div>`;
+    }).join('');
+    let labels=STAGES.map((s,i)=>`<span class="${i===stage?'on':''}">${s}</span>`).join('');
+    return `<div class="pipeline">${steps}</div><div class="pipe-labels">${labels}</div>`;
+  }
+  function projectHTML(p){
+    const stageCls = p.stageType==='active'?'stage-active':p.stageType==='review'?'stage-review':'stage-done';
+    const stageLabel = p.stageType==='review'?'In review':p.stageType==='done'?'Delivered':'In progress';
+    return `<div class="proj">
+      <div class="proj-top">
+        <div><div class="proj-name">${p.name}</div><div class="proj-meta">${p.meta}</div></div>
+        <div class="proj-stage ${stageCls}">${stageLabel}</div>
+      </div>
+      ${pipelineHTML(p.stage)}
+      <div class="proj-foot">
+        <div class="proj-next">Next: <b>${p.next}</b> · due ${p.due}</div>
+        <div class="proj-pct">${p.pct}%</div>
+      </div>
+    </div>`;
+  }
+  function approvalHTML(a,idx){
+    return `<div class="approve" data-appr="${idx}">
+      <div class="approve-thumb"><canvas data-seed="${a.seed}"></canvas></div>
+      <div class="approve-info"><div class="at">${a.title}</div><div class="am">${a.meta}</div></div>
+      <div class="approve-actions">
+        <button class="btn btn-ghost" data-action="comment">Comment</button>
+        <button class="btn btn-approve" data-action="approve">Approve</button>
+      </div>
+    </div>`;
+  }
+
+  /* render overview */
+  $('#ovProjects').innerHTML=projects.slice(0,2).map(projectHTML).join('');
+  $('#allProjects').innerHTML=projects.map(projectHTML).join('');
+  $('#ovApprovals').innerHTML=approvals.map(approvalHTML).join('');
+  $('#allApprovals').innerHTML=approvals.map(approvalHTML).join('');
+  $('#timeline').innerHTML=activity.map(a=>`<div class="tl-item"><div class="tl-time">${a.time}</div><div class="tl-text">${a.text}</div></div>`).join('');
+  $('#fileList').innerHTML=files.map(f=>`<div class="file-row">
+    <div class="file-ico">${f.ext}</div>
+    <div><div class="file-name">${f.name}</div><div class="file-sub">${f.sub}</div></div>
+    <div class="file-size">${f.size}</div>
+    <div class="file-date">${f.date}</div>
+    <button class="file-dl" aria-label="Download ${f.name}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
+  </div>`).join('');
+  $('#msgList').innerHTML=messages.map(m=>`<div class="msg">
+    <div class="msg-av ${m.who}">${m.who==='studio'?'K':'L'}</div>
+    <div class="msg-body"><div class="msg-head"><span class="msg-name">${m.name}</span><span class="msg-time">${m.time}</span></div><div class="msg-text">${m.text}</div></div>
+  </div>`).join('');
+  $('#invList').innerHTML=invoices.map(v=>`<div class="inv-row">
+    <div><div class="inv-id">${v.id}</div><div class="inv-desc">${v.desc}</div></div>
+    <div class="inv-amt">${v.amt}</div>
+    <div class="inv-status ${v.status}">${v.statusLabel}</div>
+    <button class="inv-btn">${v.status==='paid'?'Receipt':'Pay now'}</button>
+  </div>`).join('');
+
+  /* ════════ SHADER THUMBNAILS (approval previews) ════════ */
+  function initThumbs(){
+    if(typeof THREE==='undefined') return;
+    $$('.approve-thumb canvas').forEach(canvas=>{
+      const seed=parseFloat(canvas.dataset.seed||1);
+      let renderer;
+      try{ renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true}); }catch(e){ return; }
+      const W=64,H=64; renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(W,H);
+      const scene=new THREE.Scene();
+      const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,10); cam.position.z=1;
+      const uniforms={uTime:{value:seed*10},uSeed:{value:seed}};
+      const frag=`precision mediump float;varying vec2 vUv;uniform float uTime;uniform float uSeed;
+        float n(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        void main(){vec2 uv=vUv;float t=uTime*0.2;
+          float v=sin((uv.x+uSeed)*8.0+t)*0.5+0.5;
+          v*=sin(uv.y*6.0-t*0.7)*0.5+0.5;
+          vec3 base=vec3(0.09);vec3 red=vec3(1.0,0.118,0.118);
+          vec3 col=mix(base,red,smoothstep(0.4,0.7,v)*0.5);
+          col*=smoothstep(1.3,0.3,distance(uv,vec2(0.5)));
+          gl_FragColor=vec4(col,1.0);}`;
+      const vert=`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
+      const mat=new THREE.ShaderMaterial({uniforms,vertexShader:vert,fragmentShader:frag});
+      scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
+      const clock=new THREE.Clock();
+      (function loop(){requestAnimationFrame(loop);uniforms.uTime.value=seed*10+clock.getElapsedTime();renderer.render(scene,cam);})();
+    });
+  }
+  initThumbs();
+
+  /* ════════ VIEW ROUTING ════════ */
+  const titles={overview:'Overview',projects:'Projects',approvals:'Approvals',files:'Files',messages:'Messages',invoices:'Invoices'};
+  function go(view){
+    $$('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
+    $$('.sb-link').forEach(l=>l.classList.toggle('active',l.dataset.view===view));
+    $('#tbTitle').textContent=titles[view]||'Overview';
+    closeSidebar();
+    $('.content').scrollTop=0;
+  }
+  $$('.sb-link').forEach(l=>l.addEventListener('click',()=>go(l.dataset.view)));
+  $$('[data-jump]').forEach(j=>j.addEventListener('click',()=>go(j.dataset.jump)));
+
+  /* ════════ TOAST ════════ */
+  let tt=null;
+  function toast(msg,icon){$('#toastMsg').textContent=msg;$('#toastIcon').textContent=icon||'✓';const t=$('#toast');t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3500);}
+
+  /* ════════ INTERACTIONS ════════ */
+  // approve / comment
+  $$('[data-action]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const card=btn.closest('.approve');
+      const title=card.querySelector('.at').textContent;
+      if(btn.dataset.action==='approve'){
+        card.style.transition='opacity .4s, transform .4s';
+        card.style.opacity='0'; card.style.transform='translateX(20px)';
+        setTimeout(()=>card.style.display='none',400);
+        toast('Approved: '+title+' — studio notified.','✓');
+      } else {
+        toast('Comment thread opened for '+title+' (demo).','◆');
+      }
+    });
+  });
+  // file downloads
+  $$('.file-dl').forEach(b=>b.addEventListener('click',()=>toast('Download started (demo).','↓')));
+  $$('.inv-btn').forEach(b=>b.addEventListener('click',()=>toast(b.textContent==='Pay now'?'Redirecting to payment (demo).':'Receipt downloaded (demo).','◆')));
+  // messages
+  function sendMsg(){
+    const inp=$('#msgInput'); const v=inp.value.trim(); if(!v) return;
+    const list=$('#msgList');
+    const d=document.createElement('div'); d.className='msg';
+    d.innerHTML=`<div class="msg-av you">L</div><div class="msg-body"><div class="msg-head"><span class="msg-name">Lena Okafor</span><span class="msg-time">just now</span></div><div class="msg-text">${v.replace(/</g,'&lt;')}</div></div>`;
+    list.appendChild(d); inp.value=''; list.scrollTop=list.scrollHeight;
+    setTimeout(()=>{
+      const r=document.createElement('div'); r.className='msg';
+      r.innerHTML=`<div class="msg-av studio">K</div><div class="msg-body"><div class="msg-head"><span class="msg-name">Kreativ Studio</span><span class="msg-time">just now</span></div><div class="msg-text">Got it — we'll get back to you shortly. (auto-reply demo)</div></div>`;
+      list.appendChild(r); list.scrollTop=list.scrollHeight;
+    },1200);
+  }
+  $('#msgSend').addEventListener('click',sendMsg);
+  $('#msgInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+  // bell + signout
+  $('#bellBtn').addEventListener('click',()=>{toast('3 notifications (demo).','◆');$('#bellBtn .dot').style.display='none';});
+  $('#signout').addEventListener('click',()=>{ window.location.href='kreativ-login.html'; });
+
+  /* ════════ MOBILE SIDEBAR ════════ */
+  const sidebar=$('#sidebar'), scrim=$('#scrim');
+  function openSidebar(){sidebar.classList.add('open');scrim.classList.add('show');}
+  function closeSidebar(){sidebar.classList.remove('open');scrim.classList.remove('show');}
+  $('#menuBtn').addEventListener('click',openSidebar);
+  scrim.addEventListener('click',closeSidebar);
+
+  /* ════════ CLOCK + DATE ════════ */
+  function tick(){const n=new Date();const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));$('#clock').textContent='DEL · '+String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0');}
+  tick();setInterval(tick,10000);
+  $('#welcomeDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  /* ════════ SEARCH SHORTCUT ════════ */
+  document.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT'){ e.preventDefault(); $('.tb-search input')?.focus(); } });
+
+})();
+</script>
+</body>
+</html>
