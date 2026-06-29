@@ -505,21 +505,28 @@ toast(e.message,"!");
   });
   $('#googleBtn').addEventListener('click',async()=>{
 
-try{
+try {
 
-const result=await window.firebase.signInWithPopup(window.auth, window.provider);
+        const result = await window.firebase.signInWithPopup(
+            window.auth,
+            window.provider
+        );
 
-toast("Welcome "+result.user.displayName,"✓");
+        alert("1");
 
-console.log(result.user);
+        toast("Welcome " + result.user.displayName, "✓");
 
-}
-catch(e){
+        alert("2");
 
-toast(e.message,"!");
+        window.location.href = "/kreativ-portal.html";
 
-}
+        alert("3");
 
+    } catch (e) {
+
+        alert(e.message);
+
+    }
 });
   $('#ssoBtn').addEventListener('click',()=>toast('SSO — connect your identity provider to enable.','◆'));
 
