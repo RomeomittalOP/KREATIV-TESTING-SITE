@@ -29,10 +29,16 @@ const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
 
-await setPersistence(auth,browserLocalPersistence);
+setPersistence(auth,browserLocalPersistence);
 
-window.auth=auth;
-window.provider=provider;
+window.auth = auth;
+window.provider = provider;
+
+window.firebase = {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail
+};
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -500,7 +506,7 @@ toast(e.message,"!");
 
 try{
 
-const result=await signInWithPopup(auth,provider);
+const result=await window.firebase.signInWithPopup(window.auth, window.provider);
 
 toast("Welcome "+result.user.displayName,"✓");
 
