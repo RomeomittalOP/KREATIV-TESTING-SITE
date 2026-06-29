@@ -535,7 +535,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
   $('#msgInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
   // bell + signout
   $('#bellBtn').addEventListener('click',()=>{toast('3 notifications (demo).','◆');$('#bellBtn .dot').style.display='none';});
-  $('#signout').addEventListener('click',()=>{ window.location.href='kreativ-login.html'; });
+  $('#signout').addEventListener('click',()=>{ window.location.href='kreativ-login'; });
 
   /* ════════ MOBILE SIDEBAR ════════ */
   const sidebar=$('#sidebar'), scrim=$('#scrim');
@@ -545,7 +545,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
   scrim.addEventListener('click',closeSidebar);
 
   /* ════════ CLOCK + DATE ════════ */
-  function tick(){const n=new Date();const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));$('#clock').textContent='DEL · '+String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0');}
+  function tick(){const n=new Date();const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));$('#clock').textContent='NOI · '+String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0');}
   tick();setInterval(tick,10000);
   $('#welcomeDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 

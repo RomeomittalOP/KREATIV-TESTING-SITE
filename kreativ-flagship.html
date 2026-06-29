@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Kreativ by 4Knotts — A full-stack creative agency. We turn brand noise into signal. Strategy, Story, Design, Digital. Delhi NCR.">
+<meta name="description" content="Kreativ by 4Knotts — A full-stack creative agency. We turn brand noise into signal. Strategy, Story, Design, Digital. Noida, UP.">
 <meta property="og:title" content="Kreativ Testing Site">
-<meta property="og:description" content="We turn brand noise into signal. A full-stack creative agency, Delhi NCR.">
+<meta property="og:description" content="We turn brand noise into signal. A full-stack creative agency, Noida, UP.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="kreativ-logo.png">
 <meta property="og:url" content="https://kreativby4knotts.com">
 <meta property="og:site_name" content="Kreativ by 4Knotts">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Kreativ by 4Knotts">
-<meta name="twitter:description" content="We turn brand noise into signal. A full-stack creative agency, Delhi NCR.">
+<meta name="twitter:description" content="We turn brand noise into signal. A full-stack creative agency, Noida, UP.">
 <meta name="twitter:image" content="kreativ-logo.png">
 <meta name="theme-color" content="#050505">
 <title>Kreativ Testing Site — 4Knotts Brand House</title>
@@ -197,6 +197,45 @@ body::after {
 .menu-link:hover i { opacity: 1; }
 .menu-foot { position: absolute; bottom: 2.5rem; left: clamp(1.5rem,8vw,8rem); right: clamp(1.5rem,8vw,8rem); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--bone); text-transform: uppercase; }
 .menu-foot a:hover { color: var(--red); }
+.menu-close-btn { position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10; color: var(--white); cursor: pointer; padding: 0.5rem; border-radius: 50%; background: rgba(255,255,255,0.08); transition: background .3s, color .3s; }
+.menu-close-btn:hover { background: var(--red); color: var(--white); }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle { position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--smoke); border: 1px solid rgba(245,245,245,0.12); display: grid; place-items: center; cursor: pointer; transition: background .3s, border-color .3s, transform .3s; }
+.theme-toggle:hover { transform: scale(1.1); border-color: var(--red); }
+.theme-toggle svg { width: 20px; height: 20px; transition: transform .5s var(--ease); }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+html.light .theme-toggle .icon-sun { display: block; }
+html.light .theme-toggle .icon-moon { display: none; }
+
+/* ── LIGHT THEME ── */
+html.light { --pitch: #F5F5F5; --ink: #ECECEC; --ash: #E0E0E0; --smoke: #D4D4D4; --white: #0C0C0C; --bone: #555; --bone-d: #777; --grid: rgba(5,5,5,0.055); }
+html.light body { background: #F5F5F5; color: #0C0C0C; }
+html.light body::after { opacity: 0.02; }
+html.light ::selection { background: var(--red); color: #F5F5F5; }
+html.light .cursor { background: var(--red); }
+html.light .cursor-ring { border-color: rgba(255,30,30,0.3); }
+html.light .menu-overlay { background: #ECECEC; }
+html.light .nav { background: rgba(245,245,245,0.85); backdrop-filter: blur(20px); border-bottom-color: rgba(5,5,5,0.08); }
+html.light .nav-signin { border-color: rgba(5,5,5,0.15); }
+html.light .nav-signin:hover { background: var(--red); color: #F5F5F5; border-color: var(--red); }
+html.light .section--light { background: #0C0C0C; color: #F5F5F5; }
+html.light .section--light .grid-bg span { border-color: rgba(245,245,245,0.06); }
+html.light .term { background: rgba(240,240,240,0.9); border-color: rgba(5,5,5,0.12); }
+html.light .term-bar { background: rgba(0,0,0,0.04); border-bottom-color: rgba(5,5,5,0.08); }
+html.light .foot { border-top-color: rgba(5,5,5,0.1); }
+html.light .cap-card { background: rgba(5,5,5,0.04); border-color: rgba(5,5,5,0.08); }
+html.light .cap-card:hover { border-color: var(--red); }
+html.light .work-card { background: rgba(5,5,5,0.03); border-color: rgba(5,5,5,0.08); }
+html.light .pillar-card { background: rgba(5,5,5,0.03); border-color: rgba(5,5,5,0.08); }
+html.light .theme-toggle { background: #E0E0E0; border-color: rgba(5,5,5,0.12); }
+
+/* ── BACK TO TOP ── */
+.back-to-top { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(10px); transition: opacity .3s, transform .3s, background .3s; }
+.back-to-top.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.back-to-top:hover { background: var(--red-dk); }
+.back-to-top svg { width: 20px; height: 20px; }
 
 /* ── HERO ── */
 .hero { position: relative; height: 100svh; width: 100%; overflow: hidden; }
@@ -319,6 +358,14 @@ body::after {
 .cap-card-list li { font-size: 0.85rem; color: var(--bone); display: flex; align-items: center; gap: 0.5rem; }
 .cap-card-list li::before { content: '—'; color: var(--red); }
 
+/* capabilities mobile: native horizontal scroll */
+@media (max-width: 768px) {
+  .cap-track-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .cap-track-wrap::-webkit-scrollbar { display: none; }
+  .cap-track { will-change: auto; }
+  .cap-card { width: 75vw; min-width: 260px; }
+}
+
 /* ── PROCESS ── */
 .process { max-width: 1300px; margin: 0 auto; }
 .process-h2 { font-family: var(--f-disp); font-size: clamp(2.5rem,7vw,6rem); line-height: 0.95; letter-spacing: 0.02em; margin-bottom: 3.5rem; }
@@ -437,8 +484,8 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 <nav class="nav">
   <a href="#hero" class="nav-logo"><img class="nav-logo-img" src="data:image/png;base64,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" alt="Kreativ by 4Knotts logo"><span class="nav-logo-text">KREATIV<b>/</b>4KNOTTS</span></a>
   <div class="nav-right">
-    <div class="nav-time" id="navTime">DEL · 00:00</div>
-    <a href="kreativ-login.html" class="nav-signin">Sign in</a>
+    <div class="nav-time" id="navTime">NOI · 00:00</div>
+    <a href="kreativ-login" class="nav-signin">Sign in</a>
     <button class="nav-menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">
       <span id="menuLabel">Menu</span>
       <div class="t-icon-swap menu-toggle" id="menuToggle" data-state="a">
@@ -455,14 +502,17 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 
 <!-- FULLSCREEN MENU -->
 <div class="menu-overlay" id="menuOverlay">
+  <button class="menu-close-btn" id="menuCloseBtn" aria-label="Close menu">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+  </button>
   <a href="#works" class="menu-link" data-close>AI Lab <i>01</i></a>
   <a href="#pillars" class="menu-link" data-close>Pillars <i>02</i></a>
   <a href="#process" class="menu-link" data-close>Process <i>03</i></a>
   <a href="#cta" class="menu-link" data-close>Contact <i>04</i></a>
-  <a href="kreativ-login.html" class="menu-link">Sign in <i>05</i></a>
+  <a href="kreativ-login" class="menu-link">Sign in <i>05</i></a>
   <div class="menu-foot">
-    <a href="#cta">hello@kreativby4knotts.com</a>
-    <span>Delhi NCR · India</span>
+    <a href="#cta">interact@kreativby4knotts.com</a>
+    <span>Noida, UP · India</span>
     <a href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener">LinkedIn</a>
   </div>
 </div>
@@ -479,7 +529,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 
   <div class="hero-content">
-    <div class="hero-eyebrow"><span>Full-Stack Creative Agency · Delhi NCR</span></div>
+    <div class="hero-eyebrow"><span>Full-Stack Creative Agency · Noida, UP</span></div>
     <h1 class="hero-title" id="heroTitle" aria-label="Kreativ">
       <span class="ch-mask"><span class="ch">K</span></span><span class="ch-mask"><span class="ch">R</span></span><span class="ch-mask"><span class="ch">E</span></span><span class="ch-mask"><span class="ch">A</span></span><span class="ch-mask"><span class="ch">T</span></span><span class="ch-mask"><span class="ch">I</span></span><span class="ch-mask"><span class="ch">V</span></span>
     </h1>
@@ -706,6 +756,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         <div class="term-chips" id="termChips">
           <button class="term-chip" data-cmd="help">help</button>
           <button class="term-chip" data-cmd="services">services</button>
+          <button class="term-chip" data-cmd="pricing">pricing</button>
           <button class="term-chip" data-cmd="contact">contact</button>
           <button class="term-chip" data-cmd="social">social</button>
           <button class="term-chip" data-cmd="pitch">pitch</button>
@@ -739,7 +790,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         <button class="connect-row" id="copyEmail" data-magnetic>
           <div class="cr-left">
             <div class="cr-icon">@</div>
-            <div class="cr-meta"><span class="cr-label">Email</span><span class="cr-handle" id="emailHandle">hello@kreativby4knotts.com</span></div>
+            <div class="cr-meta"><span class="cr-label">Email</span><span class="cr-handle" id="emailHandle">interact@kreativby4knotts.com</span></div>
           </div>
           <div class="cr-arrow" id="copyArrow">copy</div>
         </button>
@@ -747,7 +798,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         <div class="connect-row connect-row--static">
           <div class="cr-left">
             <div class="cr-icon">⌖</div>
-            <div class="cr-meta"><span class="cr-label">Studio</span><span class="cr-handle">Delhi NCR · India</span></div>
+            <div class="cr-meta"><span class="cr-label">Studio</span><span class="cr-handle">Noida, UP · India</span></div>
           </div>
           <div class="cr-time" id="connectTime">—</div>
         </div>
@@ -771,7 +822,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <div class="foot-cols">
       <div class="foot-col"><h4>Navigate</h4><a href="#works">AI Lab</a><a href="#pillars">Pillars</a><a href="#process">Process</a><a href="#cta">Contact</a></div>
       <div class="foot-col"><h4>Connect</h4><a href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener">LinkedIn</a><a href="#cta">Email</a></div>
-      <div class="foot-col"><h4>Studio</h4><p>Delhi NCR</p><p>India</p><p>Mon–Sat</p></div>
+      <div class="foot-col"><h4>Studio</h4><p>Noida, UP</p><p>India</p><p>Mon–Sat</p></div>
     </div>
   </div>
   <div class="foot-bottom">
@@ -779,6 +830,18 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <span>Designed & built in-house — the proof is this page.</span>
   </div>
 </footer>
+
+<!-- THEME TOGGLE -->
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme">
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+</button>
+
+<!-- BACK TO TOP -->
+<button class="back-to-top" id="backToTop" aria-label="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
 <!-- LIBS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -824,7 +887,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       // IST = UTC+5:30
       const ist=new Date(now.getTime()+(now.getTimezoneOffset()*60000)+(5.5*3600000));
       const h=String(ist.getHours()).padStart(2,'0'), m=String(ist.getMinutes()).padStart(2,'0');
-      navTime.textContent='DEL · '+h+':'+m;
+      navTime.textContent='NOI · '+h+':'+m;
     }
     tick(); setInterval(tick,10000);
   }
@@ -846,6 +909,31 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     menuOv.querySelectorAll('[data-close]').forEach(l=>l.addEventListener('click',()=>{ menuOv.classList.remove('open'); syncMenu(); }));
     // Esc closes
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&menuOv.classList.contains('open')){ menuOv.classList.remove('open'); syncMenu(); } });
+    // Close button inside overlay (for mobile)
+    const menuCloseBtn=document.getElementById('menuCloseBtn');
+    if(menuCloseBtn) menuCloseBtn.addEventListener('click',()=>{ menuOv.classList.remove('open'); syncMenu(); });
+  }
+
+  /* ════ SCROLL TO TOP ON RELOAD ════ */
+  if('scrollRestoration' in history) history.scrollRestoration='manual';
+  window.scrollTo(0,0);
+
+  /* ════ THEME TOGGLE ════ */
+  const themeToggle=document.getElementById('themeToggle');
+  if(themeToggle){
+    const saved=localStorage.getItem('kreativ-theme');
+    if(saved==='light') document.documentElement.classList.add('light');
+    themeToggle.addEventListener('click',()=>{
+      document.documentElement.classList.toggle('light');
+      localStorage.setItem('kreativ-theme',document.documentElement.classList.contains('light')?'light':'dark');
+    });
+  }
+
+  /* ════ BACK TO TOP ════ */
+  const backToTop=document.getElementById('backToTop');
+  if(backToTop){
+    window.addEventListener('scroll',()=>{ backToTop.classList.toggle('visible',window.scrollY>600); },{passive:true});
+    backToTop.addEventListener('click',()=>{ window.scrollTo({top:0,behavior:'smooth'}); });
   }
 
   /* ════ SMOOTH SCROLL — Lenis (integrates with ScrollTrigger) ════ */
@@ -1282,7 +1370,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     const terminal=document.getElementById('terminal');
     if(!out||!inp||!terminal) return;
 
-    const EMAIL='hello@kreativby4knotts.com';
+    const EMAIL='interact@kreativby4knotts.com';
     const history=[]; let hIdx=-1; let buffer=''; let booted=false; let busy=false;
     let bootLines=null, bootTimer=null;
 
@@ -1331,6 +1419,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       help(){ return [
         '<span class="c-bone">Available commands:</span>',
         '  <span class="c-red">services</span>   — what we build',
+        '  <span class="c-red">pricing</span>    — packages & rates',
         '  <span class="c-red">pitch</span>      — why work with us',
         '  <span class="c-red">contact</span>    — how to reach us',
         '  <span class="c-red">social</span>     — find us online',
@@ -1347,6 +1436,22 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         '<span class="c-dim">  + KnottBox AI (Claude API, 14 tools) · try: <span class="c-red">about</span></span>',
         '&nbsp;'
       ];},
+      pricing(){ return [
+        '<span class="c-white">// Packages — starting from</span>',
+        '  <span class="c-bone">RECON</span>     ₹5,000   — Landing page, responsive, basic SEO',
+        '  <span class="c-red">STRIKE</span>    ₹8,000   — Multi-page, GSAP, CMS, unlimited revisions',
+        '  <span class="c-bone">OVERWATCH</span> ₹15,000  — Full-stack app, auth, dashboard, 6mo support',
+        '&nbsp;',
+        '<span class="c-white">// Service rates (Basic → Pro → Premium)</span>',
+        '  Web Dev    ₹12K → ₹30K → ₹75K',
+        '  Design     ₹8K  → ₹20K → ₹50K',
+        '  Content    ₹5K  → ₹12K → ₹30K',
+        '  Marketing  ₹6K  → ₹15K → ₹40K',
+        '  Branding   ₹7K  → ₹18K → ₹45K',
+        '  Video      ₹8K  → ₹22K → ₹60K',
+        '<span class="c-dim">  Custom packages available → type <span class="c-red">contact</span></span>',
+        '&nbsp;'
+      ];},
       pitch(){ return [
         '<span class="c-white">We turn brand noise into signal.</span>',
         '<span class="c-bone">Most agencies talk taste. We ship it —</span>',
@@ -1357,7 +1462,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       contact(){ return [
         '<span class="c-bone">// reach the studio</span>',
         '  email   : <span class="c-red">'+EMAIL+'</span>',
-        '  studio  : Delhi NCR · India',
+        '  studio  : Noida, UP · India',
         '  hours   : Mon–Sat · 10:00–19:00 IST',
         '<span class="c-dim">  tip: click the Email tile on the right to copy →</span>',
         '&nbsp;'
@@ -1379,7 +1484,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       ];},
       clear(){ out.innerHTML=''; return null; },
       whoami(){ return ['<span class="c-bone">a brand that wants to be impossible to ignore.</span>','&nbsp;']; },
-      ls(){ return ['<span class="c-red">services</span>  <span class="c-red">pitch</span>  <span class="c-red">contact</span>  <span class="c-red">social</span>  <span class="c-red">about</span>','&nbsp;']; }
+      ls(){ return ['<span class="c-red">services</span>  <span class="c-red">pricing</span>  <span class="c-red">pitch</span>  <span class="c-red">contact</span>  <span class="c-red">social</span>  <span class="c-red">about</span>','&nbsp;']; }
     };
 
     function run(raw){
@@ -1459,6 +1564,21 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     }
   }
 
+  /* ════ MOBILE ANIMATIONS ════ */
+  function initMobileAnimations(){
+    if(!isMobile||!hasGSAP) return;
+    const animEls=document.querySelectorAll('.work, .pillar, .cap-card, .pstep, .manifesto-text, .foot-top');
+    const io=new IntersectionObserver((ents)=>{
+      ents.forEach(e=>{
+        if(e.isIntersecting){
+          gsap.fromTo(e.target,{opacity:0,y:40},{opacity:1,y:0,duration:0.7,ease:'power3.out'});
+          io.unobserve(e.target);
+        }
+      });
+    },{threshold:0.1});
+    animEls.forEach(el=>{el.style.opacity='0'; io.observe(el);});
+  }
+
   /* ════ BOOT ════ */
   function boot(){
     initLenis();
@@ -1473,6 +1593,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     initCTA();
     initMagnetic();
     initTerminal();
+    initMobileAnimations();
     if(hasGSAP&&ScrollTrigger) ScrollTrigger.refresh();
   }
 
