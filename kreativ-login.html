@@ -1,6 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  browserLocalPersistence,
+  setPersistence
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
+    authDomain: "kreativ-by-4-knotts.firebaseapp.com",
+    projectId: "kreativ-by-4-knotts",
+    storageBucket: "kreativ-by-4-knotts.firebasestorage.app",
+    messagingSenderId: "224866350696",
+    appId: "1:224866350696:web:b890444abd8aee12a2eddd",
+    measurementId: "G-MC6QDM9DJY"
+  };
+
+  const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const provider = new GoogleAuthProvider();
+
+await setPersistence(auth,browserLocalPersistence);
+
+window.auth=auth;
+window.provider=provider;
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Sign in to Kreativ by 4Knotts — client portal and team workspace.">
@@ -398,7 +431,7 @@ body::after{
 
   /* ── submit (front-end only — wire to backend here) ── */
   const form=$('#loginForm'), btn=$('#submitBtn');
-  form.addEventListener('submit',e=>{
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const okE=validateEmail(), okP=validatePass();
     // also flag empty email
@@ -409,13 +442,32 @@ body::after{
     // simulate auth request
     btn.classList.add('loading'); btn.disabled=true;
     $('#btnLabel').textContent='Authenticating…';
-    setTimeout(()=>{
-      btn.classList.remove('loading'); btn.disabled=false;
-      $('#btnLabel').textContent = currentRole==='client' ? 'Enter the studio →' : 'Enter the workspace →';
-      // NOTE: replace this with real auth (Firebase/Supabase/Auth0).
-      // On success: window.location = currentRole==='client' ? '/portal' : '/workspace';
-      toast(`Demo only — connect a backend to sign in as ${currentRole}.`,'◆');
-    },1500);
+    try{
+
+const email=$("#email").value.trim();
+
+const password=$("#password").value;
+
+await signInWithEmailAndPassword(auth,email,password);
+
+toast("Login Successful","✓");
+
+window.location.href="/dashboard.html";
+
+}
+catch(e){
+
+btn.classList.remove("loading");
+
+btn.disabled=false;
+
+$("#btnLabel").textContent=currentRole==="client"
+?"Enter the studio →"
+:"Enter the workspace →";
+
+toast(e.message,"!");
+
+}
   });
   // update button label per role
   const obs=new MutationObserver(()=>{});
@@ -423,17 +475,45 @@ body::after{
   roleToggle.querySelectorAll('button').forEach(b=>b.addEventListener('click',syncBtn));
 
   /* ── secondary actions ── */
-  $('#forgotBtn').addEventListener('click',()=>{
+  $("#forgotBtn").addEventListener('click', async () => {
     const v=$('#email').value.trim();
     if(!emailRe.test(v)){ $('#fEmail').classList.add('invalid'); toast('Enter your email first, then reset.','!'); $('#email').focus(); return; }
-    toast(`Reset link sent to ${v} (demo).`,'✓');
+    try{
+
+await sendPasswordResetEmail(auth,v);
+
+toast("Password reset email sent","✓");
+
+}
+catch(e){
+
+toast(e.message,"!");
+
+}
   });
   $('#magicBtn').addEventListener('click',()=>{
     const v=$('#email').value.trim();
     if(!emailRe.test(v)){ $('#fEmail').classList.add('invalid'); toast('Enter your email for the magic link.','!'); $('#email').focus(); return; }
     toast(`Login link sent to ${v} (demo).`,'✓');
   });
-  $('#googleBtn').addEventListener('click',()=>toast('Google sign-in — connect OAuth to enable.','◆'));
+  $('#googleBtn').addEventListener('click',async()=>{
+
+try{
+
+const result=await signInWithPopup(auth,provider);
+
+toast("Welcome "+result.user.displayName,"✓");
+
+console.log(result.user);
+
+}
+catch(e){
+
+toast(e.message,"!");
+
+}
+
+});
   $('#ssoBtn').addEventListener('click',()=>toast('SSO — connect your identity provider to enable.','◆'));
 
   /* ── live clock ── */
