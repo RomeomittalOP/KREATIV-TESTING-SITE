@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Kreativ by 4Knotts — Client Portal.">
+<meta name="description" content="Kreativ by 4 Knotts â€” Client Portal. Manage your projects, approvals, and communication.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#050505">
-<title>Client Portal — Kreativ Testing Site</title>
+<link rel="icon" type="image/png" href="/logo.png">
+<title>Client Portal â€” Kreativ by 4 Knotts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -41,10 +42,10 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 .pf-save-btn{padding:0.6rem 1.4rem;background:var(--red);color:var(--white);border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:background .2s}
 .pf-save-btn:hover{background:var(--red-dk)}
 
-/* ── LAYOUT ── */
+/* â”€â”€ LAYOUT â”€â”€ */
 .app{display:grid; grid-template-columns:var(--sidebar) 1fr; min-height:100svh}
 
-/* ── SIDEBAR ── */
+/* â”€â”€ SIDEBAR â”€â”€ */
 .sidebar{background:var(--ink); border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100svh; z-index:40}
 .sb-brand{display:flex; align-items:center; gap:0.6rem; padding:1.3rem 1.4rem; border-bottom:1px solid var(--line)}
 .sb-brand img{width:30px;height:30px;object-fit:contain}
@@ -65,7 +66,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 .sb-user .un{font-size:0.82rem;font-weight:500;line-height:1.2}
 .sb-user .uc{font-size:0.7rem;color:var(--bone-d)}
 
-/* ── MAIN ── */
+/* â”€â”€ MAIN â”€â”€ */
 .main{display:flex; flex-direction:column; min-height:100svh; overflow:hidden}
 .topbar{display:flex; align-items:center; justify-content:space-between; padding:1rem 1.8rem; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(5,5,5,0.85); backdrop-filter:blur(10px); z-index:30}
 .tb-left{display:flex; align-items:center; gap:1rem}
@@ -223,7 +224,6 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAJFklEQVR42u1ZfWyVVx1+fr/zvvej9IvS2xXaDTHCOtfABjM43dY1S8TFmBEIBOYSnC5KNCabxlTjRyU6wU2zzY9p1RDnH04ocYNlq07YhQ1nR/cJdtDy0RG6UWhvSz/ube993/P7+cd9b71swCilY+pOcnJzz/tx3+ec53ne5/wu8EG7tI2m6sYKUDPAZzrWDug6QPLHGgG+OduVssf0v2YW9QxA9Twn15miVdVvAkXzHacmDagLwAPgArAACZF/l+e9BkAaASZAmkKhmuuVPjFAnKjLjD5JgK8A0Xu9EvFgUp427g972OjrzNrBrB1sdD8bfZNZ42xaAbAG58bd8F0DTnhMnLCKE9YOE37+xyiaoQDpFNL8rNxfBLh72BzsIZbDbPzDbORQtnvH2eg2dr6cO/dn0WhVtwmlfQ7roAllhkworSase0z4oeCcc7KEJ0INVT2tv30sXlfnQBV3O87Hy4GPjBCpAEYAstkfc44TRp6NhLaqKpEqPmrpmhmg0EiWXa6CDUB2OnBj8Lt20hpQVSYiIXrnauaPKSBEpM8Yc3sRgH5VyU2SAnYakXNM5KmfplI99xMZAPYtoGvUuAiTUQ/wAfggiqQJR4NH53OBmAi/aM2aNeHi4uJxUe3du9euX7/ebWtrk+L+fhoqK9Oelpbi5du3751hpXKMIFCwgsCAddWaFwoLV/Tee+8T09vaHGuMnbVhgyn58NzfLE57dygRSBUnDKX2gG/8rJd6BVkhywUByM18Z2dnXVVV1cPGmAJrLRGRMLNJJBI7Hccpmj59+iLJZIRCIUrt2BFOL19RSQUFWTtSBZiB5Bhk/tUo3v70Mcd1RVWFmd3hoaHOZfv23bbhU59eXa18S4q0fze46Yte6rVJu5CqOgDQ39//sJ6hJZPJI62travzx0a//V3tdcKSqKzWREWl9lXM1MSsK7TXLdDh++4/7fqxsTHvwIEDH8sS5XQ5Nk5Mn+cGcOrUqQdV1Vpr077vW9/3fVW1w8PDCQBI9PX9UVU1MziY6b2qVvpKyrSvYqb2xi7T3vKZ2ls+U0+WX6Zj+/erVbXq+2nf9/XgwYNLASAejzsKmKA7OoGH5/MEQgA4oBQH1zEAveeee6JdbW0NaWCYWlsdOXQIiEagChAMYAw0mYRZvBhuTQ3UWoExoZ6enh/MnTv3cVV16uvrfQJs0P1zcX4yNpoPCAAgIlpVVTXtultvPd4PNOqTLSBVUeX/MJcI6nkIL18GBnxjjNPX1/eX6urqdarqEJE/GZacF4C322f+977Dh62q0vpIZNuxRzdZt7TMqLU5WwXSadDls+DeusQCcIaHhto3btz4eVXld/P4i0mhsx4rHhlhItL5nrc0darfESJ/HB4zJJUE3XSThioraSyZHNy7b9/yhoaG4ebmZiKiSeecCYU5IgIRnQaICgsFAGaQWTXseehLj1IsWgDfSs7AtXj1KiuA89aRI5+74YYbOuLxuFNfX+9jqlvOhQYGBh7SrA15IqK+74uq6tDAQOJLqu5PgCu3G8fGiWWX4+rxWKX2XlalJ0tm6Mmr53uqqsd7e7+Vf8+L1SbltSrCv41EvMuBVaVQFiI76nvoSSVhHAf+4KAfu/NOJwH8eWYstuFiiHZSAFT1NPqYUMhbsHZtaQS0MqOAqLIhRu9oEoPJESmbPds5WTPvlWeAL+jmzeZiiHZSAHIaGL+4sHBk9ZYtnywGrkplTYcBwFPR3pEh6i8t7XvVdZavJBpFe7teDNFeEAAROVv29yoHh1YXQUmDl48CMCArIvTsv179w5IlS7peXLTIpXXrZCp06lyAsMcT4NjAQOV0az+TzpsMygIwQwCOUmiTaoqaiWSqjGbCIiYiIBst4HZ2Fhelx0o9NqBgDIAtAGhI5NUGf/RlENHKKeD+hABwkBTHRRwIOb3tCaiIiuHx5KAACIpkSWnLClXCihW53dv7YwUAgBwHmk7Da2kBAQQruYfXkDHmBDQx75c/N78bG9tCzc0WgJmqGtSEXQgiICJkWlthD3QAxhlfEQKkAMCI4oWa2+/4UEkksrT76NHvEJGvqub9oYGAJpnHnwB7PjRHLwBgoqTvwVx77etFjHqx1s6srv5Re3v7UiLy4/G4c2kBqALGwA4Pw//7DlDBNEAECkChGmbDfUD31Q88EDFATFXBzDJnzpxHdu/efWV9fb0fpNBLBCBHn2efg3R1gaIRUO7NTCQhazHG/NLcurrrAvWTiGg0Gi2ura3d0tTUVJC3QboEUSLo3mNbwaLIPkbWlYiZT4mV0lW390SBa1QEBDARGRHxS0pKapctW/Z7yr4TzKURsevCJhLwdu4CiqYBohAQlEgLiGgQ6Kpt/F45gIiI2LzY4YiIX15evrq7u/sbgaid9xwAA8hs3wG8+SYoHM7bNZLC95EuK+ucNW/ewmCQc8EvAGIA+BUVFfe3t7ffcrGcaUIABEBm6zaAGJKXStkwD6hmrrj77qEQMNv6vjIz5Qc/IiIRYdd1MWfOnEd37dp1OTPbyYr6/MKcn43wXvcx+LufBxVOA4lka4mqEhLBMHDkyrVrq6DKevZiFFtrJRqNxhYsWLBp4cKFbq6+OrVRQkQBaOavf4OeOAENhSDIxgpmhrUWodraropYrAZE1nEcDWqp4z2oxFljDAFIl5SUXN/S0vIAUa7uO4UALFEYAGUe2wqEQ8jWbLMlk5AxPAikqhsaZjBQHnDd5NWOOBunmPPGwwAQi8W+2tHR8TUisheqh3dzAtsI8IE33ngw9YtfHa54Zsd9IqKSHiUBwVcR1/qcYT6UKCv7+st79hR5qkJnKmO/M5ar4zjIZDLpIDBOTWLN/eOyBWjcD9J/EnnPgXQnoDsB7yVifcRxvo9L1N6NQnQzYNfU1UXKXPdOSwCBmYngEMMlNqdA3lGfN6kqv9jU5KqqmWCflAudc6k3A2YlYH9tzM2LRXcI1PrELKoQwBYB5g3CP24TqdPgz7r3egXOqYEVwWcV8JUKgPsBDkEh2fKCiYAwAPoTINiZXc33FwAKtoIjwMZ9hC2jxApV8sjABZAGqF28pwCgfgq3jf/T7bzegJsBEzvLucHM6wdT+f/a/g2rvvsSpwXeWgAAAABJRU5ErkJggg==">
 </head>
 <body>
 
@@ -248,7 +248,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
     <div class="sb-foot">
       <div class="sb-user" style="cursor:pointer" onclick="document.querySelectorAll('.sb-link').forEach(l=>{l.classList.remove('active');if(l.dataset.view==='profile')l.classList.add('active')});document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-profile'));document.getElementById('tbTitle').textContent='My Profile'">
         <div class="sb-avatar" id="sb-av">?</div>
-        <div><div class="un" id="sb-name">Loading...</div><div class="uc" id="sb-company">—</div></div>
+        <div><div class="un" id="sb-name">Loading...</div><div class="uc" id="sb-company">â€”</div></div>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px;margin-left:auto;color:var(--bone-d)"><path d="M12 15.5l-5-5h10z" fill="currentColor" stroke="none"/></svg>
       </div>
     </div>
@@ -263,11 +263,11 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
       </div>
       <div class="tb-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input type="text" placeholder="Search projects, files…" aria-label="Search">
+        <input type="text" placeholder="Search projects, filesâ€¦" aria-label="Search">
         <span class="kbd">/</span>
       </div>
       <div class="tb-right">
-        <span class="tb-clock" id="clock">—</span>
+        <span class="tb-clock" id="clock">â€”</span>
         <button class="icon-btn" id="bellBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span class="dot"></span></button>
         <button class="icon-btn" id="signout" aria-label="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
       </div>
@@ -275,26 +275,26 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 
     <div class="content">
 
-      <!-- ═══ OVERVIEW ═══ -->
+      <!-- â•â•â• OVERVIEW â•â•â• -->
       <section class="view active" id="v-overview">
         <div class="welcome">
           <div>
             <h1 id="welcome-name">Welcome back.</h1>
             <p class="sub">Your dashboard is ready. Projects and updates will appear here once work begins.</p>
           </div>
-          <div class="date" id="welcomeDate">—</div>
+          <div class="date" id="welcomeDate">â€”</div>
         </div>
 
         <div class="stats">
           <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Active projects</div><div class="sv">0</div><div class="sc">No projects yet</div></div>
           <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/></svg>Awaiting you</div><div class="sv">0</div><div class="sc">Nothing pending</div></div>
           <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/></svg>Files shared</div><div class="sv">0</div><div class="sc">No files yet</div></div>
-          <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>Next invoice</div><div class="sv">—</div><div class="sc">No invoices</div></div>
+          <div class="stat"><div class="sl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>Next invoice</div><div class="sv">â€”</div><div class="sc">No invoices</div></div>
         </div>
 
         <div class="grid-2">
           <div>
-            <div class="sec-head"><h2>Active projects</h2><a data-jump="projects">View all →</a></div>
+            <div class="sec-head"><h2>Active projects</h2><a data-jump="projects">View all â†’</a></div>
             <div id="ovProjects"></div>
           </div>
           <div>
@@ -305,54 +305,54 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
           </div>
         </div>
 
-        <div class="sec-head"><h2>Needs your approval</h2><a data-jump="approvals">View all →</a></div>
+        <div class="sec-head"><h2>Needs your approval</h2><a data-jump="approvals">View all â†’</a></div>
         <div id="ovApprovals"></div>
       </section>
 
-      <!-- ═══ PROJECTS ═══ -->
+      <!-- â•â•â• PROJECTS â•â•â• -->
       <section class="view" id="v-projects">
         <div id="allProjects"></div>
       </section>
 
-      <!-- ═══ APPROVALS ═══ -->
+      <!-- â•â•â• APPROVALS â•â•â• -->
       <section class="view" id="v-approvals">
         <p style="color:var(--bone);margin-bottom:1.3rem;font-size:0.92rem">Review and approve deliverables. Approving moves the project to its next stage.</p>
         <div id="allApprovals"></div>
       </section>
 
-      <!-- ═══ FILES ═══ -->
+      <!-- â•â•â• FILES â•â•â• -->
       <section class="view" id="v-files">
         <div class="panel">
-          <div class="panel-head"><h3>All files</h3><span style="font-family:var(--f-mono);font-size:0.74rem;color:var(--bone-d)">52 files · 248 MB</span></div>
+          <div class="panel-head"><h3>All files</h3><span style="font-family:var(--f-mono);font-size:0.74rem;color:var(--bone-d)">52 files Â· 248 MB</span></div>
           <div id="fileList"></div>
         </div>
       </section>
 
-      <!-- ═══ MESSAGES ═══ -->
+      <!-- â•â•â• MESSAGES â•â•â• -->
       <section class="view" id="v-messages">
         <div class="panel">
-          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">● Kreativ team online</span></div>
+          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">â— Kreativ team online</span></div>
           <div id="msgList"></div>
           <div class="msg-compose">
-            <input type="text" id="msgInput" placeholder="Message the studio…" aria-label="Message">
+            <input type="text" id="msgInput" placeholder="Message the studioâ€¦" aria-label="Message">
             <button class="msg-send" id="msgSend" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="#050505" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
           </div>
         </div>
       </section>
 
-      <!-- ═══ PROFILE ═══ -->
+      <!-- â•â•â• PROFILE â•â•â• -->
       <section class="view" id="v-profile">
         <div style="max-width:680px">
           <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:2rem">
             <div id="pf-avatar" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--red-dk));display:grid;place-items:center;font-family:var(--f-disp);font-size:1.8rem;color:var(--white);flex-shrink:0;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('pf-photo-input').click()">
               <span id="pf-av-letter">?</span>
               <img id="pf-photo-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none" alt="">
-              <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:0.7rem;font-family:var(--f-body);letter-spacing:0" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">📷 Change</div>
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:0.7rem;font-family:var(--f-body);letter-spacing:0" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">ðŸ“· Change</div>
             </div>
             <input type="file" id="pf-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)">
             <div>
-              <div style="font-family:var(--f-disp);font-size:1.6rem;letter-spacing:0.02em" id="pf-display-name">—</div>
-              <div style="font-size:0.8rem;color:var(--bone-d)" id="pf-display-email">—</div>
+              <div style="font-family:var(--f-disp);font-size:1.6rem;letter-spacing:0.02em" id="pf-display-name">â€”</div>
+              <div style="font-size:0.8rem;color:var(--bone-d)" id="pf-display-email">â€”</div>
             </div>
           </div>
 
@@ -413,12 +413,12 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
         </div>
       </section>
 
-      <!-- ═══ INVOICES ═══ -->
+      <!-- â•â•â• INVOICES â•â•â• -->
       <section class="view" id="v-invoices">
         <div class="stats" style="grid-template-columns:repeat(3,1fr)">
-          <div class="stat"><div class="sl">Paid to date</div><div class="sv">₹0</div><div class="sc">No invoices yet</div></div>
-          <div class="stat"><div class="sl">Outstanding</div><div class="sv">—</div><div class="sc">Nothing due</div></div>
-          <div class="stat"><div class="sl">Retainer</div><div class="sv">—</div><div class="sc">Not active</div></div>
+          <div class="stat"><div class="sl">Paid to date</div><div class="sv">â‚¹0</div><div class="sc">No invoices yet</div></div>
+          <div class="stat"><div class="sl">Outstanding</div><div class="sv">â€”</div><div class="sc">Nothing due</div></div>
+          <div class="stat"><div class="sl">Retainer</div><div class="sv">â€”</div><div class="sc">Not active</div></div>
         </div>
         <div class="panel">
           <div class="panel-head"><h3>Invoices</h3></div>
@@ -430,10 +430,10 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
   </div>
 </div>
 
-<div class="toast" id="toast"><span class="ti" id="toastIcon">✓</span><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><span class="ti" id="toastIcon">âœ“</span><span id="toastMsg"></span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-/* ═══ Firebase Init + Auth Gate ═══ */
+/* â•â•â• Firebase Init + Auth Gate â•â•â• */
 firebase.initializeApp({
   apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
   authDomain: "kreativ-by-4-knotts.firebaseapp.com",
@@ -488,7 +488,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   const $=s=>document.querySelector(s);
   const $$=s=>[...document.querySelectorAll(s)];
 
-  /* ════════ SAMPLE DATA (replace with backend fetch) ════════ */
+  /* â•â•â•â•â•â•â•â• SAMPLE DATA (replace with backend fetch) â•â•â•â•â•â•â•â• */
   const STAGES=['Listen','Sharpen','Shape','Broadcast'];
   const projects=[];
   const approvals=[];
@@ -497,7 +497,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   const invoices=[];
   const activity=[];
 
-  /* ════════ RENDER HELPERS ════════ */
+  /* â•â•â•â•â•â•â•â• RENDER HELPERS â•â•â•â•â•â•â•â• */
   function pipelineHTML(stage){
     let steps=STAGES.map((s,i)=>{
       const cls = i<stage?'done' : i===stage?'current' : '';
@@ -516,7 +516,7 @@ firebase.auth().onAuthStateChanged(function(user) {
       </div>
       ${pipelineHTML(p.stage)}
       <div class="proj-foot">
-        <div class="proj-next">Next: <b>${p.next}</b> · due ${p.due}</div>
+        <div class="proj-next">Next: <b>${p.next}</b> Â· due ${p.due}</div>
         <div class="proj-pct">${p.pct}%</div>
       </div>
     </div>`;
@@ -556,7 +556,7 @@ firebase.auth().onAuthStateChanged(function(user) {
     <button class="inv-btn">${v.status==='paid'?'Receipt':'Pay now'}</button>
   </div>`).join('');
 
-  /* ════════ SHADER THUMBNAILS (approval previews) ════════ */
+  /* â•â•â•â•â•â•â•â• SHADER THUMBNAILS (approval previews) â•â•â•â•â•â•â•â• */
   function initThumbs(){
     if(typeof THREE==='undefined') return;
     $$('.approve-thumb canvas').forEach(canvas=>{
@@ -585,7 +585,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   }
   initThumbs();
 
-  /* ════════ VIEW ROUTING ════════ */
+  /* â•â•â•â•â•â•â•â• VIEW ROUTING â•â•â•â•â•â•â•â• */
   const titles={overview:'Overview',projects:'Projects',approvals:'Approvals',files:'Files',messages:'Messages',invoices:'Invoices',profile:'My Profile'};
   function go(view){
     $$('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
@@ -597,11 +597,11 @@ firebase.auth().onAuthStateChanged(function(user) {
   $$('.sb-link').forEach(l=>l.addEventListener('click',()=>go(l.dataset.view)));
   $$('[data-jump]').forEach(j=>j.addEventListener('click',()=>go(j.dataset.jump)));
 
-  /* ════════ TOAST ════════ */
+  /* â•â•â•â•â•â•â•â• TOAST â•â•â•â•â•â•â•â• */
   let tt=null;
-  function toast(msg,icon){$('#toastMsg').textContent=msg;$('#toastIcon').textContent=icon||'✓';const t=$('#toast');t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3500);}
+  function toast(msg,icon){$('#toastMsg').textContent=msg;$('#toastIcon').textContent=icon||'âœ“';const t=$('#toast');t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3500);}
 
-  /* ════════ INTERACTIONS ════════ */
+  /* â•â•â•â•â•â•â•â• INTERACTIONS â•â•â•â•â•â•â•â• */
   // approve / comment
   $$('[data-action]').forEach(btn=>{
     btn.addEventListener('click',e=>{
@@ -611,15 +611,15 @@ firebase.auth().onAuthStateChanged(function(user) {
         card.style.transition='opacity .4s, transform .4s';
         card.style.opacity='0'; card.style.transform='translateX(20px)';
         setTimeout(()=>card.style.display='none',400);
-        toast('Approved: '+title+' — studio notified.','✓');
+        toast('Approved: '+title+' â€” studio notified.','âœ“');
       } else {
-        toast('Comment thread opened for '+title+' (demo).','◆');
+        toast('Comment thread opened for '+title+' (demo).','â—†');
       }
     });
   });
   // file downloads
-  $$('.file-dl').forEach(b=>b.addEventListener('click',()=>toast('Download started (demo).','↓')));
-  $$('.inv-btn').forEach(b=>b.addEventListener('click',()=>toast(b.textContent==='Pay now'?'Redirecting to payment (demo).':'Receipt downloaded (demo).','◆')));
+  $$('.file-dl').forEach(b=>b.addEventListener('click',()=>toast('Download started (demo).','â†“')));
+  $$('.inv-btn').forEach(b=>b.addEventListener('click',()=>toast(b.textContent==='Pay now'?'Redirecting to payment (demo).':'Receipt downloaded (demo).','â—†')));
   // messages
   function sendMsg(){
     const inp=$('#msgInput'); const v=inp.value.trim(); if(!v) return;
@@ -629,7 +629,7 @@ firebase.auth().onAuthStateChanged(function(user) {
     list.appendChild(d); inp.value=''; list.scrollTop=list.scrollHeight;
     setTimeout(()=>{
       const r=document.createElement('div'); r.className='msg';
-      r.innerHTML=`<div class="msg-av studio">K</div><div class="msg-body"><div class="msg-head"><span class="msg-name">Kreativ Studio</span><span class="msg-time">just now</span></div><div class="msg-text">Got it — we'll get back to you shortly. (auto-reply demo)</div></div>`;
+      r.innerHTML=`<div class="msg-av studio">K</div><div class="msg-body"><div class="msg-head"><span class="msg-name">Kreativ Studio</span><span class="msg-time">just now</span></div><div class="msg-text">Got it â€” we'll get back to you shortly. (auto-reply demo)</div></div>`;
       list.appendChild(r); list.scrollTop=list.scrollHeight;
     },1200);
   }
@@ -639,8 +639,8 @@ firebase.auth().onAuthStateChanged(function(user) {
   $('#bellBtn').addEventListener('click',()=>{
     const dot=$('#bellBtn .dot');dot.style.display='none';
     if(window._portalNotifications&&window._portalNotifications.length>0){
-      toast(window._portalNotifications[0],'◆');
-    } else { toast('No new notifications.','◆'); }
+      toast(window._portalNotifications[0],'â—†');
+    } else { toast('No new notifications.','â—†'); }
   });
   // Real-time notifications from Firestore activity_feed
   (function(){
@@ -651,7 +651,7 @@ firebase.auth().onAuthStateChanged(function(user) {
           if(change.type==='added'){
             var d=change.doc.data();
             if(Date.now()-d.ts<300000){
-              window._portalNotifications.unshift((d.icon||'◌')+' '+(d.detail||d.action));
+              window._portalNotifications.unshift((d.icon||'â—Œ')+' '+(d.detail||d.action));
               if(window._portalNotifications.length>10)window._portalNotifications.length=10;
               $('#bellBtn .dot').style.display='block';
             }
@@ -661,24 +661,24 @@ firebase.auth().onAuthStateChanged(function(user) {
   })();
   $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
-  /* ════════ MOBILE SIDEBAR ════════ */
+  /* â•â•â•â•â•â•â•â• MOBILE SIDEBAR â•â•â•â•â•â•â•â• */
   const sidebar=$('#sidebar'), scrim=$('#scrim');
   function openSidebar(){sidebar.classList.add('open');scrim.classList.add('show');}
   function closeSidebar(){sidebar.classList.remove('open');scrim.classList.remove('show');}
   $('#menuBtn').addEventListener('click',openSidebar);
   scrim.addEventListener('click',closeSidebar);
 
-  /* ════════ CLOCK + DATE ════════ */
-  function tick(){const n=new Date();const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));$('#clock').textContent='NOI · '+String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0');}
+  /* â•â•â•â•â•â•â•â• CLOCK + DATE â•â•â•â•â•â•â•â• */
+  function tick(){const n=new Date();const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));$('#clock').textContent='NOI Â· '+String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0');}
   tick();setInterval(tick,10000);
   $('#welcomeDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-  /* ════════ SEARCH SHORTCUT ════════ */
+  /* â•â•â•â•â•â•â•â• SEARCH SHORTCUT â•â•â•â•â•â•â•â• */
   document.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT'){ e.preventDefault(); $('.tb-search input')?.focus(); } });
 
 })();
 
-/* ════════ PROFILE FUNCTIONS (global scope for onclick) ════════ */
+/* â•â•â•â•â•â•â•â• PROFILE FUNCTIONS (global scope for onclick) â•â•â•â•â•â•â•â• */
 const _db = firebase.firestore();
 
 function generateClientId(email) {
@@ -688,7 +688,7 @@ function generateClientId(email) {
 async function loadClientProfile() {
   const user = firebase.auth().currentUser;
   if (!user) return;
-  document.getElementById('pf-display-name').textContent = window._clientName || '—';
+  document.getElementById('pf-display-name').textContent = window._clientName || 'â€”';
   document.getElementById('pf-display-email').textContent = user.email;
   document.getElementById('pf-email').value = user.email;
   document.getElementById('pf-av-letter').textContent = window._clientInitial || '?';
@@ -752,7 +752,7 @@ async function saveClientProfile() {
     if (data.company) document.getElementById('sb-company').textContent = data.company;
     const t = document.getElementById('toast');
     document.getElementById('toastMsg').textContent = 'Profile saved successfully!';
-    document.getElementById('toastIcon').textContent = '✓';
+    document.getElementById('toastIcon').textContent = 'âœ“';
     t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
     // Navigate back to overview after short delay
     setTimeout(()=>{
@@ -788,7 +788,7 @@ function sendResetFromProfile() {
   firebase.auth().sendPasswordResetEmail(user.email).then(()=>{
     const t = document.getElementById('toast');
     document.getElementById('toastMsg').textContent = 'Password reset email sent to ' + user.email;
-    document.getElementById('toastIcon').textContent = '✓';
+    document.getElementById('toastIcon').textContent = 'âœ“';
     t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3500);
   }).catch(e=>alert(e.message));
 }
@@ -796,7 +796,7 @@ function sendResetFromProfile() {
 // Load profile when auth is ready
 firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500); });
 
-/* ════════ CLIENT SESSION TRACKING (auto-analytics) ════════ */
+/* â•â•â•â•â•â•â•â• CLIENT SESSION TRACKING (auto-analytics) â•â•â•â•â•â•â•â• */
 (function(){
   let _sessionDocId=null;
   const _pagesVisited=[];
@@ -844,7 +844,7 @@ firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500)
     }
   });
 
-  // On exit — log duration
+  // On exit â€” log duration
   function endSession(){
     if(!_sessionDocId) return;
     const duration=Date.now()-_loginTime;

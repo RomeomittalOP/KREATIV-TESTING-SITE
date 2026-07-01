@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <script type="module">
@@ -42,10 +42,11 @@ window.firebase = {
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Sign in to Kreativ by 4Knotts — client portal and team workspace.">
+<meta name="description" content="Sign in to Kreativ by 4 Knotts â€” client portal and team workspace.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#050505">
-<title>Sign in — Kreativ Testing Site</title>
+<link rel="icon" type="image/png" href="/logo.png">
+<title>Sign in â€” Kreativ by 4 Knotts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -101,7 +102,7 @@ body::after{
   .auth-h1{font-size:2.4rem}
 }
 
-/* ── LEFT: auth panel ── */
+/* â”€â”€ LEFT: auth panel â”€â”€ */
 .auth{display:flex; flex-direction:column; justify-content:space-between; padding:clamp(1.5rem,4vw,3rem); min-height:100svh}
 .auth-top{display:flex; align-items:center; justify-content:space-between}
 .brand{display:flex; align-items:center; gap:0.6rem}
@@ -184,7 +185,7 @@ body::after{
 .auth-foot .dot{width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 7px var(--green); animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-/* ── RIGHT: brand panel ── */
+/* â”€â”€ RIGHT: brand panel â”€â”€ */
 .aside{position:relative; border-left:1px solid rgba(245,245,245,0.08); padding:clamp(2rem,5vw,4rem); display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; background:linear-gradient(135deg, rgba(255,30,30,0.04), transparent 60%)}
 @media(max-width:900px){ .aside{display:none} }
 .aside-slash{position:absolute; top:50%; left:60%; width:90px; height:160vh; background:linear-gradient(180deg,var(--red),var(--red-dk)); transform:translate(-50%,-50%) rotate(20deg); opacity:0.1; mix-blend-mode:screen; pointer-events:none}
@@ -211,7 +212,6 @@ body::after{
   .aside-feature{opacity:1;transform:none}
 }
 </style>
-<link rel="icon" type="image/png" href="data:image/png;base64,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">
 </head>
 <body>
 
@@ -226,7 +226,7 @@ body::after{
         <img src="data:image/png;base64,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" alt="Kreativ by 4Knotts logo">
         <span class="brand-name">KREATIV<b>/</b>4KNOTTS</span>
       </a>
-      <a href="/" class="back-link">← Back to site</a>
+      <a href="/" class="back-link">â† Back to site</a>
     </div>
 
     <div class="auth-mid">
@@ -245,7 +245,7 @@ body::after{
       <div class="term">
         <div class="term-bar">
           <div class="term-dots"><span class="td td-r"></span><span class="td td-y"></span><span class="td td-g"></span></div>
-          <div class="term-title" id="termTitle">kreativ@4knotts — auth — client</div>
+          <div class="term-title" id="termTitle">kreativ@4knotts â€” auth â€” client</div>
           <div style="width:46px"></div>
         </div>
         <div class="term-prompt-line"><span class="usr">kreativ@4knotts</span>:~$ authenticate <span class="arg" id="promptArg">--client</span></div>
@@ -264,7 +264,7 @@ body::after{
             <label for="password">Password</label>
             <div class="input-wrap">
               <span class="sigil">#</span>
-              <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+              <input type="password" id="password" name="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" required>
               <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password">Show</button>
             </div>
             <div class="field-error" id="errPass">Password is required.</div>
@@ -281,7 +281,7 @@ body::after{
 
           <button type="submit" class="submit-btn" id="submitBtn">
             <span class="spinner"></span>
-            <span class="btn-label" id="btnLabel">Enter the studio →</span>
+            <span class="btn-label" id="btnLabel">Enter the studio â†’</span>
           </button>
         </form>
 
@@ -306,8 +306,8 @@ body::after{
     </div>
 
     <div class="auth-foot">
-      <div class="status"><span class="dot"></span><span id="footStatus">Secure connection · Noida, UP</span></div>
-      <span id="footClock">—</span>
+      <div class="status"><span class="dot"></span><span id="footStatus">Secure connection Â· Noida, UP</span></div>
+      <span id="footClock">â€”</span>
     </div>
   </main>
 
@@ -322,46 +322,46 @@ body::after{
       <!-- features injected per role -->
     </div>
     <div class="aside-foot">
-      <span>© 2026 4Knotts Brand House</span>
+      <span>Â© 2026 Kreativ by 4 Knotts</span>
       <span>kreativby4knotts.com</span>
     </div>
   </aside>
 </div>
 
-<div class="toast" id="toast"><span class="ti" id="toastIcon">✓</span><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><span class="ti" id="toastIcon">âœ“</span><span id="toastMsg"></span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
   'use strict';
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ── role content ── */
+  /* â”€â”€ role content â”€â”€ */
   const ROLES={
     client:{
       eyebrow:'Client Portal',
       sub:'Sign in to track your projects, review deliverables, and message the studio.',
-      termTitle:'kreativ@4knotts — auth — client',
+      termTitle:'kreativ@4knotts â€” auth â€” client',
       promptArg:'--client',
       asideEyebrow:'Inside the portal',
       asideHeadline:'Your projects.<br>Your pipeline.<br>Your signal.',
       sso:'google',
       features:[
         ['01','Live project tracking','Track Kreativ Platform v2, backend APIs, and build wizard progress in real time.'],
-        ['02','Review & approve','Approve pricing page designs, wizard mockups, and auth flows — all in one place.'],
+        ['02','Review & approve','Approve pricing page designs, wizard mockups, and auth flows â€” all in one place.'],
         ['03','Direct line to the studio','Message your team about estimators, OTP flows, and file uploads without email.']
       ]
     },
     team:{
       eyebrow:'Team Workspace',
-      sub:'Sign in to the internal workspace — React + Express stack, AI agents, and studio ops.',
-      termTitle:'kreativ@4knotts — auth — team',
+      sub:'Sign in to the internal workspace â€” React + Express stack, AI agents, and studio ops.',
+      termTitle:'kreativ@4knotts â€” auth â€” team',
       promptArg:'--team --sso',
       asideEyebrow:'Inside the workspace',
       asideHeadline:'The full stack.<br>The AI lab.<br>The engine room.',
       sso:'google',
       features:[
         ['01','AI agent dashboard','Run Kreativ AI, KnottBox Claude API, and the 14-tool agent suite from one console.'],
-        ['02','Pipeline & ops','OTP auth, pricing engine, build wizard — the platform operating system.'],
+        ['02','Pipeline & ops','OTP auth, pricing engine, build wizard â€” the platform operating system.'],
         ['03','Build & deploy','Ship React + Express features, manage MongoDB, and push the stack forward.']
       ]
     }
@@ -400,7 +400,7 @@ body::after{
   });
   renderRole('client');
 
-  /* ── password toggle ── */
+  /* â”€â”€ password toggle â”€â”€ */
   const pw=$('#password'), togglePw=$('#togglePw');
   togglePw.addEventListener('click',()=>{
     const show=pw.type==='password';
@@ -409,7 +409,7 @@ body::after{
     togglePw.setAttribute('aria-label',show?'Hide password':'Show password');
   });
 
-  /* ── validation ── */
+  /* â”€â”€ validation â”€â”€ */
   const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   function validateEmail(){
     const f=$('#fEmail'), v=$('#email').value.trim();
@@ -427,15 +427,15 @@ body::after{
   $('#email').addEventListener('input',()=>{ if($('#fEmail').classList.contains('invalid')) validateEmail(); });
   $('#password').addEventListener('input',()=>{ if($('#fPass').classList.contains('invalid')) validatePass(); });
 
-  /* ── toast ── */
+  /* â”€â”€ toast â”€â”€ */
   let toastTimer=null;
   function toast(msg,icon){
-    $('#toastMsg').textContent=msg; $('#toastIcon').textContent=icon||'✓';
+    $('#toastMsg').textContent=msg; $('#toastIcon').textContent=icon||'âœ“';
     const t=$('#toast'); t.classList.add('show');
     clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3800);
   }
 
-  /* ── submit (front-end only — wire to backend here) ── */
+  /* â”€â”€ submit (front-end only â€” wire to backend here) â”€â”€ */
   const form=$('#loginForm'), btn=$('#submitBtn');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -447,7 +447,7 @@ body::after{
     }
     // simulate auth request
     btn.classList.add('loading'); btn.disabled=true;
-    $('#btnLabel').textContent='Authenticating…';
+    $('#btnLabel').textContent='Authenticatingâ€¦';
     try{
 
 const email=$("#email").value.trim();
@@ -456,7 +456,7 @@ const password=$("#password").value;
 
 await window.firebase.signInWithEmailAndPassword(auth,email,password);
 
-toast("Login Successful","✓");
+toast("Login Successful","âœ“");
 
 window.location.href = currentRole === "team" ? "/kreativ-workspace" : "/kreativ-portal";
 
@@ -468,8 +468,8 @@ btn.classList.remove("loading");
 btn.disabled=false;
 
 $("#btnLabel").textContent=currentRole==="client"
-?"Enter the studio →"
-:"Enter the workspace →";
+?"Enter the studio â†’"
+:"Enter the workspace â†’";
 
 toast(e.message,"!");
 
@@ -477,10 +477,10 @@ toast(e.message,"!");
   });
   // update button label per role
   const obs=new MutationObserver(()=>{});
-  function syncBtn(){ $('#btnLabel').textContent = currentRole==='client'?'Enter the studio →':'Enter the workspace →'; }
+  function syncBtn(){ $('#btnLabel').textContent = currentRole==='client'?'Enter the studio â†’':'Enter the workspace â†’'; }
   roleToggle.querySelectorAll('button').forEach(b=>b.addEventListener('click',syncBtn));
 
-  /* ── secondary actions ── */
+  /* â”€â”€ secondary actions â”€â”€ */
   $("#forgotBtn").addEventListener('click', async () => {
     const v=$('#email').value.trim();
     if(!emailRe.test(v)){ $('#fEmail').classList.add('invalid'); toast('Enter your email first, then reset.','!'); $('#email').focus(); return; }
@@ -488,7 +488,7 @@ toast(e.message,"!");
 
 await sendPasswordResetEmail(auth,v);
 
-toast("Password reset email sent","✓");
+toast("Password reset email sent","âœ“");
 
 }
 catch(e){
@@ -500,7 +500,7 @@ toast(e.message,"!");
   $('#magicBtn').addEventListener('click',()=>{
     const v=$('#email').value.trim();
     if(!emailRe.test(v)){ $('#fEmail').classList.add('invalid'); toast('Enter your email for the magic link.','!'); $('#email').focus(); return; }
-    toast(`Login link sent to ${v} (demo).`,'✓');
+    toast(`Login link sent to ${v} (demo).`,'âœ“');
   });
   const TEAM_EMAILS = ['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
 
@@ -509,22 +509,22 @@ toast(e.message,"!");
       const result = await window.firebase.signInWithPopup(window.auth, window.provider);
       const email = result.user.email.toLowerCase();
       const isTeam = TEAM_EMAILS.includes(email);
-      toast("Welcome " + (result.user.displayName || email.split('@')[0]), "✓");
+      toast("Welcome " + (result.user.displayName || email.split('@')[0]), "âœ“");
       setTimeout(()=>{ window.location.href = isTeam ? "/kreativ-workspace" : "/kreativ-portal"; }, 600);
     } catch (e) {
       if (e.code !== 'auth/popup-closed-by-user') toast(e.message, "!");
     }
   });
-  $('#ssoBtn').addEventListener('click',()=>toast('SSO — connect your identity provider to enable.','◆'));
+  $('#ssoBtn').addEventListener('click',()=>toast('SSO â€” connect your identity provider to enable.','â—†'));
 
-  /* ── live clock ── */  
+  /* â”€â”€ live clock â”€â”€ */  
   function tick(){
     const n=new Date(); const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));
     $('#footClock').textContent=String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0')+' IST';
   }
   tick(); setInterval(tick,10000);
 
-  /* ── particle background ── */
+  /* â”€â”€ particle background â”€â”€ */
   function initBG(){
     if(reduce || typeof THREE==='undefined') return;
     const canvas=$('#bg-canvas'); if(!canvas) return;
