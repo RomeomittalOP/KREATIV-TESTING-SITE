@@ -414,7 +414,7 @@ function updateSyncStatus(ok) {
 /* ═══════════════════════════════════════════════════════
    Session & Default Data
    ═══════════════════════════════════════════════════════ */
-let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}};
+let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}};
 
 const DEFAULT_MEMBERS = [
   {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:42,projectsLed:8,clientsManaged:6},salary:{projectCuts:[{project:'ACCD',cut:25000,pct:25},{project:'Noted',cut:15000,pct:30}]}},
@@ -444,6 +444,10 @@ async function boot() {
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
     document.getElementById('app').classList.add('on');
     buildApp();
+    logAct('login', me().name + ' signed in', '→');
+    checkOverdueTasks();
+    loadClientAnalytics();
+    setInterval(checkOverdueTasks, 600000);
   });
 }
 
@@ -466,6 +470,8 @@ async function loadSession(memberId) {
     SESSION.chats = saved.chats || {};
     SESSION.meritRequests = saved.meritRequests || [];
     SESSION.clientMeta = saved.clientMeta || {};
+    SESSION.activityLog = saved.activityLog || [];
+    SESSION.clientAnalytics = saved.clientAnalytics || {};
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
     SESSION.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
@@ -477,19 +483,70 @@ async function loadSession(memberId) {
     SESSION.chats = {};
     SESSION.meritRequests = [];
     SESSION.clientMeta = {};
+    SESSION.activityLog = [];
+    SESSION.clientAnalytics = {};
     await persist();
   }
   SESSION.user = SESSION.members.find(m => m.id === memberId) || SESSION.members[0];
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics};
   await DB.set('workspace_data', payload);
 }
 
+/* ═══ Activity Logger ═══ */
+async function logAct(action, detail, icon) {
+  const entry = { ts: Date.now(), uid: me() ? me().id : 'system', action, detail, icon: icon || '◌' };
+  SESSION.activityLog.unshift(entry);
+  if (SESSION.activityLog.length > 200) SESSION.activityLog.length = 200;
+  await persist();
+  // Also push to Firestore activity_feed for real-time notifications
+  if (DB.firebaseOk) {
+    try { await firestore.collection('activity_feed').add({ ...entry, memberName: me() ? me().name : 'System' }); } catch(e) {}
+  }
+}
+
+/* ═══ Auto-Merit Engine ═══ */
+const MERIT_RULES = {
+  taskDoneOnTime: 5,
+  taskDoneLate: 2,
+  taskMissedDeadline: -5,
+  clockInOnTime: 1,
+  clientApproval: 10,
+  approvalSubmitted: 2,
+  paymentReceived: 3,
+  helpGiven: 3,
+};
+
+async function autoMerit(memberId, rule, reason) {
+  const mem = SESSION.members.find(m => m.id === memberId);
+  if (!mem || mem.isFounder) return;
+  const pts = MERIT_RULES[rule] || 0;
+  if (pts === 0) return;
+  const oldMerit = mem.merit;
+  mem.merit = Math.max(0, Math.min(100, mem.merit + pts));
+  await logAct('merit_auto', `${mem.name.split(' ')[0]}: ${oldMerit} → ${mem.merit} (${pts > 0 ? '+' : ''}${pts}) — ${reason}`, pts > 0 ? '▲' : '▼');
+}
+
+function checkOverdueTasks() {
+  const today = todayKey();
+  SESSION.tasks.forEach(t => {
+    if (t.done || !t.due || t.due === 'TBD' || t._overdueNotified) return;
+    if (t.due < today) {
+      t._overdueNotified = true;
+      const mem = SESSION.members.find(m => m.id === t.assignee);
+      if (mem && !mem.isFounder) {
+        autoMerit(t.assignee, 'taskMissedDeadline', `Overdue: "${t.name}"`);
+      }
+    }
+  });
+}
+
 function doLogout() {
+  logAct('logout', me().name + ' signed out', '⎋');
   auth.signOut().then(() => {
-    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}};
+    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}};
     window.location.href = '/kreativ-login';
   });
 }
@@ -510,9 +567,12 @@ const NAV = [
   {id:'vault',label:'Secure Vault',ic:'🔐',sec:'Team',minMerit:0,depts:['Founder']},
   {id:'profile',label:'My Profile',ic:'⚙',sec:'Team',minMerit:0,depts:'all'},
   {id:'activity',label:'Activity',ic:'◌',sec:'Team',minMerit:30,depts:'all'},
+  {id:'analytics',label:'Client Analytics',ic:'📊',sec:'Team',minMerit:0,depts:['Founder']},
 ];
 function me(){return SESSION.user;}
+function isFounder(){return me()&&me().isFounder;}
 function isAdmin(){return me()&&(me().isAdmin||me().isFounder);}
+function canEdit(){return isFounder();}
 function canAccess(item){
   if(!me())return false;
   const m=me();
@@ -542,7 +602,7 @@ function buildSidebar(){
     <div class="u-role">${m.role}${m.isFounder?' · <span style="color:var(--gold)">Founder</span>':''}</div>
     <div class="merit-strip"><div class="ms-bar"><div class="ms-fill" style="width:${score}%;background:${fc}"></div></div><span class="ms-val">${score}pts</span></div></div>`;
 }
-const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity'};
+const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics'};
 function showPage(id,navEl){
   const item=NAV.find(n=>n.id===id);
   if(item&&!canAccess(item)){showDenied(item);return;}
@@ -550,11 +610,11 @@ function showPage(id,navEl){
   if(navEl)navEl.classList.add('act');else{const el=document.querySelector(`.ni[data-page="${id}"]`);if(el)el.classList.add('act');}
   document.getElementById('tb-title').textContent=PAGE_TITLES[id]||id;
   document.getElementById('tb-extra').innerHTML='';
-  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity};
+  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics};
   if(R[id])document.getElementById('content').innerHTML=R[id]();
-  if(id==='tasks'&&(isAdmin()||me().dept==='Creative'))document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Assign Task</button>`;
-  if(id==='payments'&&isAdmin())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
-  if(id==='vault'&&isAdmin())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button>`;
+  if(id==='tasks'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Assign Task</button>`;
+  if(id==='payments'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
+  if(id==='vault'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button>`;
   if(window._timerInterval){clearTimeout(window._timerInterval);window._timerInterval=null;}
   if(id==='attendance')startLiveTimer();
   if(id==='merit'&&me().isFounder)document.getElementById('tb-extra').innerHTML=`<button class="btn-sm gold" onclick="openRoleModal()">Manage Roles</button>`;
@@ -595,7 +655,7 @@ function rOverview(){
     return `<div class="ti" onclick="this.querySelector('.tc').classList.toggle('done');this.querySelector('.tn').classList.toggle('done')"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}</div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
-        ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · ${a.date}</div></div>${isAdmin()?`<div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div>`:''}</div>`;}).join('')}</div>
+        ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div>`:''}</div>`;}).join('')}</div>
       <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
         ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey())})).filter(x=>x.att&&x.att.clockIn&&!x.att.clockOut);
         if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
@@ -604,8 +664,9 @@ function rOverview(){
       <div class="panel"><div class="ph"><div class="pt">Payments Due</div><span class="pa" onclick="showPage('payments')">View all</span></div>
         ${SESSION.payments.filter(p=>p.status!=='Received').slice(0,3).map(p=>`<div class="pr"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm);margin-top:1px">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${p.status==='Overdue'?'b-red':'b-amber'}">${p.status}</span></div>`).join('')}</div>
     </div></div>
-  <div class="panel"><div class="ph"><div class="pt">Recent Activity</div></div>
-    <div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No activity yet.</div></div>`;
+  <div class="panel"><div class="ph"><div class="pt">Recent Activity</div><span class="pa" onclick="showPage('activity')">View all</span></div>
+    ${(SESSION.activityLog||[]).length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No activity yet.</div>':
+    (SESSION.activityLog||[]).slice(0,5).map(l=>{const mem=SESSION.members.find(m=>m.id===l.uid);return `<div class="acti"><div style="font-size:14px;width:20px;text-align:center">${l.icon||'◌'}</div><div style="flex:1"><div class="atxt">${l.detail||l.action}</div><div class="atime">${mem?mem.name.split(' ')[0]:'System'}</div></div></div>`;}).join('')}</div>`;
 }
 
 function rAttendance(){
@@ -686,6 +747,8 @@ async function clockIn(){
   const existing=myAttendanceToday();
   if(existing){alert('Already clocked in today.');return;}
   SESSION.attendance.push({uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''});
+  await autoMerit(me().id,'clockInOnTime','Clocked in');
+  await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
   await persist();
   showPage('attendance');
   startLiveTimer();
@@ -707,6 +770,7 @@ async function submitClockOut(){
   const today=myAttendanceToday();
   if(!today){alert('No active clock-in found.');return;}
   today.clockOut=Date.now();
+  await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(today.clockOut-today.clockIn)})`,'🔚');
   today.proofText=proofText;
   if(fileInput.files[0]){
     const f=fileInput.files[0];
@@ -756,8 +820,7 @@ async function saveProfileContact(){
 }
 
 function rTasks(){
-  const canAssign=isAdmin()||me().dept==='Creative';
-  return `<div class="panel"><div class="ph"><div class="pt">All Tasks</div>${canAssign?`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Add Task</button>`:''}</div>
+  return `<div class="panel"><div class="ph"><div class="pt">All Tasks</div>${canEdit()?`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Add Task</button>`:''}</div>
   ${SESSION.tasks.map((t,i)=>{
     const mem=SESSION.members.find(m=>m.id===t.assignee);
     const isUnassigned=!t.assignee||!mem;
@@ -773,23 +836,31 @@ function rTasks(){
       ${canJoin?`<button class="btn-sm green" onclick="joinTask(${i})">🙋 I'm In</button>`:''}
       ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="toggleSeekHelp(${i})">🆘 Seek Help</button>`:''}
       ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="toggleSeekHelp(${i})">Cancel Help Request</button>`:''}
-      ${canAssign?`<button class="btn-sm" onclick="editTaskPrompt(${i})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteTask(${i})">✕</button>`:''}
+      ${canEdit()?`<button class="btn-sm" onclick="editTaskPrompt(${i})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteTask(${i})">✕</button>`:''}
     </div></div>`;}).join('')}
   ${SESSION.tasks.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No tasks yet.</div>':''}</div>`;
 }
 async function toggleTaskDone(i){
-  SESSION.tasks[i].done=!SESSION.tasks[i].done;
-  if(SESSION.tasks[i].done){const mem=SESSION.members.find(m=>m.id===SESSION.tasks[i].assignee);if(mem){mem.merit=Math.min(100,mem.merit+(SESSION.tasks[i].merit||5));buildSidebar();}}
+  const t=SESSION.tasks[i]; t.done=!t.done;
+  if(t.done){
+    const today=todayKey();const isLate=t.due&&t.due!=='TBD'&&t.due<today;
+    await autoMerit(t.assignee, isLate?'taskDoneLate':'taskDoneOnTime', `Completed: "${t.name}"${isLate?' (late)':''}`);
+    await logAct('task_done', `"${t.name}" completed by ${(SESSION.members.find(m=>m.id===t.assignee)||{name:'?'}).name.split(' ')[0]}`, '☑');
+    buildSidebar();
+  } else { await logAct('task_reopen', `"${t.name}" reopened`, '↺'); }
   await persist();showPage('tasks');
 }
 async function joinTask(i){
   if(me().merit<70){alert(`Your merit score is ${me().merit}. Members below 70 cannot join projects/tasks.`);return;}
   SESSION.tasks[i].assignee=me().id;
   SESSION.tasks[i].needsHelp=false;
+  await logAct('task_join',`${me().name.split(' ')[0]} joined task "${SESSION.tasks[i].name}"`,'🙋');
+  await autoMerit(me().id,'helpGiven','Volunteered for task');
   await persist();showPage('tasks');
 }
 async function toggleSeekHelp(i){
   SESSION.tasks[i].needsHelp=!SESSION.tasks[i].needsHelp;
+  await logAct(SESSION.tasks[i].needsHelp?'seek_help':'cancel_help',`${me().name.split(' ')[0]} ${SESSION.tasks[i].needsHelp?'requested help on':'cancelled help for'} "${SESSION.tasks[i].name}"`,'🆘');
   await persist();showPage('tasks');
 }
 async function editTaskPrompt(i){
@@ -800,7 +871,7 @@ async function editTaskPrompt(i){
   await persist();showPage('tasks');
 }
 async function deleteTask(i){
-  if(confirm('Delete this task permanently?')){SESSION.tasks.splice(i,1);await persist();showPage('tasks');}
+  if(confirm('Delete this task permanently?')){const t=SESSION.tasks[i];await logAct('task_delete',`Task "${t.name}" deleted`,'🗑');SESSION.tasks.splice(i,1);await persist();showPage('tasks');}
 }
 function populateTaskModal(){
   document.getElementById('t-assignee').innerHTML='<option value="">— Leave Unassigned (open task) —</option>'+SESSION.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
@@ -815,6 +886,7 @@ async function saveTask(){
     if(assigneeMem&&assigneeMem.merit<70){if(!confirm(`${assigneeMem.name.split(' ')[0]} has merit ${assigneeMem.merit} (below 70). They cannot join new projects. Assign anyway?`))return;}
   }
   SESSION.tasks.push({id:'t'+Date.now(),name,project:document.getElementById('t-project').value,assignee:assigneeId,priority:document.getElementById('t-priority').value,due:document.getElementById('t-due').value||'TBD',merit:parseInt(document.getElementById('t-merit').value)||5,notes:document.getElementById('t-notes').value,done:false,needsHelp:false});
+  await logAct('task_create',`New task "${name}" created${assigneeId?' → '+(SESSION.members.find(m=>m.id===assigneeId)||{name:'?'}).name.split(' ')[0]:' (unassigned)'}`,'➕');
   await persist();closeModal('mo-task');showPage('tasks');
 }
 function rClients(){
@@ -825,9 +897,9 @@ function rClients(){
     const status=clientPay.some(p=>p.status==='Overdue')?{l:'Overdue',c:'b-red'}:clientPay.length&&clientPay.every(p=>p.status==='Received')?{l:'Paid',c:'b-green'}:{l:'Active',c:'b-amber'};
     return `<div class="cc" onclick="openClientDetail('${c.replace(/'/g,"\\'")}')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:13px;font-weight:600">${c}</div><span class="badge ${status.c}">${status.l}</span></div>
     <div class="sg sg-2" style="gap:8px;margin-bottom:0"><div style="font-size:10px;color:var(--tm)">Open Tasks<span style="font-size:13px;font-weight:700;color:var(--tp);display:block;margin-top:2px">${clientTasks}</span></div><div style="font-size:10px;color:var(--tm)">Value<span style="font-size:13px;font-weight:700;color:var(--tp);display:block;margin-top:2px">₹${totalVal.toLocaleString('en-IN')}</span></div></div></div>`;}).join('')}
-  ${isAdmin()?`<div class="cc" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:110px;cursor:pointer" onclick="addClient()"><div style="text-align:center;color:var(--tm)"><div style="font-size:20px;margin-bottom:4px">+</div><div style="font-size:11px">Add client</div></div></div>`:''}</div>`;
+  ${canEdit()?`<div class="cc" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:110px;cursor:pointer" onclick="addClient()"><div style="text-align:center;color:var(--tm)"><div style="font-size:20px;margin-bottom:4px">+</div><div style="font-size:11px">Add client</div></div></div>`:''}</div>`;
 }
-async function addClient(){const name=prompt('New client name:');if(name&&name.trim()){SESSION.clients.push(name.trim());await persist();showPage('clients');}}
+async function addClient(){const name=prompt('New client name:');if(name&&name.trim()){SESSION.clients.push(name.trim());await logAct('client_add',`New client "${name.trim()}" added`,'👤');await persist();showPage('clients');}}
 async function renameClient(oldName){
   const newName=prompt('New client name:',oldName);
   if(!newName||!newName.trim()||newName===oldName)return;
@@ -856,16 +928,16 @@ function rClientDetail(name){
   let html=`<div style="margin-bottom:14px"><span class="pa" onclick="showPage('clients')">← Back to Clients</span></div>`;
   html+=`<div class="sg sg-2" style="align-items:start">
     <div>
-      <div class="panel"><div class="ph"><div class="pt">Project Brief</div>${isAdmin()?`<button class="btn-sm" onclick="editClientBrief('${name.replace(/'/g,"\\'")}')">✎ Edit Brief</button>`:''}</div>
+      <div class="panel"><div class="ph"><div class="pt">Project Brief</div>${canEdit()?`<button class="btn-sm" onclick="editClientBrief('${name.replace(/'/g,"\\'")}')">✎ Edit Brief</button>`:''}</div>
         <div style="padding:16px;font-size:12px;color:var(--ts);line-height:1.7;white-space:pre-wrap">${meta.brief||'No brief added yet.'}</div>
       </div>
       <div style="display:flex;gap:8px;margin:14px 0">
         ${canSeek?`<button class="btn-sm red" onclick="seekProject('${name.replace(/'/g,"\\'")}')">🙋 Seek to Work on This Project</button>`:''}
         ${isInterested?`<span class="badge b-green" style="padding:6px 12px">✓ Interest submitted</span>`:''}
         ${!canSeek&&!isInterested?`<span class="badge b-grey" style="padding:6px 12px">Merit ${me().merit}/70 required to join</span>`:''}
-        ${isAdmin()?`<button class="btn-sm" onclick="renameClient('${name.replace(/'/g,"\\'")}')">✎ Rename</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeClientConfirm('${name.replace(/'/g,"\\'")}')">✕ Remove</button>`:''}
+        ${canEdit()?`<button class="btn-sm" onclick="renameClient('${name.replace(/'/g,"\\'")}')">✎ Rename</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeClientConfirm('${name.replace(/'/g,"\\'")}')">✕ Remove</button>`:''}
       </div>
-      ${isAdmin()&&meta.interested.length>0?`<div class="panel"><div class="ph"><div class="pt">Interested Members</div></div><div style="padding:10px 16px">${meta.interested.map(uid=>{const m=SESSION.members.find(x=>x.id===uid);return m?`<span class="badge b-blue" style="margin:3px">${m.name}</span>`:'';}).join('')}</div></div>`:''}
+      ${canEdit()&&meta.interested.length>0?`<div class="panel"><div class="ph"><div class="pt">Interested Members</div></div><div style="padding:10px 16px">${meta.interested.map(uid=>{const m=SESSION.members.find(x=>x.id===uid);return m?`<span class="badge b-blue" style="margin:3px">${m.name}</span>`:'';}).join('')}</div></div>`:''}
     </div>
     <div class="panel">
       <div class="ph"><div class="pt">Discussion</div></div>
@@ -905,8 +977,9 @@ async function seekProject(name){
   const meta=SESSION.clientMeta[name]||{brief:'',interested:[]};
   if(!meta.interested.includes(me().id))meta.interested.push(me().id);
   SESSION.clientMeta[name]=meta;
+  await logAct('project_interest',`${me().name.split(' ')[0]} expressed interest in "${name}"`,'🙋');
   await persist();openClientDetail(name);
-  alert('Interest recorded — admin can see you want to work on this.');
+  alert('Interest recorded — founder can see you want to work on this.');
 }
 async function sendChatMessage(name){
   const input=document.getElementById('chat-input');
@@ -936,7 +1009,7 @@ function rApprovals(){
   <div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">Awaiting Approval</div><span class="badge b-red">${pending.length} pending</span></div>
     ${pending.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing pending.</div>':''}
     ${pending.map((a,idx)=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);const realIdx=SESSION.approvals.indexOf(a);
-    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdmin()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
+    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
   <div class="panel"><div class="ph"><div class="pt">Resolved</div></div>
     ${[...approved,...rejected].length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
     ${approved.map(a=>`<div class="ar" style="opacity:.5"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Approved · ${a.date}</div></div><span class="badge b-green">Done</span></div>`).join('')}
@@ -948,36 +1021,43 @@ async function submitApproval(){
   const desc=document.getElementById('apr-desc').value.trim();
   if(!title){alert('Enter a title.');return;}
   SESSION.approvals.push({id:'ap'+Date.now(),title,desc,requestedBy:me().id,target:document.getElementById('apr-target').value,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
+  await autoMerit(me().id,'approvalSubmitted','Submitted approval request');
+  await logAct('approval_submit',`${me().name.split(' ')[0]} requested approval: "${title}"`,'📋');
   await persist();
   document.getElementById('apr-title').value='';document.getElementById('apr-desc').value='';
   closeModal('mo-approval');showPage('approvals');
 }
 async function actionApproval(i,status){
   SESSION.approvals[i].status=status;
+  const a=SESSION.approvals[i];const req=SESSION.members.find(m=>m.id===a.requestedBy);
+  if(status==='approved'){await autoMerit(a.requestedBy,'clientApproval','Approval granted: '+a.title);}
+  await logAct('approval_'+status,`"${a.title}" ${status} by ${me().name.split(' ')[0]}`,(status==='approved'?'✅':'❌'));
   await persist();showPage('approvals');
 }
 function rPayments(){
   const received=SESSION.payments.filter(p=>p.status==='Received').reduce((s,p)=>s+p.amount,0);
   const outstanding=SESSION.payments.filter(p=>p.status!=='Received').reduce((s,p)=>s+p.amount,0);
-  const canEdit=isAdmin()||me().dept==='Creative';
+  const ed=canEdit();
   return `<div class="sg sg-3"><div class="sc"><div class="sl">Outstanding</div><div class="sv" style="color:var(--red)">₹${outstanding.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Received MTD</div><div class="sv" style="color:var(--g)">₹${received.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Total Value</div><div class="sv">₹${(received+outstanding).toLocaleString('en-IN')}</div></div></div>
-  <div class="panel"><div class="ph"><div class="pt">Payment Tracker</div>${canEdit?`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`:''}</div>
+  <div class="panel"><div class="ph"><div class="pt">Payment Tracker</div>${ed?`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`:''}</div>
   ${SESSION.payments.map((p,i)=>{const sc=p.status==='Received'?'b-green':p.status==='Overdue'?'b-red':'b-amber';
-  return `<div class="pr" style="${p.status==='Received'?'opacity:.5':''}"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm)">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${sc}">${p.status}</span>${canEdit&&p.status!=='Received'?`<button class="btn-sm" onclick="markPaid(${i})">Mark Paid</button>`:''}${canEdit?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deletePayment(${i})">✕</button>`:''}</div>`;}).join('')}</div>`;
+  return `<div class="pr" style="${p.status==='Received'?'opacity:.5':''}"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm)">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${sc}">${p.status}</span>${ed&&p.status!=='Received'?`<button class="btn-sm" onclick="markPaid(${i})">Mark Paid</button>`:''}${ed?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deletePayment(${i})">✕</button>`:''}</div>`;}).join('')}</div>`;
 }
-async function markPaid(i){SESSION.payments[i].status='Received';await persist();showPage('payments');}
-async function deletePayment(i){if(confirm('Delete?')){SESSION.payments.splice(i,1);await persist();showPage('payments');}}
+async function markPaid(i){SESSION.payments[i].status='Received';await autoMerit(me().id,'paymentReceived','Payment received: '+SESSION.payments[i].client);await logAct('payment_received',`₹${SESSION.payments[i].amount.toLocaleString('en-IN')} from ${SESSION.payments[i].client} marked paid`,'💰');await persist();showPage('payments');}
+async function deletePayment(i){if(confirm('Delete?')){await logAct('payment_delete',`Payment ₹${SESSION.payments[i].amount.toLocaleString('en-IN')} for ${SESSION.payments[i].client} deleted`,'🗑');SESSION.payments.splice(i,1);await persist();showPage('payments');}}
 function populatePayModal(){document.getElementById('pay-client').innerHTML=SESSION.clients.map(c=>`<option>${c}</option>`).join('');}
 async function savePayment(){
   const amt=parseFloat(document.getElementById('pay-amt').value);if(!amt||amt<=0){alert('Enter valid amount.');return;}
-  SESSION.payments.push({id:'p'+Date.now(),client:document.getElementById('pay-client').value,amount:amt,type:document.getElementById('pay-type').value,status:document.getElementById('pay-status').value,desc:document.getElementById('pay-desc').value||'',due:document.getElementById('pay-date').value||''});
+  const payClient=document.getElementById('pay-client').value;
+  SESSION.payments.push({id:'p'+Date.now(),client:payClient,amount:amt,type:document.getElementById('pay-type').value,status:document.getElementById('pay-status').value,desc:document.getElementById('pay-desc').value||'',due:document.getElementById('pay-date').value||''});
+  await logAct('payment_add',`Payment ₹${amt.toLocaleString('en-IN')} added for ${payClient}`,'💳');
   await persist();closeModal('mo-payment');showPage('payments');
 }
 function rMerit(){
-  const adm=isAdmin();let html='';
-  if(adm)html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Merit Controls</div><div class="adm-sub">Adjust scores, set restrictions</div></div>${adm?`<button class="btn-sm gold" onclick="openModal('mo-addmem')">+ Add Member</button>`:''}</div>`;
+  const adm=canEdit();let html='';
+  if(adm)html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Founder — Merit Controls</div><div class="adm-sub">Adjust scores, set restrictions</div></div>${adm?`<button class="btn-sm gold" onclick="openModal('mo-addmem')">+ Add Member</button>`:''}</div>`;
   const pendingReqs=SESSION.meritRequests.filter(r=>r.status==='pending');
-  if(adm&&pendingReqs.length>0){
+  if(canEdit()&&pendingReqs.length>0){
     html+=`<div class="panel"><div class="ph"><div class="pt">Pending Point Requests</div><span class="badge b-amber">${pendingReqs.length}</span></div>`;
     pendingReqs.forEach((r)=>{
       const reqIdx=SESSION.meritRequests.indexOf(r);
@@ -986,7 +1066,7 @@ function rMerit(){
     });
     html+=`</div>`;
   }
-  if(!adm)html+=`<div class="adm-banner" style="background:var(--b-bg);border-color:rgba(74,144,226,.3)"><div><div class="adm-label" style="color:var(--b)">🔒 Showing your score only</div><div class="adm-sub" style="color:var(--b);opacity:.7">Only admins can view the full team's merit scores</div></div></div>`;
+  if(!adm)html+=`<div class="adm-banner" style="background:var(--b-bg);border-color:rgba(74,144,226,.3)"><div><div class="adm-label" style="color:var(--b)">🔒 Showing your score only</div><div class="adm-sub" style="color:var(--b);opacity:.7">Only the founder can view and edit the full team's merit scores</div></div></div>`;
   html+=`<div class="sg sg-2">`;
   const visibleMembers=adm?SESSION.members:SESSION.members.filter(m=>m.id===me().id);
   visibleMembers.forEach((m)=>{
@@ -1037,8 +1117,8 @@ async function denyMeritReq(i){
   SESSION.meritRequests[i].status='denied';
   await persist();showPage('merit');
 }
-async function saveMerit(i){const v=parseInt(document.getElementById('mi-'+i).value);if(isNaN(v)||v<0||v>100){alert('0–100 only');return;}SESSION.members[i].merit=v;await persist();buildSidebar();showPage('merit');}
-async function quickMerit(i,d){SESSION.members[i].merit=Math.max(0,Math.min(100,SESSION.members[i].merit+d));await persist();buildSidebar();showPage('merit');}
+async function saveMerit(i){const v=parseInt(document.getElementById('mi-'+i).value);if(isNaN(v)||v<0||v>100){alert('0–100 only');return;}const old=SESSION.members[i].merit;SESSION.members[i].merit=v;await logAct('merit_set',`${SESSION.members[i].name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
+async function quickMerit(i,d){const old=SESSION.members[i].merit;SESSION.members[i].merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${SESSION.members[i].name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${SESSION.members[i].merit})`,'⚖');await persist();buildSidebar();showPage('merit');}
 async function editMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
   const newRole=prompt('Role:',m.role); if(newRole)m.role=newRole;
@@ -1048,20 +1128,21 @@ async function editMemberPrompt(id){
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
   if(!confirm(`Remove ${m.name} from the workspace? Their existing tasks/payments will remain but show as unassigned.`))return;
+  await logAct('member_remove',`${m.name} removed from workspace`,'❌');
   SESSION.members=SESSION.members.filter(x=>x.id!==id);
   await persist();buildSidebar();showPage('merit');
 }
 function rSalary(){
-  const canEdit=isAdmin();
+  const ed=canEdit();
   const total=SESSION.members.reduce((s,m)=>s+m.salary.projectCuts.reduce((a,c)=>a+c.cut,0),0);
   const totalRev=SESSION.payments.filter(p=>p.status==='Received').reduce((s,p)=>s+p.amount,0);
   return `<div class="sg sg-3"><div class="sc"><div class="sl">Total Disbursed</div><div class="sv" style="color:var(--red)">₹${total.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Revenue Pool</div><div class="sv">₹${totalRev.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Agency Retained</div><div class="sv" style="color:var(--g)">₹${Math.max(0,totalRev-total).toLocaleString('en-IN')}</div></div></div>
-  ${canEdit?`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Salary Controls</div><div class="adm-sub">Edit cut %, add entries</div></div></div>`:''}
-  <div class="panel"><div class="ph"><div class="pt">Member Cuts by Project</div>${canEdit?`<button class="btn-sm red" onclick="addCutEntry()">+ Add Entry</button>`:''}</div>
+  ${ed?`<div class="adm-banner"><div><div class="adm-label">⚙ Founder — Salary Controls</div><div class="adm-sub">Edit cut %, add entries</div></div></div>`:''}
+  <div class="panel"><div class="ph"><div class="pt">Member Cuts by Project</div>${ed?`<button class="btn-sm red" onclick="addCutEntry()">+ Add Entry</button>`:''}</div>
   ${SESSION.members.map((m,mi)=>{const total2=m.salary.projectCuts.reduce((s,c)=>s+c.cut,0);const fc=m.merit>=70?'var(--g)':m.merit>=30?'var(--a)':'var(--red)';
   return `<div class="sal-row"><div class="sal-mem"><div class="mav2" style="background:${m.color};width:32px;height:32px;font-size:10px">${m.initials}</div><div><div style="font-size:12px;font-weight:600">${m.name.split(' ')[0]}</div><div style="font-size:9px;color:var(--tm)">${m.role}</div><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><div style="width:44px;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${m.merit}%;height:100%;background:${fc}"></div></div><span style="font-size:8px;color:var(--tm)">${m.merit}pts</span></div></div></div>
-  <div style="flex:1">${m.salary.projectCuts.map((c,ci)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:10px;color:var(--ts);width:110px;flex-shrink:0">${c.project}</span><div style="flex:1;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${c.pct}%;height:100%;background:${m.color}"></div></div><span style="font-size:9px;color:var(--tm);width:24px;text-align:right">${c.pct}%</span>${canEdit?`<button class="btn-sm" style="font-size:9px;padding:2px 6px" onclick="editCut(${mi},${ci})">Edit</button>`:''}</div>`).join('')}</div>
-  <div class="sal-right"><div style="text-align:right"><div style="font-size:9px;color:var(--tm)">Total cut</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${total2>15000?'var(--g)':'var(--a)'}">₹${total2.toLocaleString('en-IN')}</div></div>${canEdit?`<button class="btn-sm green">Pay</button>`:''}</div></div>`;}).join('')}</div>
+  <div style="flex:1">${m.salary.projectCuts.map((c,ci)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:10px;color:var(--ts);width:110px;flex-shrink:0">${c.project}</span><div style="flex:1;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${c.pct}%;height:100%;background:${m.color}"></div></div><span style="font-size:9px;color:var(--tm);width:24px;text-align:right">${c.pct}%</span>${ed?`<button class="btn-sm" style="font-size:9px;padding:2px 6px" onclick="editCut(${mi},${ci})">Edit</button>`:''}</div>`).join('')}</div>
+  <div class="sal-right"><div style="text-align:right"><div style="font-size:9px;color:var(--tm)">Total cut</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${total2>15000?'var(--g)':'var(--a)'}">₹${total2.toLocaleString('en-IN')}</div></div>${ed?`<button class="btn-sm green">Pay</button>`:''}</div></div>`;}).join('')}</div>
   <div class="panel"><div class="ph"><div class="pt">Revenue Split Formula</div></div><div style="padding:14px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
   <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--red)">50%</div><div style="font-size:10px;color:var(--tm)">Expense Pool</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--g)">~65%</div><div style="font-size:10px;color:var(--tm)">→ Team Cuts</div></div>
@@ -1080,26 +1161,28 @@ async function addCutEntry(){
   if(project&&!isNaN(pct)&&!isNaN(cut)){mem.salary.projectCuts.push({project,pct,cut});await persist();showPage('salary');}
 }
 function rVault(){
-  if(!isAdmin())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only admins can access the secure vault.</div></div>`;
-  const visible=SESSION.dataEntries.filter(e=>{if(e.access==='founder')return me().isFounder;if(e.access==='admin')return isAdmin();return true;});
-  return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault — Firebase</div><div class="adm-sub">Role-restricted. Cloud synced.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
+  if(!canEdit())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only the founder can access the secure vault.</div></div>`;
+  const visible=SESSION.dataEntries.filter(e=>{if(e.access==='founder')return me().isFounder;if(e.access==='admin')return canEdit();return true;});
+  return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault — Firebase</div><div class="adm-sub">Founder-restricted. Cloud synced.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
   <div class="panel"><div class="ph"><div class="pt">Entries <span class="badge b-green" style="margin-left:8px">${visible.length} visible</span></div></div>
   ${visible.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No entries yet.</div>':''}
-  ${visible.map((e,i)=>`<div class="data-row"><div style="flex:1"><div style="font-size:12px;font-weight:600">${e.key}</div><div style="font-size:10px;color:var(--tm);margin-top:2px">${e.category} · Access: ${e.access}</div><div style="font-size:12px;color:var(--ts);margin-top:5px;white-space:pre-wrap">${e.value}</div></div>${isAdmin()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteEntry(${i})">✕</button>`:''}</div>`).join('')}</div>
+  ${visible.map((e,i)=>`<div class="data-row"><div style="flex:1"><div style="font-size:12px;font-weight:600">${e.key}</div><div style="font-size:10px;color:var(--tm);margin-top:2px">${e.category} · Access: ${e.access}</div><div style="font-size:12px;color:var(--ts);margin-top:5px;white-space:pre-wrap">${e.value}</div></div>${canEdit()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteEntry(${i})">✕</button>`:''}</div>`).join('')}</div>
   <div style="font-size:10px;color:var(--tm);text-align:center;margin-top:8px">🔒 Firebase Firestore · Real-time sync</div>`;
 }
 async function saveDataEntry(){
   const key=document.getElementById('de-key').value.trim();const val=document.getElementById('de-val').value.trim();
   if(!key||!val){alert('Fill all fields.');return;}
   SESSION.dataEntries.push({key,value:val,category:document.getElementById('de-cat').value,access:document.getElementById('de-access').value,created:new Date().toISOString()});
+  await logAct('vault_add',`Vault entry "${key}" added`,'🔐');
   await persist();closeModal('mo-data');showPage('vault');
 }
-async function deleteEntry(i){if(confirm('Delete this entry?')){SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
+async function deleteEntry(i){if(confirm('Delete this entry?')){await logAct('vault_delete',`Vault entry "${SESSION.dataEntries[i].key}" deleted`,'🗑');SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
 function rActivity(){
-  const log=[
-  ];
-  const visible=log.filter(l=>!l.founder);
-  let html=`<div class="panel"><div class="ph"><div class="pt">Team Activity Feed</div></div>${visible.map(l=>`<div class="acti"><div class="adot" style="background:${l.dot}"></div><div><div class="atxt">${l.txt}</div><div class="atime">${l.time}</div></div></div>`).join('')}</div>`;
+  const log=SESSION.activityLog||[];
+  function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return 'just now';if(d<3600000)return Math.floor(d/60000)+'m ago';if(d<86400000)return Math.floor(d/3600000)+'h ago';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+  let html=`<div class="panel"><div class="ph"><div class="pt">Team Activity Feed</div><span class="badge b-green">${log.length} events</span></div>
+  ${log.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No activity yet. Actions will auto-log here.</div>':''}
+  ${log.slice(0,50).map(l=>{const mem=SESSION.members.find(m=>m.id===l.uid);return `<div class="acti"><div style="font-size:14px;width:20px;text-align:center">${l.icon||'◌'}</div><div style="flex:1"><div class="atxt">${l.detail||l.action}</div><div class="atime">${mem?mem.name.split(' ')[0]:'System'} · ${timeAgo(l.ts)}</div></div></div>`;}).join('')}</div>`;
   html+=`<div class="panel" style="margin-top:18px"><div class="ph"><div class="pt">Team Stats</div></div><div style="padding:14px 16px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px">`;
   SESSION.members.filter(m=>!m.isFounder).forEach(m=>{
     const done=SESSION.tasks.filter(t=>t.assignee===m.id&&t.done).length;
@@ -1113,6 +1196,43 @@ function rActivity(){
   html+=`</div></div>`;
   return html;
 }
+function rAnalytics(){
+  const ca=SESSION.clientAnalytics||{};
+  const clients=Object.keys(ca);
+  let html=`<div class="adm-banner"><div><div class="adm-label">📊 Client Analytics — Auto-tracked</div><div class="adm-sub">Login times, session duration, page views — all automated via portal tracking</div></div></div>`;
+  if(clients.length===0){
+    html+=`<div class="panel"><div style="padding:40px;text-align:center;font-size:12px;color:var(--tm)">No client activity yet. Analytics will populate automatically when clients use the portal.</div></div>`;
+    return html;
+  }
+  html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Clients</div><div class="sv">${clients.length}</div></div><div class="sc"><div class="sl">Sessions Today</div><div class="sv" style="color:var(--g)">${clients.reduce((s,c)=>{const sess=ca[c].sessions||[];return s+sess.filter(x=>x.login&&new Date(x.login).toDateString()===new Date().toDateString()).length;},0)}</div></div><div class="sc"><div class="sl">Avg Session</div><div class="sv" style="color:var(--b)">${(()=>{let total=0,count=0;clients.forEach(c=>{(ca[c].sessions||[]).forEach(s=>{if(s.duration){total+=s.duration;count++;}});});return count?Math.round(total/count/60000)+'m':'—';})()}</div></div></div>`;
+  html+=`<div class="panel"><div class="ph"><div class="pt">Client Sessions</div></div>`;
+  clients.forEach(cid=>{
+    const data=ca[cid];const sessions=(data.sessions||[]).slice(-10).reverse();
+    html+=`<div style="padding:12px 16px;border-bottom:1px solid var(--br)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">${data.name||cid}</div><span class="badge b-blue">${(data.sessions||[]).length} sessions</span></div>`;
+    sessions.forEach(s=>{
+      const loginDate=s.login?new Date(s.login).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+      const dur=s.duration?Math.round(s.duration/60000)+'m':'active';
+      const pages=s.pages||[];
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:11px"><span style="color:var(--tm);width:120px">${loginDate}</span><span class="badge ${s.duration?'b-green':'b-amber'}">${dur}</span><span style="color:var(--tm)">${pages.length} pages</span></div>`;
+    });
+    html+=`</div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+async function loadClientAnalytics(){
+  if(!DB.firebaseOk)return;
+  try{
+    const snap=await firestore.collection('client_sessions').orderBy('login','desc').limit(200).get();
+    const ca={};
+    snap.forEach(doc=>{
+      const d=doc.data();const uid=d.uid||'unknown';
+      if(!ca[uid])ca[uid]={name:d.name||uid,sessions:[]};
+      ca[uid].sessions.push({login:d.login,logout:d.logout||null,duration:d.duration||null,pages:d.pages||[]});
+    });
+    SESSION.clientAnalytics=ca;
+  }catch(e){console.log('Analytics load error',e);}
+}
 function openRoleModal(){
   document.getElementById('role-list').innerHTML=SESSION.members.filter(m=>!m.isFounder).map((m,i)=>`
   <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--s2);border-radius:7px;margin-bottom:7px"><div class="mav2" style="background:${m.color};width:28px;height:28px;font-size:9px">${m.initials}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">${m.name}</div><div style="font-size:10px;color:var(--tm)">${m.role} · Merit: ${m.merit}</div></div><div style="display:flex;align-items:center;gap:7px"><span class="badge ${m.isAdmin?'b-pu':'b-grey'}" id="rb-${m.id}">${m.isAdmin?'Admin':'Member'}</span><button class="btn-sm ${m.isAdmin?'':'gold'}" onclick="toggleAdminRole('${m.id}',this)">${m.isAdmin?'Revoke Admin':'Grant Admin'}</button></div></div>`).join('');
@@ -1122,6 +1242,7 @@ async function toggleAdminRole(id,btn){
   const m=SESSION.members.find(x=>x.id===id);m.isAdmin=!m.isAdmin;
   btn.textContent=m.isAdmin?'Revoke Admin':'Grant Admin';btn.className=`btn-sm ${m.isAdmin?'':'gold'}`;
   document.getElementById('rb-'+id).className=`badge ${m.isAdmin?'b-pu':'b-grey'}`;document.getElementById('rb-'+id).textContent=m.isAdmin?'Admin':'Member';
+  await logAct('role_change',`${m.name.split(' ')[0]} ${m.isAdmin?'promoted to Admin':'demoted to Member'}`,'👑');
   await persist();buildSidebar();
 }
 async function addMember(){
@@ -1132,6 +1253,7 @@ async function addMember(){
   const colors=['#E74C3C','#3498DB','#1ABC9C','#E67E22','#8E44AD','#2ECC71'];
   const color=colors[SESSION.members.length%colors.length];const id=name.toLowerCase().replace(/\s+/g,'_')+Date.now();
   SESSION.members.push({id,name,initials:init,role,dept,color,merit,isFounder:false,isAdmin:false,email:email,phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}});
+  await logAct('member_add',`New member "${name}" added (${role}, ${dept})`,'👥');
   await persist();closeModal('mo-addmem');buildSidebar();showPage('merit');
 }
 function openModal(id){document.getElementById(id).classList.add('on');}

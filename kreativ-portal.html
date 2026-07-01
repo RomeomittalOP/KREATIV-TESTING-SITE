@@ -765,6 +765,67 @@ function sendResetFromProfile() {
 
 // Load profile when auth is ready
 firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500); });
+
+/* ════════ CLIENT SESSION TRACKING (auto-analytics) ════════ */
+(function(){
+  let _sessionDocId=null;
+  const _pagesVisited=[];
+  const _loginTime=Date.now();
+
+  firebase.auth().onAuthStateChanged(async function(user){
+    if(!user) return;
+    const TEAM_EMAILS_CHECK=['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
+    if(TEAM_EMAILS_CHECK.includes(user.email.toLowerCase())) return;
+
+    try{
+      const docRef=await _db.collection('client_sessions').add({
+        uid:user.uid,
+        name:user.displayName||user.email.split('@')[0],
+        email:user.email,
+        login:_loginTime,
+        logout:null,
+        duration:null,
+        pages:['dashboard']
+      });
+      _sessionDocId=docRef.id;
+    }catch(e){console.log('Session track error',e);}
+  });
+
+  // Track page navigation
+  const origShowPage=window.showPage;
+  if(typeof origShowPage==='function'){
+    window.showPage=function(page){
+      _pagesVisited.push(page);
+      if(_sessionDocId){
+        try{_db.collection('client_sessions').doc(_sessionDocId).update({pages:_pagesVisited});}catch(e){}
+      }
+      return origShowPage.apply(this,arguments);
+    };
+  }
+  // Track sidebar nav clicks
+  document.addEventListener('click',function(e){
+    const navItem=e.target.closest('.sb-item');
+    if(navItem){
+      const label=navItem.textContent.trim();
+      _pagesVisited.push(label);
+      if(_sessionDocId){
+        try{_db.collection('client_sessions').doc(_sessionDocId).update({pages:_pagesVisited});}catch(e){}
+      }
+    }
+  });
+
+  // On exit — log duration
+  function endSession(){
+    if(!_sessionDocId) return;
+    const duration=Date.now()-_loginTime;
+    try{
+      navigator.sendBeacon||null;
+      _db.collection('client_sessions').doc(_sessionDocId).update({logout:Date.now(),duration:duration});
+    }catch(e){}
+  }
+  window.addEventListener('beforeunload',endSession);
+  window.addEventListener('pagehide',endSession);
+})();
 </script>
 </body>
 </html>
