@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 :root{
   --pitch:#050505; --ink:#0C0C0C; --ash:#141414; --smoke:#1E1E1E; --line:#262626;
@@ -635,7 +636,29 @@ firebase.auth().onAuthStateChanged(function(user) {
   $('#msgSend').addEventListener('click',sendMsg);
   $('#msgInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
   // bell + signout
-  $('#bellBtn').addEventListener('click',()=>{toast('3 notifications (demo).','◆');$('#bellBtn .dot').style.display='none';});
+  $('#bellBtn').addEventListener('click',()=>{
+    const dot=$('#bellBtn .dot');dot.style.display='none';
+    if(window._portalNotifications&&window._portalNotifications.length>0){
+      toast(window._portalNotifications[0],'◆');
+    } else { toast('No new notifications.','◆'); }
+  });
+  // Real-time notifications from Firestore activity_feed
+  (function(){
+    window._portalNotifications=[];
+    firebase.firestore().collection('activity_feed').orderBy('ts','desc').limit(1)
+      .onSnapshot(function(snap){
+        snap.docChanges().forEach(function(change){
+          if(change.type==='added'){
+            var d=change.doc.data();
+            if(Date.now()-d.ts<300000){
+              window._portalNotifications.unshift((d.icon||'◌')+' '+(d.detail||d.action));
+              if(window._portalNotifications.length>10)window._portalNotifications.length=10;
+              $('#bellBtn .dot').style.display='block';
+            }
+          }
+        });
+      });
+  })();
   $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
   /* ════════ MOBILE SIDEBAR ════════ */
@@ -728,9 +751,16 @@ async function saveClientProfile() {
     }
     if (data.company) document.getElementById('sb-company').textContent = data.company;
     const t = document.getElementById('toast');
-    document.getElementById('toastMsg').textContent = 'Profile saved!';
+    document.getElementById('toastMsg').textContent = 'Profile saved successfully!';
     document.getElementById('toastIcon').textContent = '✓';
     t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
+    // Navigate back to overview after short delay
+    setTimeout(()=>{
+      document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-overview'));
+      document.querySelectorAll('.sb-link').forEach(l=>l.classList.toggle('active',l.dataset.view==='overview'));
+      document.getElementById('tbTitle').textContent='Overview';
+      document.querySelector('.content').scrollTop=0;
+    }, 1200);
   } catch(e) {
     alert('Failed to save: ' + e.message);
   }

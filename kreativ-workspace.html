@@ -8,6 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 :root{--pitch:#050505;--red:#FF1E1E;--red-d:#CC0000;--red-bg:rgba(255,30,30,0.08);--red-br:rgba(255,30,30,0.22);--s1:#111;--s2:#181818;--s3:#222;--br:rgba(255,255,255,0.07);--br2:rgba(255,255,255,0.13);--tp:#F5F5F5;--ts:rgba(245,245,245,0.58);--tm:rgba(245,245,245,0.32);--g:#2ECC71;--g-bg:rgba(46,204,113,0.1);--a:#F5A623;--a-bg:rgba(245,166,35,0.1);--b:#4A90E2;--b-bg:rgba(74,144,226,0.1);--pu:#9B59B6;--pu-bg:rgba(155,89,182,0.1);--gold:#C9A84C;--gold-bg:rgba(201,168,76,0.1);}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -71,6 +72,18 @@ body{background:var(--pitch);color:var(--tp);font-family:'Space Grotesk',sans-se
 .ms-val{font-size:9px;color:var(--tm)}
 .lo-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--tm);font-size:11px;font-weight:500}
 .lo-btn:hover{background:var(--red-bg);color:var(--red)}
+.noti-bell{position:relative;cursor:pointer;font-size:18px;padding:4px 6px}
+.noti-bell .noti-dot{position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none}
+.noti-bell .noti-dot.on{display:block}
+.noti-drop{display:none;position:absolute;top:40px;right:0;width:320px;background:var(--s1);border:1px solid var(--br);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:999;max-height:360px;overflow-y:auto}
+.noti-drop.show{display:block}
+.noti-drop-head{padding:10px 14px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600}
+.noti-item{padding:10px 14px;border-bottom:1px solid var(--br);font-size:11px;display:flex;gap:8px;align-items:flex-start}
+.noti-item:last-child{border-bottom:none}
+.noti-item:hover{background:var(--s2)}
+.noti-item .ni-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.noti-item .ni-text{flex:1;color:var(--ts);line-height:1.5}
+.noti-item .ni-time{font-size:9px;color:var(--tm);white-space:nowrap}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{height:54px;border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 22px;gap:14px;flex-shrink:0}
 .tb-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:.04em;flex:1}
@@ -238,6 +251,12 @@ body{background:var(--pitch);color:var(--tp);font-family:'Space Grotesk',sans-se
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sbar"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..."></div>
+        <div class="noti-bell" id="noti-bell" onclick="toggleNotifications()">🔔<span class="noti-dot" id="noti-dot"></span>
+          <div class="noti-drop" id="noti-drop">
+            <div class="noti-drop-head"><span>Notifications</span><span style="font-size:9px;color:var(--tm);cursor:pointer" onclick="event.stopPropagation();clearNotifications()">Clear all</span></div>
+            <div id="noti-list"><div style="padding:20px;text-align:center;font-size:11px;color:var(--tm)">No notifications yet.</div></div>
+          </div>
+        </div>
         <div class="enc-notice" id="enc-badge">🔒 Firebase Sync</div>
         <div id="tb-extra"></div>
       </div>
@@ -350,6 +369,8 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 let firestore;
 try { firestore = firebase.firestore(); } catch(e) { firestore = null; }
+let storage;
+try { storage = firebase.storage(); } catch(e) { storage = null; }
 
 const ALLOWED_EMAILS = {
   'shubhammittal3555@gmail.com': 'shubham',
@@ -447,6 +468,8 @@ async function boot() {
     logAct('login', me().name + ' signed in', '→');
     checkOverdueTasks();
     loadClientAnalytics();
+    loadCloudFiles();
+    startRealtimeNotifications();
     setInterval(checkOverdueTasks, 600000);
   });
 }
@@ -505,6 +528,62 @@ async function logAct(action, detail, icon) {
   if (DB.firebaseOk) {
     try { await firestore.collection('activity_feed').add({ ...entry, memberName: me() ? me().name : 'System' }); } catch(e) {}
   }
+}
+
+/* ═══ Notification System ═══ */
+let _notifications=[];
+function toggleNotifications(){
+  const drop=document.getElementById('noti-drop');
+  drop.classList.toggle('show');
+  if(drop.classList.contains('show')){document.getElementById('noti-dot').classList.remove('on');}
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.noti-bell')){document.getElementById('noti-drop').classList.remove('show');}
+});
+function pushNotification(icon,text,time){
+  _notifications.unshift({icon,text,time});
+  if(_notifications.length>30)_notifications.length=30;
+  renderNotifications();
+  document.getElementById('noti-dot').classList.add('on');
+}
+function renderNotifications(){
+  const list=document.getElementById('noti-list');
+  if(_notifications.length===0){list.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:var(--tm)">No notifications yet.</div>';return;}
+  list.innerHTML=_notifications.map(n=>`<div class="noti-item"><div class="ni-icon">${n.icon}</div><div class="ni-text">${n.text}</div><div class="ni-time">${n.time}</div></div>`).join('');
+}
+function clearNotifications(){_notifications=[];renderNotifications();document.getElementById('noti-dot').classList.remove('on');}
+function timeAgoShort(ts){const d=Date.now()-ts;if(d<60000)return 'now';if(d<3600000)return Math.floor(d/60000)+'m';if(d<86400000)return Math.floor(d/3600000)+'h';return Math.floor(d/86400000)+'d';}
+function startRealtimeNotifications(){
+  if(!DB.firebaseOk)return;
+  firestore.collection('activity_feed').orderBy('ts','desc').limit(1)
+    .onSnapshot(snap=>{
+      snap.docChanges().forEach(change=>{
+        if(change.type==='added'){
+          const d=change.doc.data();
+          if(d.uid!==me().id && Date.now()-d.ts<300000){
+            pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
+          }
+        }
+      });
+    },err=>console.log('Notification listener error',err));
+  // Client session listener — track login/logout
+  firestore.collection('client_sessions').orderBy('login','desc').limit(1)
+    .onSnapshot(snap=>{
+      snap.docChanges().forEach(change=>{
+        if(change.type==='added'){
+          const d=change.doc.data();
+          if(Date.now()-d.login<300000){
+            pushNotification('👤', `Client ${d.name||d.email||'Unknown'} logged in`, timeAgoShort(d.login));
+          }
+        }
+        if(change.type==='modified'){
+          const d=change.doc.data();
+          if(d.logout&&Date.now()-d.logout<300000){
+            pushNotification('👋', `Client ${d.name||d.email||'Unknown'} logged out (${d.duration?Math.round(d.duration/60000)+'m':'?'})`, timeAgoShort(d.logout));
+          }
+        }
+      });
+    },err=>console.log('Client session listener error',err));
 }
 
 /* ═══ Auto-Merit Engine ═══ */
@@ -568,6 +647,7 @@ const NAV = [
   {id:'profile',label:'My Profile',ic:'⚙',sec:'Team',minMerit:0,depts:'all'},
   {id:'activity',label:'Activity',ic:'◌',sec:'Team',minMerit:30,depts:'all'},
   {id:'analytics',label:'Client Analytics',ic:'📊',sec:'Team',minMerit:0,depts:['Founder']},
+  {id:'cloudfiles',label:'Cloud Storage',ic:'☁',sec:'Team',minMerit:0,depts:'all'},
 ];
 function me(){return SESSION.user;}
 function isFounder(){return me()&&me().isFounder;}
@@ -602,7 +682,7 @@ function buildSidebar(){
     <div class="u-role">${m.role}${m.isFounder?' · <span style="color:var(--gold)">Founder</span>':''}</div>
     <div class="merit-strip"><div class="ms-bar"><div class="ms-fill" style="width:${score}%;background:${fc}"></div></div><span class="ms-val">${score}pts</span></div></div>`;
 }
-const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics'};
+const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage'};
 function showPage(id,navEl){
   const item=NAV.find(n=>n.id===id);
   if(item&&!canAccess(item)){showDenied(item);return;}
@@ -610,7 +690,7 @@ function showPage(id,navEl){
   if(navEl)navEl.classList.add('act');else{const el=document.querySelector(`.ni[data-page="${id}"]`);if(el)el.classList.add('act');}
   document.getElementById('tb-title').textContent=PAGE_TITLES[id]||id;
   document.getElementById('tb-extra').innerHTML='';
-  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics};
+  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics,cloudfiles:rCloudFiles};
   if(R[id])document.getElementById('content').innerHTML=R[id]();
   if(id==='tasks'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Assign Task</button>`;
   if(id==='payments'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
@@ -618,6 +698,7 @@ function showPage(id,navEl){
   if(window._timerInterval){clearTimeout(window._timerInterval);window._timerInterval=null;}
   if(id==='attendance')startLiveTimer();
   if(id==='merit'&&me().isFounder)document.getElementById('tb-extra').innerHTML=`<button class="btn-sm gold" onclick="openRoleModal()">Manage Roles</button>`;
+  if(id==='cloudfiles'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="document.getElementById('cf-upload').click()">+ Upload File</button>`;
 }
 function showDenied(item){
   document.getElementById('tb-title').textContent='Restricted';document.getElementById('tb-extra').innerHTML='';
@@ -1232,6 +1313,86 @@ async function loadClientAnalytics(){
     });
     SESSION.clientAnalytics=ca;
   }catch(e){console.log('Analytics load error',e);}
+}
+/* ═══ Cloud Storage ═══ */
+let _cloudFiles=[];
+async function loadCloudFiles(){
+  if(!DB.firebaseOk)return;
+  try{
+    const snap=await firestore.collection('cloud_files').orderBy('uploadedAt','desc').get();
+    _cloudFiles=[];
+    snap.forEach(doc=>{_cloudFiles.push({id:doc.id,...doc.data()});});
+  }catch(e){console.log('Cloud files load error',e);}
+}
+function rCloudFiles(){
+  let html=`<div class="adm-banner"><div><div class="adm-label">☁ Cloud Storage — Firebase</div><div class="adm-sub">Upload, share and manage files. All files stored in Firebase Cloud Storage.</div></div>
+  ${canEdit()?`<button class="btn-sm red" onclick="document.getElementById('cf-upload').click()">+ Upload File</button>`:''}
+  </div>
+  <input type="file" id="cf-upload" style="display:none" onchange="uploadCloudFile(this)" multiple>`;
+  html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Files</div><div class="sv">${_cloudFiles.length}</div></div>
+  <div class="sc"><div class="sl">Total Size</div><div class="sv">${formatFileSize(_cloudFiles.reduce((s,f)=>s+(f.size||0),0))}</div></div>
+  <div class="sc"><div class="sl">Storage</div><div class="sv" style="color:var(--g)">Firebase</div></div></div>`;
+  html+=`<div class="panel"><div class="ph"><div class="pt">Files</div><span class="badge b-green">${_cloudFiles.length} uploaded</span></div>`;
+  if(_cloudFiles.length===0){
+    html+=`<div style="padding:30px;text-align:center;font-size:12px;color:var(--tm)">No files uploaded yet.${canEdit()?' Click "+ Upload File" to add files.':''}</div>`;
+  } else {
+    _cloudFiles.forEach((f,i)=>{
+      const ext=(f.name||'').split('.').pop().toUpperCase()||'?';
+      const icon=ext==='PDF'?'📄':ext==='PNG'||ext==='JPG'||ext==='JPEG'||ext==='WEBP'?'🖼':ext==='MP4'||ext==='MOV'?'🎬':ext==='DOC'||ext==='DOCX'?'📝':ext==='XLS'||ext==='XLSX'?'📊':'📁';
+      const uploadDate=f.uploadedAt?new Date(f.uploadedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const uploader=f.uploaderName||'Unknown';
+      html+=`<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--br)">
+        <div style="font-size:20px;width:28px;text-align:center">${icon}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name||'Untitled'}</div>
+        <div style="font-size:10px;color:var(--tm);margin-top:1px">${formatFileSize(f.size||0)} · ${uploader} · ${uploadDate}</div></div>
+        <span class="badge b-blue">${ext}</span>
+        <a href="${f.url||'#'}" target="_blank" class="btn-sm" style="text-decoration:none">↓ Download</a>
+        ${canEdit()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteCloudFile('${f.id}','${(f.path||'').replace(/'/g,"\\'")}')">✕</button>`:''}
+      </div>`;
+    });
+  }
+  html+=`</div>`;
+  return html;
+}
+function formatFileSize(bytes){
+  if(bytes===0)return '0 B';
+  const k=1024;const sizes=['B','KB','MB','GB'];
+  const i=Math.floor(Math.log(bytes)/Math.log(k));
+  return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i];
+}
+async function uploadCloudFile(input){
+  if(!storage){alert('Cloud storage not available.');return;}
+  const files=input.files;
+  if(!files||files.length===0)return;
+  for(let i=0;i<files.length;i++){
+    const file=files[i];
+    if(file.size>50*1024*1024){alert(`"${file.name}" is too large. Max 50MB per file.`);continue;}
+    const path='workspace_files/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    try{
+      const ref=storage.ref(path);
+      await ref.put(file);
+      const url=await ref.getDownloadURL();
+      await firestore.collection('cloud_files').add({
+        name:file.name,size:file.size,type:file.type,path:path,url:url,
+        uploadedBy:me().id,uploaderName:me().name,
+        uploadedAt:Date.now()
+      });
+      await logAct('file_upload',`${me().name.split(' ')[0]} uploaded "${file.name}" (${formatFileSize(file.size)})`,'☁');
+    }catch(e){alert('Upload failed: '+e.message);}
+  }
+  input.value='';
+  await loadCloudFiles();
+  showPage('cloudfiles');
+}
+async function deleteCloudFile(docId,path){
+  if(!confirm('Delete this file permanently?'))return;
+  try{
+    if(path&&storage){try{await storage.ref(path).delete();}catch(e){}}
+    await firestore.collection('cloud_files').doc(docId).delete();
+    await logAct('file_delete','File deleted from cloud storage','🗑');
+    await loadCloudFiles();
+    showPage('cloudfiles');
+  }catch(e){alert('Delete failed: '+e.message);}
 }
 function openRoleModal(){
   document.getElementById('role-list').innerHTML=SESSION.members.filter(m=>!m.isFounder).map((m,i)=>`
