@@ -457,9 +457,8 @@ const password=$("#password").value;
 await signInWithEmailAndPassword(auth,email,password);
 
 toast("Login Successful","✓");
-alert("Redirecting...");
 
-window.location.href="/kreativ-portal.html";
+window.location.href = currentRole === "team" ? "/kreativ-workspace" : "/kreativ-portal";
 
 }
 catch(e){
@@ -530,7 +529,7 @@ try {
 });
   $('#ssoBtn').addEventListener('click',()=>toast('SSO — connect your identity provider to enable.','◆'));
 
-  /* ── live clock ── */
+  /* ── live clock ── */  
   function tick(){
     const n=new Date(); const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));
     $('#footClock').textContent=String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0')+' IST';
