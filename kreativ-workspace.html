@@ -423,28 +423,10 @@ const DEFAULT_MEMBERS = [
   {id:'manik',name:'Manik Mowdgal',initials:'MM',role:'Designer',dept:'Design',color:'#F5A623',merit:75,isFounder:false,isAdmin:false,email:'manikm.work@gmail.com',phone:'',metrics:{tasksCompleted:22,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'Noted',cut:10500,pct:21}]}},
   {id:'shubham',name:'Shubham Mittal',initials:'SM',role:'Tech Lead',dept:'Tech',color:'#2ECC71',merit:82,isFounder:false,isAdmin:false,email:'shubhammittal3555@gmail.com',phone:'',metrics:{tasksCompleted:28,projectsLed:2,clientsManaged:2},salary:{projectCuts:[{project:'ACCD',cut:16000,pct:16},{project:'Kreativ Site',cut:12000,pct:24}]}},
 ];
-const DEFAULT_CLIENTS = ['ACCD','Omega Stationery','7 Seeds Coffee','Fateh Education','KDC Educational','Noted by 4Knotts'];
-const DEFAULT_TASKS = [
-  {id:'t1',name:'ACCD homepage copy',project:'ACCD',assignee:'keshav',priority:'High',due:'2026-06-30',done:false,merit:5,notes:'',needsHelp:false},
-  {id:'t2',name:'Noted pitch deck revisions',project:'Noted by 4Knotts',assignee:'manik',priority:'High',due:'2026-07-01',done:false,merit:8,notes:'',needsHelp:false},
-  {id:'t3',name:'ACCD Jubilee microsite QA',project:'ACCD',assignee:'shubham',priority:'High',due:'2026-06-30',done:false,merit:6,notes:'',needsHelp:false},
-  {id:'t4',name:'LinkedIn Posts 10–14 design',project:'Internal',assignee:'chaitanya',priority:'Mid',due:'2026-07-02',done:false,merit:4,notes:'',needsHelp:false},
-  {id:'t5',name:'Omega 14 reel scripts',project:'Omega Stationery',assignee:'chaitanya',priority:'Mid',due:'2026-06-25',done:true,merit:8,notes:'Delivered',needsHelp:false},
-];
-const DEFAULT_PAYMENTS = [
-  {id:'p1',client:'ACCD',amount:40000,type:'Retainer',status:'Overdue',desc:'Tier 2 Retainer — July 2026',due:'2026-07-01'},
-  {id:'p2',client:'Omega Stationery',amount:25000,type:'Project',status:'Due',desc:'Content Strategy Package',due:'2026-07-02'},
-  {id:'p3',client:'7 Seeds Coffee',amount:45000,type:'Project',status:'Due',desc:'Brand Audit + Sprint',due:'2026-07-05'},
-  {id:'p4',client:'Fateh Education',amount:35000,type:'Invoice',status:'Received',desc:'Digital Audit + Pitch',due:'2026-06-20'},
-  {id:'p5',client:'KDC Educational',amount:18000,type:'Retainer',status:'Received',desc:'Social Retainer — June',due:'2026-06-30'},
-];
-const DEFAULT_APPROVALS = [
-  {id:'ap1',title:'ACCD Website V2 — Full Design',desc:'Complete redesign ready for sign-off.',requestedBy:'keshav',target:'Client: Jain Sahib',status:'pending',date:'27 Jun'},
-  {id:'ap2',title:'Noted Pitch Deck Final Draft',desc:'Investor deck ready for internal review.',requestedBy:'manik',target:'Internal: Shubhrat',status:'pending',date:'28 Jun'},
-  {id:'ap3',title:'ACCD Cinematic Intro',desc:'GTA VI-style demo site intro sequence.',requestedBy:'keshav',target:'Client: Jain Sahib',status:'pending',date:'25 Jun'},
-  {id:'ap4',title:'Kreativ Brand Guidelines v2',desc:'Updated internal brand guideline doc.',requestedBy:'chaitanya',target:'Internal',status:'approved',date:'20 Jun'},
-  {id:'ap5',title:'Omega Digital Audit',desc:'Full audit doc for client handoff.',requestedBy:'keshav',target:'Client',status:'approved',date:'22 Jun'},
-];
+const DEFAULT_CLIENTS = [];
+const DEFAULT_TASKS = [];
+const DEFAULT_PAYMENTS = [];
+const DEFAULT_APPROVALS = [];
 
 /* ═══════════════════════════════════════════════════════
    Boot — Firebase Auth gate
@@ -466,6 +448,12 @@ async function boot() {
 }
 
 async function loadSession(memberId) {
+  // One-time wipe of old demo data (v2 deploy)
+  if (!localStorage.getItem('kw_v2_clean')) {
+    localStorage.removeItem('kw_workspace_data');
+    localStorage.setItem('kw_v2_clean', '1');
+    if (DB.firebaseOk) { try { await firestore.collection('workspace').doc('workspace_data').delete(); } catch(e){} }
+  }
   const saved = await DB.get('workspace_data');
   if (saved) {
     SESSION.members = saved.members || DEFAULT_MEMBERS;
@@ -607,8 +595,7 @@ function rOverview(){
     return `<div class="ti" onclick="this.querySelector('.tc').classList.toggle('done');this.querySelector('.tn').classList.toggle('done')"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}</div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
-        <div class="ar"><div class="ai" style="background:var(--b-bg)">🎨</div><div class="ainfo"><div class="at">ACCD website V2 design</div><div class="as2">Sent to Jain Sahib · 2 days ago</div></div><div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div></div>
-        <div class="ar"><div class="ai" style="background:var(--a-bg)">📄</div><div class="ainfo"><div class="at">Noted pitch deck final</div><div class="as2">Awaiting Shubhrat · 1 day ago</div></div><div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div></div></div>
+        ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · ${a.date}</div></div>${isAdmin()?`<div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div>`:''}</div>`;}).join('')}</div>
       <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
         ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey())})).filter(x=>x.att&&x.att.clockIn&&!x.att.clockOut);
         if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
@@ -618,9 +605,7 @@ function rOverview(){
         ${SESSION.payments.filter(p=>p.status!=='Received').slice(0,3).map(p=>`<div class="pr"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm);margin-top:1px">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${p.status==='Overdue'?'b-red':'b-amber'}">${p.status}</span></div>`).join('')}</div>
     </div></div>
   <div class="panel"><div class="ph"><div class="pt">Recent Activity</div></div>
-    <div class="acti"><div class="adot" style="background:var(--g)"></div><div><div class="atxt"><span class="abold">Chaitanya</span> completed "Logo variations — ACCD V3" <span class="badge b-blue" style="font-size:8px">+5 pts</span></div><div class="atime">10 min ago</div></div></div>
-    <div class="acti"><div class="adot" style="background:var(--b)"></div><div><div class="atxt"><span class="abold">Keshav</span> sent client update to 7 Seeds Coffee</div><div class="atime">1 hr ago</div></div></div>
-    <div class="acti"><div class="adot" style="background:var(--a)"></div><div><div class="atxt"><span class="abold">Shubham</span> pushed flagship build <span class="badge b-blue" style="font-size:8px">+8 pts</span></div><div class="atime">Yesterday</div></div></div></div>`;
+    <div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No activity yet.</div></div>`;
 }
 
 function rAttendance(){
@@ -941,8 +926,7 @@ function rUpdates(){
       <textarea class="cta" placeholder="Write today's update..."></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="alert('Update sent!')">Send →</button></div></div></div>
     <div class="panel"><div class="ph"><div class="pt">Sent</div></div>
-      <div style="padding:12px 16px;border-bottom:1px solid var(--br)"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:12px;font-weight:600">ACCD</div><span class="badge b-green">Delivered</span></div><div style="font-size:11px;color:var(--ts);line-height:1.5">Website V2 85% done. Jubilee staging live.</div></div>
-      <div style="padding:12px 16px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:12px;font-weight:600">Omega Stationery</div><span class="badge b-amber">No reply</span></div><div style="font-size:11px;color:var(--ts);line-height:1.5">14 Reel scripts delivered. Awaiting feedback.</div></div></div></div>`;
+      <div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div></div></div>`;
 }
 function rApprovals(){
   const pending=SESSION.approvals.filter(a=>a.status==='pending');
@@ -1113,10 +1097,6 @@ async function saveDataEntry(){
 async function deleteEntry(i){if(confirm('Delete this entry?')){SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
 function rActivity(){
   const log=[
-    {dot:'var(--g)',txt:'<span class="abold">Chaitanya</span> completed task <span class="badge b-blue" style="font-size:8px">+5 pts</span>',time:'Today, 10:20am',founder:false},
-    {dot:'var(--b)',txt:'<span class="abold">Keshav</span> sent client update',time:'Today, 9:15am',founder:false},
-    {dot:'var(--a)',txt:'<span class="abold">Shubham</span> pushed flagship build <span class="badge b-blue" style="font-size:8px">+8 pts</span>',time:'Yesterday',founder:false},
-    {dot:'var(--pu)',txt:'<span class="abold">Shubhrat</span> adjusted merit: 67 → 62 <span class="badge b-amber" style="font-size:8px">-5 pts</span>',time:'28 Jun',founder:true},
   ];
   const visible=log.filter(l=>!l.founder);
   let html=`<div class="panel"><div class="ph"><div class="pt">Team Activity Feed</div></div>${visible.map(l=>`<div class="acti"><div class="adot" style="background:${l.dot}"></div><div><div class="atxt">${l.txt}</div><div class="atime">${l.time}</div></div></div>`).join('')}</div>`;
