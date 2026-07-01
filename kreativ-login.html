@@ -454,7 +454,7 @@ const email=$("#email").value.trim();
 
 const password=$("#password").value;
 
-await signInWithEmailAndPassword(auth,email,password);
+await window.firebase.signInWithEmailAndPassword(auth,email,password);
 
 toast("Login Successful","✓");
 
