@@ -366,40 +366,59 @@ firebase.initializeApp(firebaseConfig);
 const firestore = firebase.firestore();
 const storage = firebase.storage();
 
+const LS_PREFIX = 'kw_';
 const DB = {
-  cache: {},
+  firebaseOk: false,
   unsub: null,
+  _lsGet(k) {
+    try { const raw = localStorage.getItem(LS_PREFIX + k); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  },
+  _lsSet(k, v) {
+    try { localStorage.setItem(LS_PREFIX + k, JSON.stringify(v)); } catch(e) { console.warn('LS write failed:', e); }
+  },
   async get(k) {
-    if (this.cache[k] !== undefined) return this.cache[k];
-    try {
-      const doc = await firestore.collection('workspace').doc(k).get();
-      const val = doc.exists ? doc.data().v : null;
-      this.cache[k] = val;
-      return val;
-    } catch(e) {
-      console.warn('Firebase read failed, using cache:', e);
-      return this.cache[k] || null;
+    if (this.firebaseOk) {
+      try {
+        const doc = await firestore.collection('workspace').doc(k).get();
+        if (doc.exists) { const val = doc.data().v; this._lsSet(k, val); return val; }
+      } catch(e) { console.warn('Firebase read failed, using localStorage:', e); }
     }
+    return this._lsGet(k);
   },
   async set(k, v) {
-    this.cache[k] = v;
+    this._lsSet(k, v);
+    if (this.firebaseOk) {
+      try {
+        await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() });
+        updateSyncStatus(true);
+      } catch(e) {
+        console.warn('Firebase write failed, saved locally:', e);
+        updateSyncStatus(false);
+      }
+    }
+  },
+  async init() {
     try {
-      await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() });
+      await firestore.collection('workspace').doc('_ping').get();
+      this.firebaseOk = true;
       updateSyncStatus(true);
+      this.startRealtimeSync();
     } catch(e) {
-      console.warn('Firebase write failed:', e);
+      console.warn('Firestore not available, running in local mode:', e);
+      this.firebaseOk = false;
       updateSyncStatus(false);
     }
   },
   startRealtimeSync() {
-    if (this.unsub) return;
+    if (this.unsub || !this.firebaseOk) return;
     this.unsub = firestore.collection('workspace').onSnapshot(snapshot => {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'modified' || change.type === 'added') {
           const k = change.doc.id;
           const newVal = change.doc.data().v;
-          if (JSON.stringify(this.cache[k]) !== JSON.stringify(newVal)) {
-            this.cache[k] = newVal;
+          const oldVal = this._lsGet(k);
+          if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+            this._lsSet(k, newVal);
             if (SESSION.user && (k === 'vault_main' || k === 'member_ids')) {
               handleRemoteVaultUpdate();
             }
@@ -514,7 +533,7 @@ async function unwrapMK(wrappedB64, pin){
 let SESSION = {user:null, mk:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}};
 
 async function boot() {
-  DB.startRealtimeSync();
+  await DB.init();
   const setupDone = await DB.get('setup_done');
   const hints = await DB.get('member_ids') || [];
   const isStale = setupDone && (hints.length===0 || hints.some(m=>!m.wrappedKey));
