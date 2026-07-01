@@ -5,80 +5,98 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kreativ Workspace — Secure</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 :root{--pitch:#050505;--red:#FF1E1E;--red-d:#CC0000;--red-bg:rgba(255,30,30,0.08);--red-br:rgba(255,30,30,0.22);--s1:#111;--s2:#181818;--s3:#222;--br:rgba(255,255,255,0.07);--br2:rgba(255,255,255,0.13);--tp:#F5F5F5;--ts:rgba(245,245,245,0.58);--tm:rgba(245,245,245,0.32);--g:#2ECC71;--g-bg:rgba(46,204,113,0.1);--a:#F5A623;--a-bg:rgba(245,166,35,0.1);--b:#4A90E2;--b-bg:rgba(74,144,226,0.1);--pu:#9B59B6;--pu-bg:rgba(155,89,182,0.1);--gold:#C9A84C;--gold-bg:rgba(201,168,76,0.1);}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--tp);overflow:hidden;height:100vh}
-.screen{display:none;height:100vh;overflow-y:auto}.screen.on{display:flex;align-items:center;justify-content:center}
-.lock-wrap{width:380px;max-width:92vw;text-align:center}
-.lock-logo{font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;letter-spacing:.06em}
+body{background:var(--pitch);color:var(--tp);font-family:'Space Grotesk',sans-serif;font-size:14px;overflow:hidden;height:100vh}
+.screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--pitch);z-index:100}
+.screen.on{display:flex}
+.lock-wrap{width:420px;display:flex;flex-direction:column;align-items:center;gap:24px}
+.lock-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:34px;letter-spacing:.05em;text-align:center}
 .lock-logo span{color:var(--red)}
-.lock-sub{font-size:11px;color:var(--tm);margin-top:2px;letter-spacing:.04em}
-.lock-box{background:var(--s1);border:1px solid var(--br);border-radius:14px;padding:28px 24px;margin-top:24px;text-align:left}
-.lock-icon{font-size:28px;margin-bottom:10px;text-align:center}
-.lock-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;text-align:center;letter-spacing:.04em}
-.lock-desc{font-size:11px;color:var(--ts);text-align:center;margin-top:6px;line-height:1.6}
-.lock-members{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
-.mem-btn{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 12px;cursor:pointer;font-family:inherit;color:var(--tp);flex:1;min-width:140px}
-.mem-btn:hover{border-color:var(--br2)}.mem-btn.sel{border-color:var(--red);background:var(--red-bg)}
-.mem-btn.founder{border-color:rgba(201,168,76,.25)}
-.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0}
-.mem-info{text-align:left}.mem-name{font-size:12px;font-weight:600}.mem-role{font-size:9px;color:var(--tm)}
-.lbl{display:block;font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 5px}
-.inp{width:100%;background:var(--s2);border:1px solid var(--br);border-radius:7px;color:var(--tp);font-family:inherit;font-size:13px;padding:10px 13px;outline:none}
+.lock-sub{font-size:11px;color:var(--tm);letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:-18px}
+.lock-box{background:var(--s1);border:1px solid var(--br2);border-radius:16px;padding:30px;width:100%}
+.lock-icon{width:52px;height:52px;border-radius:50%;background:var(--red-bg);border:1px solid var(--red-br);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 18px}
+.lock-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;text-align:center;margin-bottom:5px}
+.lock-desc{font-size:12px;color:var(--ts);text-align:center;margin-bottom:20px;line-height:1.6}
+.lbl{font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;display:block}
+.inp{width:100%;background:var(--s2);border:1px solid var(--br);border-radius:8px;color:var(--tp);font-family:inherit;font-size:13px;padding:11px 14px;outline:none;margin-bottom:12px}
 .inp:focus{border-color:var(--br2)}
-.inp-pw{letter-spacing:3px}
-.err{font-size:11px;color:var(--red);margin-top:8px;display:none}.err.on{display:block}
-.btn-full{width:100%;padding:12px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.06em;cursor:pointer;border:none}
-.btn-red{background:var(--red);color:white}.btn-red:hover{background:var(--red-d)}
-.security-badge{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:18px;font-size:9px;color:var(--g);letter-spacing:.04em}
-.sec-dot{width:5px;height:5px;background:var(--g);border-radius:50%;animation:pulse-g 2s infinite}
-@keyframes pulse-g{0%,100%{opacity:1}50%{opacity:.4}}
-.setup-steps{display:flex;justify-content:center;gap:8px;margin-bottom:18px}
-.step-dot{width:8px;height:8px;border-radius:50%;background:var(--br2)}.step-dot.done{background:var(--g)}
-.app{display:none;height:100vh}.app.on{display:flex}
-.sb{width:222px;background:var(--s1);border-right:1px solid var(--br);display:flex;flex-direction:column;height:100vh;flex-shrink:0;overflow-y:auto}
-.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--br)}
-.logo-t{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:.06em}
+.inp-pw{letter-spacing:.2em;font-size:15px}
+.btn-full{width:100%;padding:12px;border-radius:8px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border:none;letter-spacing:.02em}
+.btn-red{background:var(--red);color:white}
+.btn-red:hover{background:var(--red-d)}
+.btn-red:disabled{background:var(--s3);color:var(--tm);cursor:not-allowed}
+.lock-members{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.mem-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--br);background:transparent;cursor:pointer;width:100%;font-family:inherit;text-align:left}
+.mem-btn:hover{background:var(--s2);border-color:var(--br2)}
+.mem-btn.sel{border-color:var(--red-br);background:var(--red-bg)}
+.mem-btn.founder{border-color:var(--gold-bg)}
+.mem-btn.founder:hover{background:var(--gold-bg)}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0}
+.mem-info{flex:1}
+.mem-name{font-size:12px;font-weight:600;color:var(--tp)}
+.mem-role{font-size:10px;color:var(--tm)}
+.err{background:var(--red-bg);border:1px solid var(--red-br);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--red);margin-top:10px;display:none}
+.err.on{display:block}
+.security-badge{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tm);justify-content:center}
+.sec-dot{width:6px;height:6px;border-radius:50%;background:var(--g)}
+.app{display:none;width:100%;height:100vh;flex-direction:row}
+.app.on{display:flex}
+.sb{width:222px;min-width:222px;background:var(--s1);border-right:1px solid var(--br);display:flex;flex-direction:column;height:100vh}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid var(--br)}
+.logo-t{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;letter-spacing:.04em}
 .logo-t span{color:var(--red)}
-.logo-s{font-size:9px;color:var(--tm);margin-top:1px;letter-spacing:.04em}
-.sb-nav{flex:1;overflow-y:auto;padding:10px 0}
-.nl{font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;padding:14px 16px 5px}
-.ni{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:var(--ts);cursor:pointer;position:relative}
-.ni:hover{background:var(--s2);color:var(--tp)}.ni.act{background:var(--red-bg);color:var(--red);font-weight:600}
-.ni.lkd{opacity:.35;cursor:not-allowed}
-.ni-ic{font-size:13px;width:18px;text-align:center;flex-shrink:0}
-.ni-badge{background:var(--red);color:white;font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:auto}
-.ni-lock{margin-left:auto;font-size:10px}
-.sb-foot{padding:12px 16px;border-top:1px solid var(--br)}
-.u-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border:1px solid var(--br);border-radius:8px}
-.u-name{font-size:11px;font-weight:600}.u-role{font-size:9px;color:var(--tm)}
+.logo-s{font-size:9px;color:var(--tm);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nl{font-size:9px;color:var(--tm);letter-spacing:.1em;text-transform:uppercase;padding:8px 10px 4px}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--ts);font-size:12px;font-weight:500;margin-bottom:1px;border:1px solid transparent}
+.ni:hover{background:var(--s2);color:var(--tp)}
+.ni.act{background:var(--red-bg);color:var(--red);border-color:var(--red-br)}
+.ni.lkd{opacity:.3;cursor:not-allowed}
+.ni.lkd:hover{background:transparent;color:var(--ts)}
+.ni-ic{font-size:14px;width:16px;text-align:center}
+.ni-badge{margin-left:auto;background:var(--red);color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px}
+.ni-lock{margin-left:auto;font-size:10px;color:var(--tm)}
+.sb-foot{padding:8px;border-top:1px solid var(--br)}
+.u-chip{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;margin-bottom:4px}
+.u-name{font-size:11px;font-weight:600}
+.u-role{font-size:9px;color:var(--tm)}
 .merit-strip{display:flex;align-items:center;gap:5px;margin-top:3px}
-.ms-bar{width:50px;height:3px;background:var(--br);border-radius:2px;overflow:hidden}
-.ms-fill{height:100%;border-radius:2px}
-.ms-val{font-size:8px;color:var(--tm)}
-.lo-btn{font-size:10px;color:var(--tm);cursor:pointer;padding:6px 10px;margin-top:6px;text-align:center}
-.lo-btn:hover{color:var(--red)}
-.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--br);flex-shrink:0}
-.tb-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.04em}
-.content{flex:1;overflow-y:auto;padding:20px 24px 40px}
-.sg{display:grid;gap:14px}.sg-2{grid-template-columns:repeat(2,1fr)}.sg-3{grid-template-columns:repeat(3,1fr)}.sg-4{grid-template-columns:repeat(4,1fr)}
-.sc{background:var(--s1);border:1px solid var(--br);border-radius:10px;padding:16px}
-.sl{font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.08em}
-.sv{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;margin-top:4px}
-.sd{font-size:10px;margin-top:3px}.sd.up{color:var(--g)}.sd.warn{color:var(--a)}
-.panel{background:var(--s1);border:1px solid var(--br);border-radius:10px;overflow:hidden}
+.ms-bar{flex:1;height:2px;background:var(--br);border-radius:1px;overflow:hidden}
+.ms-fill{height:100%;border-radius:1px}
+.ms-val{font-size:9px;color:var(--tm)}
+.lo-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--tm);font-size:11px;font-weight:500}
+.lo-btn:hover{background:var(--red-bg);color:var(--red)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:54px;border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 22px;gap:14px;flex-shrink:0}
+.tb-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:.04em;flex:1}
+.content{flex:1;overflow-y:auto;padding:22px}
+.sg{display:grid;gap:12px;margin-bottom:20px}
+.sg-4{grid-template-columns:repeat(4,1fr)}
+.sg-3{grid-template-columns:repeat(3,1fr)}
+.sg-2{grid-template-columns:1fr 1fr}
+.sc{background:var(--s1);border:1px solid var(--br);border-radius:10px;padding:15px 17px}
+.sl{font-size:10px;color:var(--tm);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.sv{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:.02em}
+.sd{font-size:10px;margin-top:3px;color:var(--tm)}
+.sd.up{color:var(--g)}.sd.warn{color:var(--a)}
+.panel{background:var(--s1);border:1px solid var(--br);border-radius:10px;overflow:hidden;margin-bottom:18px}
 .ph{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--br)}
-.pt{font-size:13px;font-weight:600}
-.pa{font-size:10px;color:var(--red);cursor:pointer}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.02em}
-.b-red{background:var(--red-bg);color:var(--red)}.b-green{background:var(--g-bg);color:var(--g)}.b-amber{background:var(--a-bg);color:var(--a)}
-.b-blue{background:var(--b-bg);color:var(--b)}.b-grey{background:rgba(255,255,255,.06);color:var(--tm)}.b-gold{background:var(--gold-bg);color:var(--gold)}
+.pt{font-size:12px;font-weight:600}
+.pa{font-size:11px;color:var(--red);cursor:pointer;font-weight:500}
+.pa:hover{text-decoration:underline}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.b-red{background:var(--red-bg);color:var(--red)}.b-green{background:var(--g-bg);color:var(--g)}
+.b-amber{background:var(--a-bg);color:var(--a)}.b-blue{background:var(--b-bg);color:var(--b)}
+.b-grey{background:rgba(245,245,245,0.06);color:var(--tm)}.b-gold{background:var(--gold-bg);color:var(--gold)}
 .b-pu{background:var(--pu-bg);color:var(--pu)}
-.ti{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--br);cursor:pointer}
+.ti{display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--br);cursor:pointer}
 .ti:last-child{border-bottom:none}.ti:hover{background:var(--s2)}
-.tc{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--br2);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
+.tc{width:15px;height:15px;border-radius:4px;border:1px solid var(--br2);flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .tc.done{background:var(--g);border-color:var(--g)}
 .tc.done::after{content:'✓';color:white;font-size:8px;font-weight:700}
 .tn{font-size:12px;font-weight:500}.tn.done{text-decoration:line-through;color:var(--tm)}
@@ -165,69 +183,41 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
 .sbar input{background:transparent;border:none;outline:none;color:var(--tp);font-size:12px;font-family:inherit;width:100%}
 .enc-notice{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--g);padding:7px 12px;background:var(--g-bg);border-radius:5px;border:1px solid rgba(46,204,113,.2)}
 .data-row{background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.sync-status{display:flex;align-items:center;gap:5px;font-size:9px;padding:5px 10px;border-radius:4px;border:1px solid var(--br)}
-.sync-status.online{color:var(--g);border-color:rgba(46,204,113,.2);background:var(--g-bg)}
-.sync-status.offline{color:var(--a);border-color:rgba(245,166,35,.2);background:var(--a-bg)}
-.sync-status .sync-dot{width:5px;height:5px;border-radius:50%;animation:pulse-g 2s infinite}
-.sync-status.online .sync-dot{background:var(--g)}
-.sync-status.offline .sync-dot{background:var(--a)}
-@media(max-width:768px){
-  .sb{width:60px;overflow:hidden}.sb .nl,.sb .ni span:not(.ni-ic),.sb .ni-badge,.sb .ni-lock,.sb-logo .logo-s,.u-chip>div:not(.av),.lo-btn{display:none}
-  .sb-logo{padding:14px 8px}.logo-t{font-size:14px;text-align:center}
-  .ni{justify-content:center;padding:10px 8px}.ni-ic{font-size:16px}
-  .sb-foot{padding:8px}.u-chip{justify-content:center;padding:6px}
-  .content{padding:14px 12px 30px}.topbar{padding:10px 12px}
-  .sg-4{grid-template-columns:repeat(2,1fr)}.sg-3{grid-template-columns:1fr}.sg-2{grid-template-columns:1fr}
-  .sbar{display:none}
-}
+.sync-dot{width:6px;height:6px;border-radius:50%;animation:pulse-g 2s infinite}
+@keyframes pulse-g{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
 
-<div class="screen on" id="scr-setup">
+<!-- Loading screen shown while checking auth -->
+<div class="screen on" id="scr-loading">
   <div class="lock-wrap">
     <div>
       <div class="lock-logo">KREATIV<span>.</span></div>
       <div class="lock-sub">by 4Knotts — Secure Workspace</div>
     </div>
-    <div class="lock-box" id="setup-box">
-      <div class="lock-icon">🔐</div>
-      <div class="lock-title">Initialise Secure Workspace</div>
-      <div class="lock-desc">Set a PIN for each member. Each person's PIN independently unlocks the workspace — AES-256-GCM encrypted, synced via Firebase Cloud.</div>
-      <div class="setup-steps"><div class="step-dot done" id="sd1"></div><div class="step-dot" id="sd3"></div></div>
-      <div id="setup-step-2">
-        <div id="member-setup-list"></div>
-        <button class="btn-full btn-red" onclick="setupStep3()" style="margin-top:12px">Encrypt & Initialise →</button>
-      </div>
-      <div id="setup-step-3" style="display:none;text-align:center">
-        <div style="font-size:30px;margin-bottom:10px">✅</div>
-        <div class="lock-title">Workspace Encrypted & Synced</div>
-        <div class="lock-desc" style="margin-top:6px">AES-256-GCM applied. Firebase cloud sync active. Each PIN works independently.</div>
-        <button class="btn-full btn-red" style="margin-top:14px" onclick="goToLogin()">Enter Workspace →</button>
-      </div>
+    <div class="lock-box" style="text-align:center">
+      <div class="lock-icon">🔒</div>
+      <div class="lock-title">Authenticating...</div>
+      <div class="lock-desc">Verifying your access credentials.</div>
     </div>
-    <div class="security-badge"><div class="sec-dot"></div>AES-256-GCM · PBKDF2 100K · Firebase Cloud Sync · Per-member keys</div>
+    <div class="security-badge"><div class="sec-dot"></div>Firebase Auth · Firestore Sync · Encrypted</div>
   </div>
 </div>
 
-<div class="screen" id="scr-login">
+<!-- Denied screen for unauthorized users -->
+<div class="screen" id="scr-denied">
   <div class="lock-wrap">
     <div>
       <div class="lock-logo">KREATIV<span>.</span></div>
       <div class="lock-sub">by 4Knotts — Secure Workspace</div>
     </div>
-    <div class="lock-box">
-      <div class="lock-icon">🔒</div>
-      <div class="lock-title">Sign In</div>
-      <div class="lock-desc">Select your profile and enter your PIN.</div>
-      <div class="lock-members" id="login-members"></div>
-      <label class="lbl">Your PIN</label>
-      <input class="inp inp-pw" type="password" id="login-pin" placeholder="••••••" maxlength="8" onkeydown="if(event.key==='Enter')doLogin()">
-      <div class="err" id="login-err"></div>
-      <button class="btn-full btn-red" style="margin-top:12px" onclick="doLogin()">Unlock →</button>
+    <div class="lock-box" style="text-align:center">
+      <div class="lock-icon" style="background:var(--red-bg)">⛔</div>
+      <div class="lock-title">Access Denied</div>
+      <div class="lock-desc">Your email is not authorized to access the Kreativ Workspace. Only registered team members can enter.</div>
+      <button class="btn-full btn-red" style="margin-top:14px" onclick="doLogout()">← Back to Login</button>
     </div>
-    <div class="security-badge"><div class="sec-dot"></div>End-to-end encrypted · Firebase synced · Real-time</div>
-    <div style="font-size:10px;color:var(--tm);cursor:pointer;text-align:center" onclick="resetWorkspace()">Reset workspace / forgot all PINs?</div>
   </div>
 </div>
 
@@ -235,7 +225,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
   <aside class="sb">
     <div class="sb-logo">
       <div class="logo-t">KREATIV<span>.</span></div>
-      <div class="logo-s" style="display:flex;align-items:center;gap:5px"><span style="color:var(--g);font-size:8px">●</span>Encrypted · Synced</div>
+      <div class="logo-s" style="display:flex;align-items:center;gap:5px" id="sync-status"><span class="sync-dot" style="background:var(--tm)">●</span>Connecting...</div>
     </div>
     <nav class="sb-nav" id="sb-nav"></nav>
     <div class="sb-foot">
@@ -248,8 +238,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sbar"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..."></div>
-        <div class="sync-status online" id="sync-status"><div class="sync-dot"></div><span id="sync-label">Live</span></div>
-        <div class="enc-notice">🔒 AES-256</div>
+        <div class="enc-notice" id="enc-badge">🔒 Firebase Sync</div>
         <div id="tb-extra"></div>
       </div>
     </div>
@@ -257,6 +246,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
   </main>
 </div>
 
+<!-- Modals -->
 <div class="mo" id="mo-task"><div class="mbox">
   <div class="mt-title">Assign Task</div>
   <div class="fr"><label class="fl">Task name</label><input class="fi" type="text" id="t-name"></div>
@@ -279,8 +269,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
   <div class="fr"><label class="fl">Value</label><textarea class="fi cta" style="height:80px" id="de-val"></textarea></div>
   <div class="fr"><label class="fl">Category</label><select class="fsel" id="de-cat"><option>General</option><option>Finance</option><option>Client</option><option>HR</option><option>Operations</option></select></div>
   <div class="fr"><label class="fl">Access level</label><select class="fsel" id="de-access"><option value="all">All members</option><option value="admin">Admin only</option><option value="founder">Founder only</option></select></div>
-  <div style="font-size:10px;color:var(--g);margin-top:8px">🔒 Encrypted before cloud sync.</div>
-  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-data')">Cancel</button><button class="btn-sm red" onclick="saveDataEntry()">Encrypt & Save</button></div>
+  <div style="font-size:10px;color:var(--g);margin-top:8px">🔒 Stored securely via Firebase.</div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-data')">Cancel</button><button class="btn-sm red" onclick="saveDataEntry()">Save Entry</button></div>
 </div></div>
 
 <div class="mo" id="mo-roles"><div class="mbox">
@@ -299,11 +289,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
     <div class="fr" style="margin:0"><label class="fl">Role</label><input class="fi" id="am-role"></div>
     <div class="fr" style="margin:0"><label class="fl">Department</label><select class="fsel" id="am-dept"><option>Creative</option><option>Design</option><option>Tech</option><option>Operations</option></select></div>
   </div>
-  <div class="fr2" style="margin-top:10px">
-    <div class="fr" style="margin:0"><label class="fl">PIN</label><input class="fi inp-pw" type="password" id="am-pin" maxlength="8"></div>
-    <div class="fr" style="margin:0"><label class="fl">Starting merit</label><input class="fi" type="number" id="am-merit" value="80"></div>
-  </div>
-  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-addmem')">Cancel</button><button class="btn-sm red" onclick="addMember()">Add & Encrypt</button></div>
+  <div class="fr" style="margin-top:10px"><label class="fl">Email</label><input class="fi" type="email" id="am-email" placeholder="member@gmail.com"></div>
+  <div class="fr"><label class="fl">Starting merit</label><input class="fi" type="number" id="am-merit" value="80"></div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-addmem')">Cancel</button><button class="btn-sm red" onclick="addMember()">Add Member</button></div>
 </div></div>
 
 <div class="mo" id="mo-payment"><div class="mbox">
@@ -326,7 +314,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
   <div style="font-size:11px;color:var(--ts);margin-bottom:16px;line-height:1.6">Before ending your work day, summarise what you worked on today. A file attachment is optional but recommended.</div>
   <div class="fr"><label class="fl">Work summary <span style="color:var(--red)">*required</span></label><textarea class="fi cta" style="height:100px" id="co-text" placeholder="e.g. Finalised ACCD homepage copy, sent revisions to Manik, replied to 3 client emails..."></textarea></div>
   <div class="fr"><label class="fl">Attach file (optional — screenshot, doc, max 4MB)</label><input class="fi" type="file" id="co-file"></div>
-  <div style="font-size:10px;color:var(--g);margin-top:4px">🔒 Stored AES-256-GCM encrypted in Firebase Cloud.</div>
   <div class="mf"><button class="btn-sm" onclick="closeModal('mo-clockout')">Cancel</button><button class="btn-sm red" onclick="submitClockOut()">Submit & Clock Out</button></div>
 </div></div>
 
@@ -346,12 +333,10 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--pitch);color:var(--
   <div class="mf"><button class="btn-sm" onclick="closeModal('mo-meritreq')">Cancel</button><button class="btn-sm red" onclick="submitMeritRequest()">Submit Request</button></div>
 </div></div>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-
 <script>
+/* ═══════════════════════════════════════════════════════
+   Firebase Config + Auth
+   ═══════════════════════════════════════════════════════ */
 const firebaseConfig = {
   apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
   authDomain: "kreativ-by-4-knotts.firebaseapp.com",
@@ -361,210 +346,90 @@ const firebaseConfig = {
   appId: "1:224866350696:web:b890444abd8aee12a2eddd",
   measurementId: "G-MC6QDM9DJY"
 };
-
 firebase.initializeApp(firebaseConfig);
-const firestore = firebase.firestore();
-const storage = firebase.storage();
+const auth = firebase.auth();
+let firestore;
+try { firestore = firebase.firestore(); } catch(e) { firestore = null; }
 
+const ALLOWED_EMAILS = {
+  'shubhammittal3555@gmail.com': 'shubham',
+  'keshavmathur2006@gmail.com': 'keshav',
+  'manikm.work@gmail.com': 'manik',
+  'shubhrat.sryvstv@gmail.com': 'shubhrat',
+  'ckhanna591@gmail.com': 'chaitanya'
+};
+
+/* ═══════════════════════════════════════════════════════
+   Storage: localStorage primary + Firestore sync
+   ═══════════════════════════════════════════════════════ */
 const LS_PREFIX = 'kw_';
 const DB = {
   firebaseOk: false,
   unsub: null,
-  _lsGet(k) {
-    try { const raw = localStorage.getItem(LS_PREFIX + k); return raw ? JSON.parse(raw) : null; } catch { return null; }
-  },
-  _lsSet(k, v) {
-    try { localStorage.setItem(LS_PREFIX + k, JSON.stringify(v)); } catch(e) { console.warn('LS write failed:', e); }
-  },
+  _lsGet(k) { try { const raw = localStorage.getItem(LS_PREFIX + k); return raw ? JSON.parse(raw) : null; } catch { return null; } },
+  _lsSet(k, v) { try { localStorage.setItem(LS_PREFIX + k, JSON.stringify(v)); } catch(e) { console.warn('LS write failed:', e); } },
   async get(k) {
     if (this.firebaseOk) {
-      try {
-        const doc = await firestore.collection('workspace').doc(k).get();
-        if (doc.exists) { const val = doc.data().v; this._lsSet(k, val); return val; }
-      } catch(e) { console.warn('Firebase read failed, using localStorage:', e); }
+      try { const doc = await firestore.collection('workspace').doc(k).get(); if (doc.exists) { const val = doc.data().v; this._lsSet(k, val); return val; } } catch(e) { console.warn('Firebase read failed, using localStorage:', e); }
     }
     return this._lsGet(k);
   },
   async set(k, v) {
     this._lsSet(k, v);
     if (this.firebaseOk) {
-      try {
-        await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() });
-        updateSyncStatus(true);
-      } catch(e) {
-        console.warn('Firebase write failed, saved locally:', e);
-        updateSyncStatus(false);
-      }
+      try { await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() }); updateSyncStatus(true); } catch(e) { updateSyncStatus(false); }
     }
   },
   async init() {
-    try {
-      await firestore.collection('workspace').doc('_ping').get();
-      this.firebaseOk = true;
-      updateSyncStatus(true);
-      this.startRealtimeSync();
-    } catch(e) {
-      console.warn('Firestore not available, running in local mode:', e);
-      this.firebaseOk = false;
-      updateSyncStatus(false);
-    }
+    if (!firestore) { this.firebaseOk = false; updateSyncStatus(false); return; }
+    try { await firestore.collection('workspace').doc('_ping').get(); this.firebaseOk = true; updateSyncStatus(true); this.startRealtimeSync(); } catch(e) { this.firebaseOk = false; updateSyncStatus(false); }
   },
   startRealtimeSync() {
-    if (this.unsub || !this.firebaseOk) return;
+    if (!this.firebaseOk || this.unsub) return;
     this.unsub = firestore.collection('workspace').onSnapshot(snapshot => {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'modified' || change.type === 'added') {
           const k = change.doc.id;
-          const newVal = change.doc.data().v;
-          const oldVal = this._lsGet(k);
-          if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-            this._lsSet(k, newVal);
-            if (SESSION.user && (k === 'vault_main' || k === 'member_ids')) {
-              handleRemoteVaultUpdate();
-            }
-          }
+          if (k === '_ping') return;
+          const val = change.doc.data().v;
+          this._lsSet(k, val);
         }
       });
-      updateSyncStatus(true);
-    }, err => {
-      console.warn('Realtime sync error:', err);
-      updateSyncStatus(false);
-    });
+    }, err => { console.warn('Realtime sync error:', err); });
   }
 };
 
-function updateSyncStatus(online) {
+function updateSyncStatus(ok) {
   const el = document.getElementById('sync-status');
-  const lbl = document.getElementById('sync-label');
-  if (!el) return;
-  if (online) {
-    el.className = 'sync-status online';
-    lbl.textContent = 'Live';
+  const badge = document.getElementById('enc-badge');
+  if (ok) {
+    el.innerHTML = '<span class="sync-dot" style="background:var(--g)">●</span>Synced · Firebase';
+    badge.textContent = '🔒 Cloud Synced';
   } else {
-    el.className = 'sync-status offline';
-    lbl.textContent = 'Offline';
+    el.innerHTML = '<span style="color:var(--a);font-size:8px">●</span> Local Only';
+    badge.textContent = '💾 Local Storage';
   }
 }
 
-async function handleRemoteVaultUpdate() {
-  if (!SESSION.mk) return;
-  try {
-    const encrypted = await DB.get('vault_main');
-    if (!encrypted) return;
-    const vault = await MK_decrypt(encrypted, SESSION.mk);
-    if (!vault) return;
-    const currentPage = document.querySelector('.ni.act');
-    const pageId = currentPage ? currentPage.dataset.page : 'overview';
-    SESSION.members = vault.members;
-    SESSION.tasks = vault.tasks || [];
-    SESSION.payments = vault.payments || [];
-    SESSION.clients = vault.clients || DEFAULT_CLIENTS;
-    SESSION.dataEntries = vault.dataEntries || [];
-    SESSION.attendance = vault.attendance || [];
-    SESSION.approvals = vault.approvals || DEFAULT_APPROVALS;
-    SESSION.chats = vault.chats || {};
-    SESSION.meritRequests = vault.meritRequests || [];
-    SESSION.clientMeta = vault.clientMeta || {};
-    const me2 = vault.members.find(m => m.id === SESSION.user.id);
-    if (me2) SESSION.user = me2;
-    buildSidebar();
-    showPage(pageId);
-  } catch(e) { console.warn('Remote update merge failed:', e); }
-}
-
-const CRYPTO_ = {
-  async deriveKey(pass, salt) {
-    const enc = new TextEncoder();
-    const km = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'}, km, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
-  },
-  async encrypt(data, pass) {
-    const enc = new TextEncoder();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await this.deriveKey(pass, salt);
-    const ct = await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, enc.encode(JSON.stringify(data)));
-    const buf = new Uint8Array(16+12+ct.byteLength);
-    buf.set(salt,0); buf.set(iv,16); buf.set(new Uint8Array(ct),28);
-    return btoa(String.fromCharCode(...buf));
-  },
-  async decrypt(b64, pass) {
-    try {
-      const buf = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
-      const salt = buf.slice(0,16), iv = buf.slice(16,28), ct = buf.slice(28);
-      const key = await this.deriveKey(pass, salt);
-      const pt = await crypto.subtle.decrypt({name:'AES-GCM',iv}, key, ct);
-      return JSON.parse(new TextDecoder().decode(pt));
-    } catch { return null; }
-  },
-  async hashPin(pin) {
-    const enc = new TextEncoder();
-    const salt = new Uint8Array([75,114,101,97,116,105,118,52,75]);
-    const km = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']);
-    const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:50000,hash:'SHA-256'}, km, 256);
-    return btoa(String.fromCharCode(...new Uint8Array(bits)));
-  }
-};
-
-async function MK_importKey(rawBytes){ return crypto.subtle.importKey('raw', rawBytes, {name:'AES-GCM'}, false, ['encrypt','decrypt']); }
-async function MK_encrypt(data, mkBytes){
-  const enc=new TextEncoder();
-  const key=await MK_importKey(mkBytes);
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, enc.encode(JSON.stringify(data)));
-  const buf=new Uint8Array(12+ct.byteLength); buf.set(iv,0); buf.set(new Uint8Array(ct),12);
-  return btoa(String.fromCharCode(...buf));
-}
-async function MK_decrypt(b64, mkBytes){
-  try{
-    const key=await MK_importKey(mkBytes);
-    const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-    const iv=buf.slice(0,12), ct=buf.slice(12);
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv}, key, ct);
-    return JSON.parse(new TextDecoder().decode(pt));
-  }catch{ return null; }
-}
-async function wrapMK(mkBytes, pin){ return CRYPTO_.encrypt(Array.from(mkBytes), pin); }
-async function unwrapMK(wrappedB64, pin){
-  const arr = await CRYPTO_.decrypt(wrappedB64, pin);
-  return arr ? new Uint8Array(arr) : null;
-}
-
-let SESSION = {user:null, mk:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}};
-
-async function boot() {
-  await DB.init();
-  const setupDone = await DB.get('setup_done');
-  const hints = await DB.get('member_ids') || [];
-  const isStale = setupDone && (hints.length===0 || hints.some(m=>!m.wrappedKey));
-  if (setupDone && !isStale) { buildLoginMembers(); switchScreen('scr-login'); }
-  else {
-    if (isStale) { await DB.set('setup_done',''); await DB.set('member_ids',[]); await DB.set('vault_main',''); }
-    buildMemberSetup(); switchScreen('scr-setup');
-  }
-}
-async function resetWorkspace() {
-  if (!confirm('This permanently deletes all workspace data (tasks, payments, chats, everything) from Firebase and starts fresh. This cannot be undone. Continue?')) return;
-  await DB.set('setup_done',''); await DB.set('member_ids',[]); await DB.set('vault_main','');
-  location.reload();
-}
-function switchScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+/* ═══════════════════════════════════════════════════════
+   Session & Default Data
+   ═══════════════════════════════════════════════════════ */
+let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}};
 
 const DEFAULT_MEMBERS = [
-  {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat@kreativby4knotts.com',phone:'',metrics:{tasksCompleted:42,projectsLed:8,clientsManaged:6},salary:{projectCuts:[{project:'ACCD',cut:25000,pct:25},{project:'Noted',cut:15000,pct:30}]}},
-  {id:'keshav',name:'Keshav Mathur',initials:'KM',role:'Creative Lead',dept:'Creative',color:'#FF1E1E',merit:88,isFounder:false,isAdmin:false,email:'',phone:'+91 9354479897',metrics:{tasksCompleted:31,projectsLed:3,clientsManaged:5},salary:{projectCuts:[{project:'ACCD',cut:18000,pct:18},{project:'Omega',cut:9000,pct:18}]}},
-  {id:'chaitanya',name:'Chaitanya Khanna',initials:'CK',role:'Designer',dept:'Design',color:'#9B59B6',merit:62,isFounder:false,isAdmin:false,email:'',phone:'',metrics:{tasksCompleted:19,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'ACCD',cut:12000,pct:12}]}},
-  {id:'manik',name:'Manik Mowdgal',initials:'MM',role:'Designer',dept:'Design',color:'#F5A623',merit:75,isFounder:false,isAdmin:false,email:'',phone:'',metrics:{tasksCompleted:22,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'Noted',cut:10500,pct:21}]}},
-  {id:'shubham',name:'Shubham Mittal',initials:'SM',role:'Tech Lead',dept:'Tech',color:'#2ECC71',merit:82,isFounder:false,isAdmin:false,email:'',phone:'',metrics:{tasksCompleted:28,projectsLed:2,clientsManaged:2},salary:{projectCuts:[{project:'ACCD',cut:16000,pct:16},{project:'Kreativ Site',cut:12000,pct:24}]}},
+  {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:42,projectsLed:8,clientsManaged:6},salary:{projectCuts:[{project:'ACCD',cut:25000,pct:25},{project:'Noted',cut:15000,pct:30}]}},
+  {id:'keshav',name:'Keshav Mathur',initials:'KM',role:'Creative Lead',dept:'Creative',color:'#FF1E1E',merit:88,isFounder:false,isAdmin:false,email:'keshavmathur2006@gmail.com',phone:'+91 9354479897',metrics:{tasksCompleted:31,projectsLed:3,clientsManaged:5},salary:{projectCuts:[{project:'ACCD',cut:18000,pct:18},{project:'Omega',cut:9000,pct:18}]}},
+  {id:'chaitanya',name:'Chaitanya Khanna',initials:'CK',role:'Designer',dept:'Design',color:'#9B59B6',merit:62,isFounder:false,isAdmin:false,email:'ckhanna591@gmail.com',phone:'',metrics:{tasksCompleted:19,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'ACCD',cut:12000,pct:12}]}},
+  {id:'manik',name:'Manik Mowdgal',initials:'MM',role:'Designer',dept:'Design',color:'#F5A623',merit:75,isFounder:false,isAdmin:false,email:'manikm.work@gmail.com',phone:'',metrics:{tasksCompleted:22,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'Noted',cut:10500,pct:21}]}},
+  {id:'shubham',name:'Shubham Mittal',initials:'SM',role:'Tech Lead',dept:'Tech',color:'#2ECC71',merit:82,isFounder:false,isAdmin:false,email:'shubhammittal3555@gmail.com',phone:'',metrics:{tasksCompleted:28,projectsLed:2,clientsManaged:2},salary:{projectCuts:[{project:'ACCD',cut:16000,pct:16},{project:'Kreativ Site',cut:12000,pct:24}]}},
 ];
-const DEFAULT_PINS = {shubhrat:'123456',keshav:'111111',chaitanya:'222222',manik:'333333',shubham:'444444'};
 const DEFAULT_CLIENTS = ['ACCD','Omega Stationery','7 Seeds Coffee','Fateh Education','KDC Educational','Noted by 4Knotts'];
 const DEFAULT_TASKS = [
-  {id:'t1',name:'ACCD homepage copy',project:'ACCD',assignee:'keshav',priority:'High',due:'2026-06-30',done:false,merit:5,notes:''},
-  {id:'t2',name:'Noted pitch deck revisions',project:'Noted by 4Knotts',assignee:'manik',priority:'High',due:'2026-07-01',done:false,merit:8,notes:''},
-  {id:'t3',name:'ACCD Jubilee microsite QA',project:'ACCD',assignee:'shubham',priority:'High',due:'2026-06-30',done:false,merit:6,notes:''},
-  {id:'t4',name:'LinkedIn Posts 10–14 design',project:'Internal',assignee:'chaitanya',priority:'Mid',due:'2026-07-02',done:false,merit:4,notes:''},
-  {id:'t5',name:'Omega 14 reel scripts',project:'Omega Stationery',assignee:'chaitanya',priority:'Mid',due:'2026-06-25',done:true,merit:8,notes:'Delivered'},
+  {id:'t1',name:'ACCD homepage copy',project:'ACCD',assignee:'keshav',priority:'High',due:'2026-06-30',done:false,merit:5,notes:'',needsHelp:false},
+  {id:'t2',name:'Noted pitch deck revisions',project:'Noted by 4Knotts',assignee:'manik',priority:'High',due:'2026-07-01',done:false,merit:8,notes:'',needsHelp:false},
+  {id:'t3',name:'ACCD Jubilee microsite QA',project:'ACCD',assignee:'shubham',priority:'High',due:'2026-06-30',done:false,merit:6,notes:'',needsHelp:false},
+  {id:'t4',name:'LinkedIn Posts 10–14 design',project:'Internal',assignee:'chaitanya',priority:'Mid',due:'2026-07-02',done:false,merit:4,notes:'',needsHelp:false},
+  {id:'t5',name:'Omega 14 reel scripts',project:'Omega Stationery',assignee:'chaitanya',priority:'Mid',due:'2026-06-25',done:true,merit:8,notes:'Delivered',needsHelp:false},
 ];
 const DEFAULT_PAYMENTS = [
   {id:'p1',client:'ACCD',amount:40000,type:'Retainer',status:'Overdue',desc:'Tier 2 Retainer — July 2026',due:'2026-07-01'},
@@ -581,86 +446,69 @@ const DEFAULT_APPROVALS = [
   {id:'ap5',title:'Omega Digital Audit',desc:'Full audit doc for client handoff.',requestedBy:'keshav',target:'Client',status:'approved',date:'22 Jun'},
 ];
 
-function buildMemberSetup() {
-  document.getElementById('member-setup-list').innerHTML = DEFAULT_MEMBERS.map(m=>
-    `<div style="display:flex;align-items:center;gap:9px;background:var(--s2);border-radius:7px;padding:10px 12px;margin-bottom:6px">
-      <div class="mav2" style="background:${m.color};width:28px;height:28px;font-size:9px">${m.initials}</div>
-      <div style="flex:1"><div style="font-size:12px;font-weight:600">${m.name}</div><div style="font-size:10px;color:var(--tm)">${m.role}</div></div>
-      <input style="width:90px;background:var(--s3);border:1px solid var(--br);border-radius:4px;color:var(--tp);font-family:inherit;font-size:11px;padding:4px 7px;outline:none;text-align:center" type="password" value="${DEFAULT_PINS[m.id]}" id="pin-${m.id}" maxlength="8">
-    </div>`).join('');
+/* ═══════════════════════════════════════════════════════
+   Boot — Firebase Auth gate
+   ═══════════════════════════════════════════════════════ */
+function switchScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); const el=document.getElementById(id); if(el) el.classList.add('on'); }
+
+async function boot() {
+  await DB.init();
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = '/kreativ-login'; return; }
+    const email = user.email.toLowerCase();
+    const memberId = ALLOWED_EMAILS[email];
+    if (!memberId) { switchScreen('scr-denied'); return; }
+    await loadSession(memberId);
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+    document.getElementById('app').classList.add('on');
+    buildApp();
+  });
 }
 
-async function setupStep3() {
-  const membersCopy = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
-  const mk = crypto.getRandomValues(new Uint8Array(32));
-  for (const m of membersCopy) {
-    const pinEl=document.getElementById('pin-'+m.id);
-    const pin = pinEl?pinEl.value:DEFAULT_PINS[m.id];
-    m.wrappedKey = await wrapMK(mk, pin);
+async function loadSession(memberId) {
+  const saved = await DB.get('workspace_data');
+  if (saved) {
+    SESSION.members = saved.members || DEFAULT_MEMBERS;
+    SESSION.tasks = saved.tasks || DEFAULT_TASKS;
+    SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
+    SESSION.clients = saved.clients || DEFAULT_CLIENTS;
+    SESSION.dataEntries = saved.dataEntries || [];
+    SESSION.attendance = saved.attendance || [];
+    SESSION.approvals = saved.approvals || DEFAULT_APPROVALS;
+    SESSION.chats = saved.chats || {};
+    SESSION.meritRequests = saved.meritRequests || [];
+    SESSION.clientMeta = saved.clientMeta || {};
+  } else {
+    SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
+    SESSION.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+    SESSION.payments = JSON.parse(JSON.stringify(DEFAULT_PAYMENTS));
+    SESSION.clients = [...DEFAULT_CLIENTS];
+    SESSION.dataEntries = [];
+    SESSION.attendance = [];
+    SESSION.approvals = JSON.parse(JSON.stringify(DEFAULT_APPROVALS));
+    SESSION.chats = {};
+    SESSION.meritRequests = [];
+    SESSION.clientMeta = {};
+    await persist();
   }
-  const payload = {members:membersCopy, tasks:DEFAULT_TASKS, payments:DEFAULT_PAYMENTS, clients:DEFAULT_CLIENTS, dataEntries:[], attendance:[], approvals:DEFAULT_APPROVALS, chats:{}, meritRequests:[], clientMeta:{}};
-  const encrypted = await MK_encrypt(payload, mk);
-  await DB.set('vault_main', encrypted);
-  await DB.set('setup_done', '1');
-  await DB.set('member_ids', membersCopy.map(m=>({id:m.id,name:m.name,initials:m.initials,color:m.color,role:m.role,isFounder:m.isFounder||false,wrappedKey:m.wrappedKey})));
-  document.getElementById('setup-step-2').style.display='none';
-  document.getElementById('setup-step-3').style.display='block';
-  document.getElementById('sd3').classList.add('done');
+  SESSION.user = SESSION.members.find(m => m.id === memberId) || SESSION.members[0];
 }
-function goToLogin() { buildLoginMembers(); switchScreen('scr-login'); }
 
-let _selectedLogin = null;
-async function buildLoginMembers() {
-  const hints = await DB.get('member_ids') || [];
-  document.getElementById('login-members').innerHTML = hints.map(m=>
-    `<button class="mem-btn${m.isFounder?' founder':''}" id="lm-${m.id}" onclick="selectLoginMember('${m.id}',this)">
-      <div class="av" style="background:${m.color}">${m.initials}</div>
-      <div class="mem-info"><div class="mem-name">${m.name.split(' ')[0]}</div><div class="mem-role">${m.role}${m.isFounder?' · Founder':''}</div></div>
-    </button>`).join('');
-}
-function selectLoginMember(id, el) {
-  document.querySelectorAll('.mem-btn').forEach(b=>b.classList.remove('sel'));
-  el.classList.add('sel'); _selectedLogin=id;
-  document.getElementById('login-err').classList.remove('on');
-}
-async function doLogin() {
-  if (!_selectedLogin) { showLoginErr('Select a profile first.'); return; }
-  const pin = document.getElementById('login-pin').value;
-  if (!pin) { showLoginErr('Enter your PIN.'); return; }
-  const hints = await DB.get('member_ids') || [];
-  const hint = hints.find(m=>m.id===_selectedLogin);
-  if (!hint || !hint.wrappedKey) { showLoginErr('Member record not found.'); return; }
-  const mk = await unwrapMK(hint.wrappedKey, pin);
-  if (!mk) { showLoginErr('Incorrect PIN.'); return; }
-  const encrypted = await DB.get('vault_main');
-  if (!encrypted) { showLoginErr('Vault not found.'); return; }
-  const vault = await MK_decrypt(encrypted, mk);
-  if (!vault) { showLoginErr('Could not decrypt workspace data.'); return; }
-  const member = vault.members.find(m=>m.id===_selectedLogin);
-  if (!member) { showLoginErr('Member not found in vault.'); return; }
-  SESSION.mk=mk; SESSION.user=member; SESSION.members=vault.members;
-  SESSION.tasks=vault.tasks||[]; SESSION.payments=vault.payments||[]; SESSION.clients=vault.clients||DEFAULT_CLIENTS; SESSION.dataEntries=vault.dataEntries||[]; SESSION.attendance=vault.attendance||[]; SESSION.approvals=vault.approvals||DEFAULT_APPROVALS; SESSION.chats=vault.chats||{}; SESSION.meritRequests=vault.meritRequests||[]; SESSION.clientMeta=vault.clientMeta||{};
-  document.getElementById('login-pin').value='';
-  document.getElementById('login-err').classList.remove('on'); _selectedLogin=null;
-  buildApp();
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.getElementById('app').classList.add('on');
-}
-function showLoginErr(msg) { const el=document.getElementById('login-err'); el.textContent=msg; el.classList.add('on'); }
-function doLogout() {
-  SESSION = {user:null,mk:null,members:[],tasks:[],payments:[],clients:[],dataEntries:[],attendance:[],approvals:[],chats:{},meritRequests:[],clientMeta:{}};
-  document.getElementById('app').classList.remove('on');
-  document.getElementById('login-pin').value='';
-  document.querySelectorAll('.mem-btn').forEach(b=>b.classList.remove('sel'));
-  document.getElementById('login-err').classList.remove('on');
-  buildLoginMembers(); switchScreen('scr-login');
-}
 async function persist() {
   const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta};
-  const enc = await MK_encrypt(payload, SESSION.mk);
-  await DB.set('vault_main', enc);
-  await DB.set('member_ids', SESSION.members.map(m=>({id:m.id,name:m.name,initials:m.initials,color:m.color,role:m.role,isFounder:m.isFounder||false,wrappedKey:m.wrappedKey})));
+  await DB.set('workspace_data', payload);
 }
+
+function doLogout() {
+  auth.signOut().then(() => {
+    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}};
+    window.location.href = '/kreativ-login';
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   Navigation & App Shell
+   ═══════════════════════════════════════════════════════ */
 const NAV = [
   {id:'overview',label:'Dashboard',ic:'◈',sec:'Overview',minMerit:0,depts:'all'},
   {id:'attendance',label:'Attendance',ic:'⏱',sec:'Overview',minMerit:0,depts:'all'},
@@ -733,6 +581,48 @@ function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}
 function fmtDur(ms){const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);return `${h}h ${m}m`;}
 function myAttendanceToday(){return SESSION.attendance.find(a=>a.uid===me().id&&a.date===todayKey());}
+
+/* ═══════════════════════════════════════════════════════
+   Page Renderers
+   ═══════════════════════════════════════════════════════ */
+function rOverview(){
+  const openTasks=SESSION.tasks.filter(t=>!t.done).length;
+  const totalReceived=SESSION.payments.filter(p=>p.status==='Received').reduce((s,p)=>s+p.amount,0);
+  const att=myAttendanceToday();
+  let attBanner='';
+  if(!att||!att.clockIn){
+    attBanner=`<div class="adm-banner" style="background:var(--red-bg);border-color:var(--red-br)"><div><div class="adm-label" style="color:var(--red)">⏱ You haven't clocked in today</div><div class="adm-sub" style="color:var(--red);opacity:.7">Clock in to start tracking your work hours</div></div><button class="btn-sm red" onclick="showPage('attendance')">Clock In →</button></div>`;
+  } else if(att.clockIn&&!att.clockOut){
+    attBanner=`<div class="adm-banner" style="background:var(--g-bg);border-color:rgba(46,204,113,.3)"><div><div class="adm-label" style="color:var(--g)">● Clocked in since ${fmtTime(att.clockIn)}</div><div class="adm-sub" style="color:var(--g);opacity:.7">Remember to submit work proof before clocking out</div></div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="showPage('attendance')">View →</button></div>`;
+  }
+  return attBanner+`<div class="sg sg-4">
+    <div class="sc"><div class="sl">Active Clients</div><div class="sv">${SESSION.clients.length}</div><div class="sd up">↑ 2 this month</div></div>
+    <div class="sc"><div class="sl">Open Tasks</div><div class="sv">${openTasks}</div><div class="sd warn">${openTasks} pending</div></div>
+    <div class="sc"><div class="sl">Payment Overdue</div><div class="sv" style="color:var(--red)">${SESSION.payments.filter(p=>p.status==='Overdue').length}</div><div class="sd warn">Action needed</div></div>
+    <div class="sc"><div class="sl">Received MTD</div><div class="sv" style="color:var(--g)">₹${(totalReceived/1000).toFixed(0)}K</div><div class="sd up">↑ 18%</div></div>
+  </div>
+  <div class="sg sg-2">
+    <div class="panel"><div class="ph"><div class="pt">Today's Tasks</div><span class="pa" onclick="showPage('tasks')">View all</span></div>
+    ${SESSION.tasks.slice(0,5).map(t=>{const mem=SESSION.members.find(m=>m.id===t.assignee)||{initials:'?',color:'#666'};const pc=t.priority==='Urgent'||t.priority==='High'?'b-red':t.priority==='Mid'?'b-amber':'b-blue';
+    return `<div class="ti" onclick="this.querySelector('.tc').classList.toggle('done');this.querySelector('.tn').classList.toggle('done')"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}</div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
+        <div class="ar"><div class="ai" style="background:var(--b-bg)">🎨</div><div class="ainfo"><div class="at">ACCD website V2 design</div><div class="as2">Sent to Jain Sahib · 2 days ago</div></div><div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div></div>
+        <div class="ar"><div class="ai" style="background:var(--a-bg)">📄</div><div class="ainfo"><div class="at">Noted pitch deck final</div><div class="as2">Awaiting Shubhrat · 1 day ago</div></div><div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div></div></div>
+      <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
+        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey())})).filter(x=>x.att&&x.att.clockIn&&!x.att.clockOut);
+        if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
+        return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
+      </div>
+      <div class="panel"><div class="ph"><div class="pt">Payments Due</div><span class="pa" onclick="showPage('payments')">View all</span></div>
+        ${SESSION.payments.filter(p=>p.status!=='Received').slice(0,3).map(p=>`<div class="pr"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm);margin-top:1px">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${p.status==='Overdue'?'b-red':'b-amber'}">${p.status}</span></div>`).join('')}</div>
+    </div></div>
+  <div class="panel"><div class="ph"><div class="pt">Recent Activity</div></div>
+    <div class="acti"><div class="adot" style="background:var(--g)"></div><div><div class="atxt"><span class="abold">Chaitanya</span> completed "Logo variations — ACCD V3" <span class="badge b-blue" style="font-size:8px">+5 pts</span></div><div class="atime">10 min ago</div></div></div>
+    <div class="acti"><div class="adot" style="background:var(--b)"></div><div><div class="atxt"><span class="abold">Keshav</span> sent client update to 7 Seeds Coffee</div><div class="atime">1 hr ago</div></div></div>
+    <div class="acti"><div class="adot" style="background:var(--a)"></div><div><div class="atxt"><span class="abold">Shubham</span> pushed flagship build <span class="badge b-blue" style="font-size:8px">+8 pts</span></div><div class="atime">Yesterday</div></div></div></div>`;
+}
+
 function rAttendance(){
   const today=myAttendanceToday();
   const adm=isAdmin();
@@ -825,19 +715,6 @@ function startLiveTimer(){
 }
 function openClockOutModal(){openModal('mo-clockout');}
 async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
-
-async function uploadProofFile(file) {
-  try {
-    const path = `proofs/${me().id}/${todayKey()}_${file.name}`;
-    const ref = storage.ref(path);
-    await ref.put(file);
-    return await ref.getDownloadURL();
-  } catch(e) {
-    console.warn('Storage upload failed, storing inline:', e);
-    return null;
-  }
-}
-
 async function submitClockOut(){
   const proofText=document.getElementById('co-text').value.trim();
   if(!proofText){alert('Work summary is required before clocking out.');return;}
@@ -850,8 +727,7 @@ async function submitClockOut(){
     const f=fileInput.files[0];
     if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
     today.proofFileName=f.name;
-    const url = await uploadProofFile(f);
-    today.proofFileData = url || await fileToBase64(f);
+    today.proofFileData=await fileToBase64(f);
   }
   await persist();
   closeModal('mo-clockout');
@@ -878,94 +754,22 @@ function rProfile(){
         <button class="btn-sm red" onclick="saveProfileContact()">Save Contact Details</button>
       </div>
     </div>
-    <div class="panel"><div class="ph"><div class="pt">Change PIN</div></div>
+    <div class="panel"><div class="ph"><div class="pt">Account Info</div></div>
       <div style="padding:20px">
-        <div class="fr"><label class="fl">Current PIN</label><input class="fi inp-pw" type="password" id="pf-oldpin" maxlength="8"></div>
-        <div class="fr"><label class="fl">New PIN (4–8 digits)</label><input class="fi inp-pw" type="password" id="pf-newpin" maxlength="8"></div>
-        <div class="fr"><label class="fl">Confirm New PIN</label><input class="fi inp-pw" type="password" id="pf-newpin2" maxlength="8"></div>
-        <button class="btn-sm red" onclick="changeOwnPin()">Update PIN</button>
+        <div style="font-size:12px;color:var(--ts);margin-bottom:10px">Logged in as: <strong>${auth.currentUser?auth.currentUser.email:''}</strong></div>
+        <div style="font-size:11px;color:var(--tm);line-height:1.7">Authentication is managed via Firebase Auth. To change your password, use the "Forgot password" option on the login page.</div>
       </div>
     </div>
   </div>`;
-  if(isAdmin()){
-    html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Reset Member PIN</div><div class="adm-sub">Override without knowing their current PIN</div></div></div>
-    <div class="panel"><div class="ph"><div class="pt">Admin PIN Reset</div></div>
-      <div style="padding:20px">
-        <div class="fr2">
-          <div class="fr" style="margin:0"><label class="fl">Member</label><select class="fsel" id="pf-admin-member">${SESSION.members.filter(x=>x.id!==m.id).map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}</select></div>
-          <div class="fr" style="margin:0"><label class="fl">New PIN</label><input class="fi inp-pw" type="password" id="pf-admin-newpin" maxlength="8"></div>
-        </div>
-        <button class="btn-sm gold" style="margin-top:10px" onclick="adminResetPin()">Reset Their PIN</button>
-      </div>
-    </div>`;
-  }
   return html;
 }
 async function saveProfileContact(){
   me().email=document.getElementById('pf-email').value.trim();
   me().phone=document.getElementById('pf-phone').value.trim();
   await persist();
-  alert('Contact details saved & synced to Firebase.');
+  alert('Contact details saved.');
 }
-async function changeOwnPin(){
-  const oldPin=document.getElementById('pf-oldpin').value;
-  const newPin=document.getElementById('pf-newpin').value;
-  const newPin2=document.getElementById('pf-newpin2').value;
-  if(!oldPin||!newPin||newPin.length<4){alert('Fill all fields. New PIN must be 4+ digits.');return;}
-  if(newPin!==newPin2){alert('New PIN and confirmation do not match.');return;}
-  const check=await unwrapMK(me().wrappedKey, oldPin);
-  if(!check){alert('Current PIN is incorrect.');return;}
-  me().wrappedKey=await wrapMK(SESSION.mk, newPin);
-  await persist();
-  document.getElementById('pf-oldpin').value='';document.getElementById('pf-newpin').value='';document.getElementById('pf-newpin2').value='';
-  alert('PIN updated successfully.');
-}
-async function adminResetPin(){
-  const uid=document.getElementById('pf-admin-member').value;
-  const newPin=document.getElementById('pf-admin-newpin').value;
-  if(!newPin||newPin.length<4){alert('New PIN must be 4+ digits.');return;}
-  const target=SESSION.members.find(x=>x.id===uid);
-  target.wrappedKey=await wrapMK(SESSION.mk, newPin);
-  await persist();
-  document.getElementById('pf-admin-newpin').value='';
-  alert(`PIN reset for ${target.name.split(' ')[0]}.`);
-}
-function rOverview(){
-  const openTasks=SESSION.tasks.filter(t=>!t.done).length;
-  const totalReceived=SESSION.payments.filter(p=>p.status==='Received').reduce((s,p)=>s+p.amount,0);
-  const att=myAttendanceToday();
-  let attBanner='';
-  if(!att||!att.clockIn){
-    attBanner=`<div class="adm-banner" style="background:var(--red-bg);border-color:var(--red-br)"><div><div class="adm-label" style="color:var(--red)">⏱ You haven't clocked in today</div><div class="adm-sub" style="color:var(--red);opacity:.7">Clock in to start tracking your work hours</div></div><button class="btn-sm red" onclick="showPage('attendance')">Clock In →</button></div>`;
-  } else if(att.clockIn&&!att.clockOut){
-    attBanner=`<div class="adm-banner" style="background:var(--g-bg);border-color:rgba(46,204,113,.3)"><div><div class="adm-label" style="color:var(--g)">● Clocked in since ${fmtTime(att.clockIn)}</div><div class="adm-sub" style="color:var(--g);opacity:.7">Remember to submit work proof before clocking out</div></div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="showPage('attendance')">View →</button></div>`;
-  }
-  return attBanner+`<div class="sg sg-4">
-    <div class="sc"><div class="sl">Active Clients</div><div class="sv">${SESSION.clients.length}</div><div class="sd up">↑ 2 this month</div></div>
-    <div class="sc"><div class="sl">Open Tasks</div><div class="sv">${openTasks}</div><div class="sd warn">${openTasks} pending</div></div>
-    <div class="sc"><div class="sl">Payment Overdue</div><div class="sv" style="color:var(--red)">${SESSION.payments.filter(p=>p.status==='Overdue').length}</div><div class="sd warn">Action needed</div></div>
-    <div class="sc"><div class="sl">Received MTD</div><div class="sv" style="color:var(--g)">₹${(totalReceived/1000).toFixed(0)}K</div><div class="sd up">↑ 18%</div></div>
-  </div>
-  <div class="sg sg-2">
-    <div class="panel"><div class="ph"><div class="pt">Today's Tasks</div><span class="pa" onclick="showPage('tasks')">View all</span></div>
-    ${SESSION.tasks.slice(0,5).map(t=>{const mem=SESSION.members.find(m=>m.id===t.assignee)||{initials:'?',color:'#666'};const pc=t.priority==='Urgent'||t.priority==='High'?'b-red':t.priority==='Mid'?'b-amber':'b-blue';
-    return `<div class="ti" onclick="this.querySelector('.tc').classList.toggle('done');this.querySelector('.tn').classList.toggle('done')"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}</div>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
-        ${SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">🎨</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · ${a.date}</div></div>${isAdmin()?`<div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div>`:''}</div>`;}).join('')}</div>
-      <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
-        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey())})).filter(x=>x.att&&x.att.clockIn&&!x.att.clockOut);
-        if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
-        return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
-      </div>
-      <div class="panel"><div class="ph"><div class="pt">Payments Due</div><span class="pa" onclick="showPage('payments')">View all</span></div>
-        ${SESSION.payments.filter(p=>p.status!=='Received').slice(0,3).map(p=>`<div class="pr"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm);margin-top:1px">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${p.status==='Overdue'?'b-red':'b-amber'}">${p.status}</span></div>`).join('')}</div>
-    </div></div>
-  <div class="panel"><div class="ph"><div class="pt">Recent Activity</div></div>
-    <div class="acti"><div class="adot" style="background:var(--g)"></div><div><div class="atxt"><span class="abold">Chaitanya</span> completed "Logo variations — ACCD V3" <span class="badge b-blue" style="font-size:8px">+5 pts</span></div><div class="atime">10 min ago</div></div></div>
-    <div class="acti"><div class="adot" style="background:var(--b)"></div><div><div class="atxt"><span class="abold">Keshav</span> sent client update to 7 Seeds Coffee</div><div class="atime">1 hr ago</div></div></div>
-    <div class="acti"><div class="adot" style="background:var(--a)"></div><div><div class="atxt"><span class="abold">Shubham</span> pushed flagship build <span class="badge b-blue" style="font-size:8px">+8 pts</span></div><div class="atime">Yesterday</div></div></div></div>`;
-}
+
 function rTasks(){
   const canAssign=isAdmin()||me().dept==='Creative';
   return `<div class="panel"><div class="ph"><div class="pt">All Tasks</div>${canAssign?`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Add Task</button>`:''}</div>
@@ -1081,7 +885,7 @@ function rClientDetail(name){
     <div class="panel">
       <div class="ph"><div class="pt">Discussion</div></div>
       <div style="max-height:360px;overflow-y:auto;padding:12px 16px" id="chat-scroll">
-        ${msgs.length===0?'<div style="text-align:center;font-size:12px;color:var(--tm);padding:20px">No messages yet. Start the discussion below.</div>':''}
+        ${msgs.length===0?'<div style="text-align:center;font-size:12px;color:var(--tm);padding:20px">No messages yet.</div>':''}
         ${msgs.map(m=>{
           const sender=SESSION.members.find(x=>x.id===m.sender);
           const isMe=m.sender===me().id;
@@ -1135,7 +939,7 @@ function rUpdates(){
       <div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Send to</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">${SESSION.clients.map(c=>`<div class="ctag" onclick="this.classList.toggle('on')">${c}</div>`).join('')}</div>
       <textarea class="cta" placeholder="Write today's update..."></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="alert('Update sent & synced!')">Send →</button></div></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="alert('Update sent!')">Send →</button></div></div></div>
     <div class="panel"><div class="ph"><div class="pt">Sent</div></div>
       <div style="padding:12px 16px;border-bottom:1px solid var(--br)"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:12px;font-weight:600">ACCD</div><span class="badge b-green">Delivered</span></div><div style="font-size:11px;color:var(--ts);line-height:1.5">Website V2 85% done. Jubilee staging live.</div></div>
       <div style="padding:12px 16px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:12px;font-weight:600">Omega Stationery</div><span class="badge b-amber">No reply</span></div><div style="font-size:11px;color:var(--ts);line-height:1.5">14 Reel scripts delivered. Awaiting feedback.</div></div></div></div>`;
@@ -1144,12 +948,11 @@ function rApprovals(){
   const pending=SESSION.approvals.filter(a=>a.status==='pending');
   const approved=SESSION.approvals.filter(a=>a.status==='approved');
   const rejected=SESSION.approvals.filter(a=>a.status==='rejected');
-  const icons=['🌐','📑','🎬','📋','🎨','📄'];
   return `<div class="adm-banner"><div><div class="adm-label">💬 Open to Everyone</div><div class="adm-sub">Any team member can request approval or suggest something for review</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ Request Approval</button></div>
   <div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">Awaiting Approval</div><span class="badge b-red">${pending.length} pending</span></div>
     ${pending.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing pending.</div>':''}
     ${pending.map((a,idx)=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);const realIdx=SESSION.approvals.indexOf(a);
-    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">${icons[idx%icons.length]}</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdmin()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
+    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdmin()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
   <div class="panel"><div class="ph"><div class="pt">Resolved</div></div>
     ${[...approved,...rejected].length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
     ${approved.map(a=>`<div class="ar" style="opacity:.5"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Approved · ${a.date}</div></div><span class="badge b-green">Done</span></div>`).join('')}
@@ -1260,7 +1063,7 @@ async function editMemberPrompt(id){
 }
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
-  if(!confirm(`Remove ${m.name} from the workspace?`))return;
+  if(!confirm(`Remove ${m.name} from the workspace? Their existing tasks/payments will remain but show as unassigned.`))return;
   SESSION.members=SESSION.members.filter(x=>x.id!==id);
   await persist();buildSidebar();showPage('merit');
 }
@@ -1280,7 +1083,7 @@ function rSalary(){
   <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--g)">~65%</div><div style="font-size:10px;color:var(--tm)">→ Team Cuts</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--b)">Merit</div><div style="font-size:10px;color:var(--tm)">Weighted %</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--gold)">Q</div><div style="font-size:10px;color:var(--tm)">Quarterly reset</div></div></div>
-  <div style="padding:0 16px 14px;font-size:11px;color:var(--tm);line-height:1.7">Cut % × merit score × contribution. Below 30 merit = 0% cut until restored. AES-256-GCM encrypted. Synced via Firebase.</div></div>`;
+  <div style="padding:0 16px 14px;font-size:11px;color:var(--tm);line-height:1.7">Cut % × merit score × contribution. Below 30 merit = 0% cut until restored. Synced via Firebase.</div></div>`;
 }
 async function editCut(mi,ci){
   const cur=SESSION.members[mi].salary.projectCuts[ci];
@@ -1295,11 +1098,11 @@ async function addCutEntry(){
 function rVault(){
   if(!isAdmin())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only admins can access the secure vault.</div></div>`;
   const visible=SESSION.dataEntries.filter(e=>{if(e.access==='founder')return me().isFounder;if(e.access==='admin')return isAdmin();return true;});
-  return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault — AES-256-GCM + Firebase</div><div class="adm-sub">Encrypted before cloud sync. Role-restricted.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
-  <div class="panel"><div class="ph"><div class="pt">Encrypted Entries <span class="badge b-green" style="margin-left:8px">${visible.length} visible</span></div></div>
+  return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault — Firebase</div><div class="adm-sub">Role-restricted. Cloud synced.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
+  <div class="panel"><div class="ph"><div class="pt">Entries <span class="badge b-green" style="margin-left:8px">${visible.length} visible</span></div></div>
   ${visible.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No entries yet.</div>':''}
   ${visible.map((e,i)=>`<div class="data-row"><div style="flex:1"><div style="font-size:12px;font-weight:600">${e.key}</div><div style="font-size:10px;color:var(--tm);margin-top:2px">${e.category} · Access: ${e.access}</div><div style="font-size:12px;color:var(--ts);margin-top:5px;white-space:pre-wrap">${e.value}</div></div>${isAdmin()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteEntry(${i})">✕</button>`:''}</div>`).join('')}</div>
-  <div style="font-size:10px;color:var(--tm);text-align:center;margin-top:8px">🔒 AES-256-GCM · PBKDF2 100K · Firebase Firestore · Real-time sync</div>`;
+  <div style="font-size:10px;color:var(--tm);text-align:center;margin-top:8px">🔒 Firebase Firestore · Real-time sync</div>`;
 }
 async function saveDataEntry(){
   const key=document.getElementById('de-key').value.trim();const val=document.getElementById('de-val').value.trim();
@@ -1344,11 +1147,11 @@ async function toggleAdminRole(id,btn){
 async function addMember(){
   const name=document.getElementById('am-name').value.trim();const init=document.getElementById('am-init').value.trim().toUpperCase();
   const role=document.getElementById('am-role').value.trim();const dept=document.getElementById('am-dept').value;
-  const pin=document.getElementById('am-pin').value;const merit=parseInt(document.getElementById('am-merit').value)||80;
-  if(!name||!init||!role||!pin||pin.length<4){alert('Fill all fields. PIN min 4 digits.');return;}
-  const wrappedKey=await wrapMK(SESSION.mk, pin);const colors=['#E74C3C','#3498DB','#1ABC9C','#E67E22','#8E44AD','#2ECC71'];
+  const email=document.getElementById('am-email').value.trim();const merit=parseInt(document.getElementById('am-merit').value)||80;
+  if(!name||!init||!role){alert('Fill all fields.');return;}
+  const colors=['#E74C3C','#3498DB','#1ABC9C','#E67E22','#8E44AD','#2ECC71'];
   const color=colors[SESSION.members.length%colors.length];const id=name.toLowerCase().replace(/\s+/g,'_')+Date.now();
-  SESSION.members.push({id,name,initials:init,role,dept,color,merit,isFounder:false,isAdmin:false,wrappedKey,email:'',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}});
+  SESSION.members.push({id,name,initials:init,role,dept,color,merit,isFounder:false,isAdmin:false,email:email,phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}});
   await persist();closeModal('mo-addmem');buildSidebar();showPage('merit');
 }
 function openModal(id){document.getElementById(id).classList.add('on');}

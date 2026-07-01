@@ -10,6 +10,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --pitch:#050505; --ink:#0C0C0C; --ash:#141414; --smoke:#1E1E1E; --line:#262626;
@@ -237,8 +240,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     </nav>
     <div class="sb-foot">
       <div class="sb-user">
-        <div class="sb-avatar">L</div>
-        <div><div class="un">Lena Okafor</div><div class="uc">Lumen Co.</div></div>
+        <div class="sb-avatar" id="sb-av">?</div>
+        <div><div class="un" id="sb-name">Loading...</div><div class="uc" id="sb-company">—</div></div>
       </div>
     </div>
   </aside>
@@ -268,7 +271,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
       <section class="view active" id="v-overview">
         <div class="welcome">
           <div>
-            <h1>Welcome back, Lena.</h1>
+            <h1 id="welcome-name">Welcome back.</h1>
             <p class="sub">You have <b>2 deliverables</b> awaiting review and <b>1 new message</b> from the studio.</p>
           </div>
           <div class="date" id="welcomeDate">—</div>
@@ -349,6 +352,56 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 <div class="toast" id="toast"><span class="ti" id="toastIcon">✓</span><span id="toastMsg"></span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+/* ═══ Firebase Init + Auth Gate ═══ */
+firebase.initializeApp({
+  apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
+  authDomain: "kreativ-by-4-knotts.firebaseapp.com",
+  projectId: "kreativ-by-4-knotts",
+  storageBucket: "kreativ-by-4-knotts.firebasestorage.app",
+  messagingSenderId: "224866350696",
+  appId: "1:224866350696:web:b890444abd8aee12a2eddd",
+  measurementId: "G-MC6QDM9DJY"
+});
+
+const TEAM_EMAILS = ['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
+
+function parseClientName(user) {
+  if (user.displayName) return user.displayName;
+  const local = user.email.split('@')[0];
+  return local.replace(/[._-]/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function parseCompany(user) {
+  const domain = user.email.split('@')[1];
+  if (domain === 'gmail.com' || domain === 'yahoo.com' || domain === 'outlook.com') return '';
+  return domain.split('.')[0].replace(/\b\w/g, c => c.toUpperCase());
+}
+
+document.querySelector('.app').style.display = 'none';
+
+firebase.auth().onAuthStateChanged(function(user) {
+  if (!user) { window.location.href = '/kreativ-login'; return; }
+  if (TEAM_EMAILS.includes(user.email.toLowerCase())) { window.location.href = '/kreativ-workspace'; return; }
+
+  const clientName = parseClientName(user);
+  const clientInitial = clientName.charAt(0).toUpperCase();
+  const company = parseCompany(user);
+
+  window._clientName = clientName;
+  window._clientInitial = clientInitial;
+
+  document.getElementById('sb-av').textContent = clientInitial;
+  document.getElementById('sb-name').textContent = clientName;
+  document.getElementById('sb-company').textContent = company || 'Client';
+  document.getElementById('welcome-name').textContent = 'Welcome back, ' + clientName.split(' ')[0] + '.';
+
+  document.querySelectorAll('.msg-av.you').forEach(el => el.textContent = clientInitial);
+  document.querySelectorAll('.msg-name').forEach(el => { if (el.textContent === '__CLIENT_NAME__') el.textContent = clientName; });
+
+  document.querySelector('.app').style.display = 'grid';
+});
+</script>
+<script>
 (function(){
   'use strict';
   const $=s=>document.querySelector(s);
@@ -377,7 +430,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
   ];
   const messages=[
     {who:'studio', name:'Kreativ Studio', time:'2h ago', text:'The pricing page live estimator is up for review — Basic/Pro/Premium tiers with the custom builder. Take a look when you get a chance.'},
-    {who:'you', name:'Lena Okafor', time:'1h ago', text:'Pricing breakdown looks clean. The min–max range display works well. One question on the custom builder flow.'},
+    {who:'you', name:'__CLIENT_NAME__', time:'1h ago', text:'Pricing breakdown looks clean. The min–max range display works well. One question on the custom builder flow.'},
     {who:'studio', name:'Kreativ Studio', time:'45m ago', text:'Sure — the 5-step wizard (services → tier → budget → brief → review) is in the Files tab. Check BuildProjectPage.jsx for the full flow.'}
   ];
   const invoices=[
@@ -444,8 +497,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     <button class="file-dl" aria-label="Download ${f.name}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
   </div>`).join('');
   $('#msgList').innerHTML=messages.map(m=>`<div class="msg">
-    <div class="msg-av ${m.who}">${m.who==='studio'?'K':'L'}</div>
-    <div class="msg-body"><div class="msg-head"><span class="msg-name">${m.name}</span><span class="msg-time">${m.time}</span></div><div class="msg-text">${m.text}</div></div>
+    <div class="msg-av ${m.who}">${m.who==='studio'?'K':(window._clientInitial||'?')}</div>
+    <div class="msg-body"><div class="msg-head"><span class="msg-name">${m.name==='__CLIENT_NAME__'?(window._clientName||'You'):m.name}</span><span class="msg-time">${m.time}</span></div><div class="msg-text">${m.text}</div></div>
   </div>`).join('');
   $('#invList').innerHTML=invoices.map(v=>`<div class="inv-row">
     <div><div class="inv-id">${v.id}</div><div class="inv-desc">${v.desc}</div></div>
@@ -523,7 +576,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     const inp=$('#msgInput'); const v=inp.value.trim(); if(!v) return;
     const list=$('#msgList');
     const d=document.createElement('div'); d.className='msg';
-    d.innerHTML=`<div class="msg-av you">L</div><div class="msg-body"><div class="msg-head"><span class="msg-name">Lena Okafor</span><span class="msg-time">just now</span></div><div class="msg-text">${v.replace(/</g,'&lt;')}</div></div>`;
+    d.innerHTML=`<div class="msg-av you">${window._clientInitial||'?'}</div><div class="msg-body"><div class="msg-head"><span class="msg-name">${window._clientName||'You'}</span><span class="msg-time">just now</span></div><div class="msg-text">${v.replace(/</g,'&lt;')}</div></div>`;
     list.appendChild(d); inp.value=''; list.scrollTop=list.scrollHeight;
     setTimeout(()=>{
       const r=document.createElement('div'); r.className='msg';
@@ -535,7 +588,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
   $('#msgInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
   // bell + signout
   $('#bellBtn').addEventListener('click',()=>{toast('3 notifications (demo).','◆');$('#bellBtn .dot').style.display='none';});
-  $('#signout').addEventListener('click',()=>{ window.location.href='kreativ-login'; });
+  $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
   /* ════════ MOBILE SIDEBAR ════════ */
   const sidebar=$('#sidebar'), scrim=$('#scrim');
