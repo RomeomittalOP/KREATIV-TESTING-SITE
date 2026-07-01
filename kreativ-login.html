@@ -358,7 +358,7 @@ body::after{
       promptArg:'--team --sso',
       asideEyebrow:'Inside the workspace',
       asideHeadline:'The full stack.<br>The AI lab.<br>The engine room.',
-      sso:'sso',
+      sso:'google',
       features:[
         ['01','AI agent dashboard','Run Kreativ AI, KnottBox Claude API, and the 14-tool agent suite from one console.'],
         ['02','Pipeline & ops','OTP auth, pricing engine, build wizard — the platform operating system.'],
@@ -502,31 +502,19 @@ toast(e.message,"!");
     if(!emailRe.test(v)){ $('#fEmail').classList.add('invalid'); toast('Enter your email for the magic link.','!'); $('#email').focus(); return; }
     toast(`Login link sent to ${v} (demo).`,'✓');
   });
+  const TEAM_EMAILS = ['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
+
   $('#googleBtn').addEventListener('click',async()=>{
-
-try {
-
-        const result = await window.firebase.signInWithPopup(
-            window.auth,
-            window.provider
-        );
-
-        alert("1");
-
-        toast("Welcome " + result.user.displayName, "✓");
-
-        alert("2");
-
-        window.location.href = "/kreativ-portal.html";
-
-        alert("3");
-
+    try {
+      const result = await window.firebase.signInWithPopup(window.auth, window.provider);
+      const email = result.user.email.toLowerCase();
+      const isTeam = TEAM_EMAILS.includes(email);
+      toast("Welcome " + (result.user.displayName || email.split('@')[0]), "✓");
+      setTimeout(()=>{ window.location.href = isTeam ? "/kreativ-workspace" : "/kreativ-portal"; }, 600);
     } catch (e) {
-
-        alert(e.message);
-
+      if (e.code !== 'auth/popup-closed-by-user') toast(e.message, "!");
     }
-});
+  });
   $('#ssoBtn').addEventListener('click',()=>toast('SSO — connect your identity provider to enable.','◆'));
 
   /* ── live clock ── */  
