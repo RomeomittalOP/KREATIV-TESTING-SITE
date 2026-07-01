@@ -33,6 +33,12 @@ a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--red); outline-offset:2px; border-radius:3px}
 ::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px} ::-webkit-scrollbar-track{background:transparent}
+.pf-input{width:100%;background:var(--ash);border:1px solid var(--line);border-radius:8px;color:var(--white);font-family:var(--f-body);font-size:0.88rem;padding:0.6rem 0.8rem;outline:none;transition:border-color .2s}
+.pf-input:focus{border-color:var(--red)}
+.pf-input::placeholder{color:var(--bone-d)}
+textarea.pf-input{font-family:var(--f-body);line-height:1.5}
+.pf-save-btn{padding:0.6rem 1.4rem;background:var(--red);color:var(--white);border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:background .2s}
+.pf-save-btn:hover{background:var(--red-dk)}
 
 /* ── LAYOUT ── */
 .app{display:grid; grid-template-columns:var(--sidebar) 1fr; min-height:100svh}
@@ -239,9 +245,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
       <a class="sb-link" data-view="invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Invoices</a>
     </nav>
     <div class="sb-foot">
-      <div class="sb-user">
+      <div class="sb-user" style="cursor:pointer" onclick="document.querySelectorAll('.sb-link').forEach(l=>{l.classList.remove('active');if(l.dataset.view==='profile')l.classList.add('active')});document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-profile'));document.getElementById('tbTitle').textContent='My Profile'">
         <div class="sb-avatar" id="sb-av">?</div>
         <div><div class="un" id="sb-name">Loading...</div><div class="uc" id="sb-company">—</div></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px;margin-left:auto;color:var(--bone-d)"><path d="M12 15.5l-5-5h10z" fill="currentColor" stroke="none"/></svg>
       </div>
     </div>
   </aside>
@@ -332,12 +339,85 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
         </div>
       </section>
 
+      <!-- ═══ PROFILE ═══ -->
+      <section class="view" id="v-profile">
+        <div style="max-width:680px">
+          <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:2rem">
+            <div id="pf-avatar" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--red-dk));display:grid;place-items:center;font-family:var(--f-disp);font-size:1.8rem;color:var(--white);flex-shrink:0;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('pf-photo-input').click()">
+              <span id="pf-av-letter">?</span>
+              <img id="pf-photo-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none" alt="">
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:0.7rem;font-family:var(--f-body);letter-spacing:0" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">📷 Change</div>
+            </div>
+            <input type="file" id="pf-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)">
+            <div>
+              <div style="font-family:var(--f-disp);font-size:1.6rem;letter-spacing:0.02em" id="pf-display-name">—</div>
+              <div style="font-size:0.8rem;color:var(--bone-d)" id="pf-display-email">—</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Personal Information</h3></div>
+            <div style="padding:1.2rem;display:flex;flex-direction:column;gap:1rem">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <div>
+                  <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Full Name</label>
+                  <input type="text" id="pf-name" class="pf-input" placeholder="Your full name">
+                </div>
+                <div>
+                  <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Company</label>
+                  <input type="text" id="pf-company" class="pf-input" placeholder="Company name">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <div>
+                  <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Phone</label>
+                  <input type="tel" id="pf-phone" class="pf-input" placeholder="+91 XXXXXXXXXX">
+                </div>
+                <div>
+                  <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Client ID</label>
+                  <input type="text" id="pf-clientid" class="pf-input" placeholder="Auto-generated" readonly style="opacity:0.5">
+                </div>
+              </div>
+              <div>
+                <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Email</label>
+                <input type="email" id="pf-email" class="pf-input" readonly style="opacity:0.5">
+              </div>
+              <div>
+                <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Address / Location</label>
+                <input type="text" id="pf-address" class="pf-input" placeholder="City, State">
+              </div>
+              <div>
+                <label style="font-family:var(--f-mono);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--bone-d);display:block;margin-bottom:0.4rem">Bio / Notes</label>
+                <textarea id="pf-bio" class="pf-input" style="height:80px;resize:vertical" placeholder="Anything you'd like us to know..."></textarea>
+              </div>
+              <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:0.5rem">
+                <button type="button" class="pf-save-btn" onclick="saveClientProfile()">Save Changes</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:1rem">
+            <div class="panel-head"><h3>Account</h3></div>
+            <div style="padding:1.2rem;display:flex;flex-direction:column;gap:0.8rem">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div><div style="font-size:0.9rem;font-weight:500">Password</div><div style="font-size:0.78rem;color:var(--bone-d)">Change your login password</div></div>
+                <button type="button" style="padding:0.5rem 1rem;border:1px solid var(--line);border-radius:6px;font-size:0.8rem;color:var(--bone);transition:border-color .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--bone)'" onclick="sendResetFromProfile()">Reset Password</button>
+              </div>
+              <div style="border-top:1px solid var(--line);padding-top:0.8rem;display:flex;align-items:center;justify-content:space-between">
+                <div><div style="font-size:0.9rem;font-weight:500">Sign Out</div><div style="font-size:0.78rem;color:var(--bone-d)">Log out of your account</div></div>
+                <button type="button" style="padding:0.5rem 1rem;border:1px solid var(--red);border-radius:6px;font-size:0.8rem;color:var(--red);background:rgba(255,30,30,0.08);transition:background .2s" onmouseover="this.style.background='var(--red)';this.style.color='var(--white)'" onmouseout="this.style.background='rgba(255,30,30,0.08)';this.style.color='var(--red)'" onclick="firebase.auth().signOut().then(()=>{window.location.href='/kreativ-login'})">Sign Out</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ═══ INVOICES ═══ -->
       <section class="view" id="v-invoices">
         <div class="stats" style="grid-template-columns:repeat(3,1fr)">
-          <div class="stat"><div class="sl">Paid to date</div><div class="sv">₹1.6L</div><div class="sc">5 invoices</div></div>
-          <div class="stat"><div class="sl">Outstanding</div><div class="sv">₹45K</div><div class="sc"><span class="down">Due Jul 5</span></div></div>
-          <div class="stat"><div class="sl">Retainer</div><div class="sv">Active</div><div class="sc">₹45K / month</div></div>
+          <div class="stat"><div class="sl">Paid to date</div><div class="sv">₹0</div><div class="sc">No invoices yet</div></div>
+          <div class="stat"><div class="sl">Outstanding</div><div class="sv">—</div><div class="sc">Nothing due</div></div>
+          <div class="stat"><div class="sl">Retainer</div><div class="sv">—</div><div class="sc">Not active</div></div>
         </div>
         <div class="panel">
           <div class="panel-head"><h3>Invoices</h3></div>
@@ -505,7 +585,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   initThumbs();
 
   /* ════════ VIEW ROUTING ════════ */
-  const titles={overview:'Overview',projects:'Projects',approvals:'Approvals',files:'Files',messages:'Messages',invoices:'Invoices'};
+  const titles={overview:'Overview',projects:'Projects',approvals:'Approvals',files:'Files',messages:'Messages',invoices:'Invoices',profile:'My Profile'};
   function go(view){
     $$('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
     $$('.sb-link').forEach(l=>l.classList.toggle('active',l.dataset.view===view));
@@ -574,6 +654,117 @@ firebase.auth().onAuthStateChanged(function(user) {
   document.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT'){ e.preventDefault(); $('.tb-search input')?.focus(); } });
 
 })();
+
+/* ════════ PROFILE FUNCTIONS (global scope for onclick) ════════ */
+const _db = firebase.firestore();
+
+function generateClientId(email) {
+  return 'CL-' + email.split('@')[0].replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,6) + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+}
+
+async function loadClientProfile() {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  document.getElementById('pf-display-name').textContent = window._clientName || '—';
+  document.getElementById('pf-display-email').textContent = user.email;
+  document.getElementById('pf-email').value = user.email;
+  document.getElementById('pf-av-letter').textContent = window._clientInitial || '?';
+
+  try {
+    const doc = await _db.collection('client_profiles').doc(user.uid).get();
+    if (doc.exists) {
+      const d = doc.data();
+      document.getElementById('pf-name').value = d.name || '';
+      document.getElementById('pf-company').value = d.company || '';
+      document.getElementById('pf-phone').value = d.phone || '';
+      document.getElementById('pf-clientid').value = d.clientId || '';
+      document.getElementById('pf-address').value = d.address || '';
+      document.getElementById('pf-bio').value = d.bio || '';
+      if (d.photoData) {
+        const img = document.getElementById('pf-photo-img');
+        img.src = d.photoData; img.style.display = 'block';
+        document.getElementById('pf-av-letter').style.display = 'none';
+        document.getElementById('sb-av').style.backgroundImage = 'url(' + d.photoData + ')';
+        document.getElementById('sb-av').style.backgroundSize = 'cover';
+        document.getElementById('sb-av').textContent = '';
+      }
+      if (d.name) {
+        document.getElementById('pf-display-name').textContent = d.name;
+        document.getElementById('sb-name').textContent = d.name;
+        document.getElementById('welcome-name').textContent = 'Welcome back, ' + d.name.split(' ')[0] + '.';
+      }
+      if (d.company) document.getElementById('sb-company').textContent = d.company;
+    } else {
+      document.getElementById('pf-name').value = window._clientName || '';
+      document.getElementById('pf-clientid').value = generateClientId(user.email);
+    }
+  } catch(e) { console.warn('Profile load failed:', e); }
+}
+
+async function saveClientProfile() {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  const data = {
+    name: document.getElementById('pf-name').value.trim(),
+    company: document.getElementById('pf-company').value.trim(),
+    phone: document.getElementById('pf-phone').value.trim(),
+    clientId: document.getElementById('pf-clientid').value,
+    address: document.getElementById('pf-address').value.trim(),
+    bio: document.getElementById('pf-bio').value.trim(),
+    email: user.email,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  const photoImg = document.getElementById('pf-photo-img');
+  if (photoImg.src && photoImg.style.display !== 'none') data.photoData = photoImg.src;
+
+  try {
+    await _db.collection('client_profiles').doc(user.uid).set(data, {merge: true});
+    if (data.name) {
+      document.getElementById('pf-display-name').textContent = data.name;
+      document.getElementById('sb-name').textContent = data.name;
+      document.getElementById('welcome-name').textContent = 'Welcome back, ' + data.name.split(' ')[0] + '.';
+      window._clientName = data.name;
+      window._clientInitial = data.name.charAt(0).toUpperCase();
+    }
+    if (data.company) document.getElementById('sb-company').textContent = data.company;
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = 'Profile saved!';
+    document.getElementById('toastIcon').textContent = '✓';
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
+  } catch(e) {
+    alert('Failed to save: ' + e.message);
+  }
+}
+
+function handleProfilePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert('Photo must be under 2MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.getElementById('pf-photo-img');
+    img.src = e.target.result; img.style.display = 'block';
+    document.getElementById('pf-av-letter').style.display = 'none';
+    document.getElementById('sb-av').style.backgroundImage = 'url(' + e.target.result + ')';
+    document.getElementById('sb-av').style.backgroundSize = 'cover';
+    document.getElementById('sb-av').textContent = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function sendResetFromProfile() {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  firebase.auth().sendPasswordResetEmail(user.email).then(()=>{
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = 'Password reset email sent to ' + user.email;
+    document.getElementById('toastIcon').textContent = '✓';
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3500);
+  }).catch(e=>alert(e.message));
+}
+
+// Load profile when auth is ready
+firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500); });
 </script>
 </body>
 </html>
