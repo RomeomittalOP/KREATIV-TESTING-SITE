@@ -391,7 +391,7 @@ const DB = {
   _lsSet(k, v) { try { localStorage.setItem(LS_PREFIX + k, JSON.stringify(v)); } catch(e) { console.warn('LS write failed:', e); } },
   async get(k) {
     if (this.firebaseOk) {
-      try { const doc = await firestore.collection('workspace').doc(k).get(); if (doc.exists) { const val = doc.data().v; this._lsSet(k, val); return val; } } catch(e) { console.warn('Firebase read failed, using localStorage:', e); }
+      try { const doc = await firestore.collection('workspace').doc(k).get(); if (doc.exists) { const val = doc.data().v; this._lsSet(k, val); return val; } } catch(e) { console.warn('Firestore read failed, falling back to localStorage:', e); }
     }
     return this._lsGet(k);
   },
@@ -438,11 +438,11 @@ function updateSyncStatus(ok) {
 let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}};
 
 const DEFAULT_MEMBERS = [
-  {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:42,projectsLed:8,clientsManaged:6},salary:{projectCuts:[{project:'ACCD',cut:25000,pct:25},{project:'Noted',cut:15000,pct:30}]}},
-  {id:'keshav',name:'Keshav Mathur',initials:'KM',role:'Creative Lead',dept:'Creative',color:'#FF1E1E',merit:88,isFounder:false,isAdmin:false,email:'keshavmathur2006@gmail.com',phone:'+91 9354479897',metrics:{tasksCompleted:31,projectsLed:3,clientsManaged:5},salary:{projectCuts:[{project:'ACCD',cut:18000,pct:18},{project:'Omega',cut:9000,pct:18}]}},
-  {id:'chaitanya',name:'Chaitanya Khanna',initials:'CK',role:'Designer',dept:'Design',color:'#9B59B6',merit:62,isFounder:false,isAdmin:false,email:'ckhanna591@gmail.com',phone:'',metrics:{tasksCompleted:19,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'ACCD',cut:12000,pct:12}]}},
-  {id:'manik',name:'Manik Mowdgal',initials:'MM',role:'Designer',dept:'Design',color:'#F5A623',merit:75,isFounder:false,isAdmin:false,email:'manikm.work@gmail.com',phone:'',metrics:{tasksCompleted:22,projectsLed:0,clientsManaged:0},salary:{projectCuts:[{project:'Noted',cut:10500,pct:21}]}},
-  {id:'shubham',name:'Shubham Mittal',initials:'SM',role:'Tech Lead',dept:'Tech',color:'#2ECC71',merit:82,isFounder:false,isAdmin:false,email:'shubhammittal3555@gmail.com',phone:'',metrics:{tasksCompleted:28,projectsLed:2,clientsManaged:2},salary:{projectCuts:[{project:'ACCD',cut:16000,pct:16},{project:'Kreativ Site',cut:12000,pct:24}]}},
+  {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
+  {id:'keshav',name:'Keshav Mathur',initials:'KM',role:'Creative Lead',dept:'Creative',color:'#FF1E1E',merit:80,isFounder:false,isAdmin:false,email:'keshavmathur2006@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
+  {id:'chaitanya',name:'Chaitanya Khanna',initials:'CK',role:'Designer',dept:'Design',color:'#9B59B6',merit:80,isFounder:false,isAdmin:false,email:'ckhanna591@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
+  {id:'manik',name:'Manik Mowdgal',initials:'MM',role:'Designer',dept:'Design',color:'#F5A623',merit:80,isFounder:false,isAdmin:false,email:'manikm.work@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
+  {id:'shubham',name:'Shubham Mittal',initials:'SM',role:'Tech Lead',dept:'Tech',color:'#2ECC71',merit:80,isFounder:false,isAdmin:false,email:'shubhammittal3555@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
 ];
 const DEFAULT_CLIENTS = [];
 const DEFAULT_TASKS = [];
@@ -476,9 +476,10 @@ async function boot() {
 
 async function loadSession(memberId) {
   // One-time wipe of old demo data (v2 deploy)
-  if (!localStorage.getItem('kw_v2_clean')) {
+  if (!localStorage.getItem('kw_v3_clean')) {
     localStorage.removeItem('kw_workspace_data');
-    localStorage.setItem('kw_v2_clean', '1');
+    localStorage.removeItem('kw_v2_clean');
+    localStorage.setItem('kw_v3_clean', '1');
     if (DB.firebaseOk) { try { await firestore.collection('workspace').doc('workspace_data').delete(); } catch(e){} }
   }
   const saved = await DB.get('workspace_data');
@@ -648,6 +649,7 @@ const NAV = [
   {id:'activity',label:'Activity',ic:'◌',sec:'Team',minMerit:30,depts:'all'},
   {id:'analytics',label:'Client Analytics',ic:'📊',sec:'Team',minMerit:0,depts:['Founder']},
   {id:'cloudfiles',label:'Cloud Storage',ic:'☁',sec:'Team',minMerit:0,depts:'all'},
+  {id:'team_manage',label:'Team Management',ic:'👥',sec:'Admin',minMerit:0,depts:['Founder']},
 ];
 function me(){return SESSION.user;}
 function isFounder(){return me()&&me().isFounder;}
@@ -682,7 +684,7 @@ function buildSidebar(){
     <div class="u-role">${m.role}${m.isFounder?' · <span style="color:var(--gold)">Founder</span>':''}</div>
     <div class="merit-strip"><div class="ms-bar"><div class="ms-fill" style="width:${score}%;background:${fc}"></div></div><span class="ms-val">${score}pts</span></div></div>`;
 }
-const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage'};
+const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage',team_manage:'Team Management'};
 function showPage(id,navEl){
   const item=NAV.find(n=>n.id===id);
   if(item&&!canAccess(item)){showDenied(item);return;}
@@ -690,7 +692,7 @@ function showPage(id,navEl){
   if(navEl)navEl.classList.add('act');else{const el=document.querySelector(`.ni[data-page="${id}"]`);if(el)el.classList.add('act');}
   document.getElementById('tb-title').textContent=PAGE_TITLES[id]||id;
   document.getElementById('tb-extra').innerHTML='';
-  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics,cloudfiles:rCloudFiles};
+  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics,cloudfiles:rCloudFiles,team_manage:rTeamManage};
   if(R[id])document.getElementById('content').innerHTML=R[id]();
   if(id==='tasks'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Assign Task</button>`;
   if(id==='payments'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
@@ -1393,6 +1395,59 @@ async function deleteCloudFile(docId,path){
     await loadCloudFiles();
     showPage('cloudfiles');
   }catch(e){alert('Delete failed: '+e.message);}
+}
+function rTeamManage(){
+  if(!isFounder())return `<div class="denied"><div class="di">🔒</div><div class="dt">Founder Only</div><div class="ds">Only the founder can manage team members.</div></div>`;
+  let html=`<div class="adm-banner"><div><div class="adm-label">👥 Team Management — Founder Panel</div><div class="adm-sub">Recruit, edit roles, set admin access, remove members — all from here</div></div><button class="btn-sm red" onclick="openModal('mo-addmem')">+ Recruit Member</button></div>`;
+  html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Members</div><div class="sv">${SESSION.members.length}</div></div><div class="sc"><div class="sl">Admins</div><div class="sv" style="color:var(--pu)">${SESSION.members.filter(m=>m.isAdmin).length}</div></div><div class="sc"><div class="sl">Avg Merit</div><div class="sv" style="color:var(--g)">${Math.round(SESSION.members.reduce((s,m)=>s+m.merit,0)/SESSION.members.length)}</div></div></div>`;
+  SESSION.members.forEach(m=>{
+    const fc=m.merit>=70?'var(--g)':m.merit>=30?'var(--a)':'var(--red)';
+    const statusBadge=m.isFounder?'<span class="badge b-gold">Founder</span>':m.isAdmin?'<span class="badge b-pu">Admin</span>':'<span class="badge b-grey">Member</span>';
+    const tasksDone=SESSION.tasks.filter(t=>t.assignee===m.id&&t.done).length;
+    const tasksOpen=SESSION.tasks.filter(t=>t.assignee===m.id&&!t.done).length;
+    const todayAtt=SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey());
+    const isActive=todayAtt&&todayAtt.clockIn&&!todayAtt.clockOut;
+    html+=`<div class="panel" style="margin-bottom:12px"><div style="padding:14px 16px;display:flex;align-items:center;gap:14px">
+      <div class="mav2" style="background:${m.color};width:44px;height:44px;font-size:14px">${m.initials}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700">${m.name}</span>${statusBadge}${isActive?'<span class="badge b-green">Online</span>':''}</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px">${m.role} · ${m.dept} · ${m.email||'No email'}</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+          <div style="display:flex;align-items:center;gap:4px"><div style="width:50px;height:3px;background:var(--br);border-radius:2px;overflow:hidden"><div style="width:${m.merit}%;height:100%;background:${fc}"></div></div><span style="font-size:10px;color:var(--tm)">${m.merit} pts</span></div>
+          <span style="font-size:10px;color:var(--tm)">${tasksDone} done · ${tasksOpen} open</span>
+        </div>
+      </div>
+      ${!m.isFounder?`<div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm" onclick="tmEditMember('${m.id}')">✎ Edit</button>
+        <button class="btn-sm ${m.isAdmin?'':'gold'}" onclick="tmToggleAdmin('${m.id}')">${m.isAdmin?'Revoke Admin':'Grant Admin'}</button>
+        <button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeMemberPrompt('${m.id}')">✕ Remove</button>
+      </div>`:'<span style="font-size:10px;color:var(--gold)">You</span>'}
+    </div></div>`;
+  });
+  html+=`<div class="panel"><div class="ph"><div class="pt">Allowed Login Emails</div></div><div style="padding:14px 16px">`;
+  Object.entries(ALLOWED_EMAILS).forEach(([email,id])=>{
+    const mem=SESSION.members.find(m=>m.id===id);
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px"><span style="color:var(--g)">●</span><span style="color:var(--ts)">${email}</span><span style="color:var(--tm)">→ ${mem?mem.name:id}</span></div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+async function tmEditMember(id){
+  const m=SESSION.members.find(x=>x.id===id);
+  if(!m)return;
+  const newName=prompt('Name:',m.name);if(newName&&newName.trim())m.name=newName.trim();
+  const newRole=prompt('Role:',m.role);if(newRole&&newRole.trim())m.role=newRole.trim();
+  const newDept=prompt('Department (Creative/Design/Tech/Operations):',m.dept);if(newDept&&newDept.trim())m.dept=newDept.trim();
+  const newEmail=prompt('Email:',m.email||'');if(newEmail!==null)m.email=newEmail.trim();
+  const newPhone=prompt('Phone:',m.phone||'');if(newPhone!==null)m.phone=newPhone.trim();
+  await logAct('member_edit',`${m.name} profile updated by founder`,'✎');
+  await persist();buildSidebar();showPage('team_manage');
+}
+async function tmToggleAdmin(id){
+  const m=SESSION.members.find(x=>x.id===id);
+  m.isAdmin=!m.isAdmin;
+  await logAct('role_change',`${m.name.split(' ')[0]} ${m.isAdmin?'promoted to Admin':'demoted to Member'}`,'👑');
+  await persist();buildSidebar();showPage('team_manage');
 }
 function openRoleModal(){
   document.getElementById('role-list').innerHTML=SESSION.members.filter(m=>!m.isFounder).map((m,i)=>`
