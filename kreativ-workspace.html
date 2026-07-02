@@ -382,39 +382,46 @@ const ALLOWED_EMAILS = {
 };
 
 /* ═══════════════════════════════════════════════════════
-   Storage: localStorage primary + Firestore sync
+   Storage: Firestore primary — cloud-first, no localStorage
    ═══════════════════════════════════════════════════════ */
-const LS_PREFIX = 'kw_';
 const DB = {
   firebaseOk: false,
   unsub: null,
-  _lsGet(k) { try { const raw = localStorage.getItem(LS_PREFIX + k); return raw ? JSON.parse(raw) : null; } catch { return null; } },
-  _lsSet(k, v) { try { localStorage.setItem(LS_PREFIX + k, JSON.stringify(v)); } catch(e) { console.warn('LS write failed:', e); } },
   async get(k) {
     if (this.firebaseOk) {
-      try { const doc = await firestore.collection('workspace').doc(k).get(); if (doc.exists) { const val = doc.data().v; this._lsSet(k, val); return val; } } catch(e) { console.warn('Firestore read failed, falling back to localStorage:', e); }
+      try { const doc = await firestore.collection('workspace').doc(k).get(); if (doc.exists) { return doc.data().v; } } catch(e) { console.warn('Firestore read failed:', e); }
     }
-    return this._lsGet(k);
+    return null;
   },
   async set(k, v) {
-    this._lsSet(k, v);
     if (this.firebaseOk) {
-      try { await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() }); updateSyncStatus(true); } catch(e) { updateSyncStatus(false); }
+      try { await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() }); updateSyncStatus(true); } catch(e) { console.warn('Firestore write failed:', e); updateSyncStatus(false); }
     }
   },
   async init() {
     if (!firestore) { this.firebaseOk = false; updateSyncStatus(false); return; }
-    try { await firestore.collection('workspace').doc('_ping').get(); this.firebaseOk = true; updateSyncStatus(true); this.startRealtimeSync(); } catch(e) { this.firebaseOk = false; updateSyncStatus(false); }
+    try { await firestore.collection('workspace').doc('_ping').set({ ts: firebase.firestore.FieldValue.serverTimestamp() }); this.firebaseOk = true; updateSyncStatus(true); this.startRealtimeSync(); } catch(e) { this.firebaseOk = false; updateSyncStatus(false); console.warn('Firestore init failed:', e); }
   },
   startRealtimeSync() {
     if (!this.firebaseOk || this.unsub) return;
     this.unsub = firestore.collection('workspace').onSnapshot(snapshot => {
       snapshot.docChanges().forEach(change => {
-        if (change.type === 'modified' || change.type === 'added') {
+        if (change.type === 'modified') {
           const k = change.doc.id;
-          if (k === '_ping') return;
+          if (k === '_ping' || k !== 'workspace_data') return;
           const val = change.doc.data().v;
-          this._lsSet(k, val);
+          if (val) {
+            SESSION.members = val.members || SESSION.members;
+            SESSION.tasks = val.tasks || SESSION.tasks;
+            SESSION.payments = val.payments || SESSION.payments;
+            SESSION.clients = val.clients || SESSION.clients;
+            SESSION.approvals = val.approvals || SESSION.approvals;
+            SESSION.attendance = val.attendance || SESSION.attendance;
+            SESSION.salaryPayments = val.salaryPayments || SESSION.salaryPayments;
+            SESSION.meritRequests = val.meritRequests || SESSION.meritRequests;
+            SESSION.activityLog = val.activityLog || SESSION.activityLog;
+            buildSidebar();
+          }
         }
       });
     }, err => { console.warn('Realtime sync error:', err); });
@@ -427,16 +434,17 @@ function updateSyncStatus(ok) {
   if (ok) {
     el.innerHTML = '<span class="sync-dot" style="background:var(--g)">●</span>Synced · Firebase';
     badge.textContent = '🔒 Cloud Synced';
+    badge.style.display = '';
   } else {
-    el.innerHTML = '<span style="color:var(--a);font-size:8px">●</span> Local Only';
-    badge.textContent = '💾 Local Storage';
+    el.innerHTML = '<span class="sync-dot" style="background:var(--a)">●</span>Connecting...';
+    badge.style.display = 'none';
   }
 }
 
 /* ═══════════════════════════════════════════════════════
    Session & Default Data
    ═══════════════════════════════════════════════════════ */
-let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}};
+let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[]};
 
 const DEFAULT_MEMBERS = [
   {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
@@ -476,13 +484,6 @@ async function boot() {
 }
 
 async function loadSession(memberId) {
-  // One-time wipe of old demo data (v2 deploy)
-  if (!localStorage.getItem('kw_v3_clean')) {
-    localStorage.removeItem('kw_workspace_data');
-    localStorage.removeItem('kw_v2_clean');
-    localStorage.setItem('kw_v3_clean', '1');
-    if (DB.firebaseOk) { try { await firestore.collection('workspace').doc('workspace_data').delete(); } catch(e){} }
-  }
   const saved = await DB.get('workspace_data');
   if (saved) {
     SESSION.members = saved.members || DEFAULT_MEMBERS;
@@ -497,6 +498,7 @@ async function loadSession(memberId) {
     SESSION.clientMeta = saved.clientMeta || {};
     SESSION.activityLog = saved.activityLog || [];
     SESSION.clientAnalytics = saved.clientAnalytics || {};
+    SESSION.salaryPayments = saved.salaryPayments || [];
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
     SESSION.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
@@ -510,13 +512,14 @@ async function loadSession(memberId) {
     SESSION.clientMeta = {};
     SESSION.activityLog = [];
     SESSION.clientAnalytics = {};
+    SESSION.salaryPayments = [];
     await persist();
   }
   SESSION.user = SESSION.members.find(m => m.id === memberId) || SESSION.members[0];
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments};
   await DB.set('workspace_data', payload);
 }
 
@@ -627,7 +630,7 @@ function checkOverdueTasks() {
 function doLogout() {
   logAct('logout', me().name + ' signed out', '⎋');
   auth.signOut().then(() => {
-    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}};
+    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[]};
     window.location.href = '/kreativ-login';
   });
 }
@@ -640,11 +643,11 @@ const NAV = [
   {id:'attendance',label:'Attendance',ic:'⏱',sec:'Overview',minMerit:0,depts:'all'},
   {id:'tasks',label:'Tasks',ic:'☑',sec:'Overview',badge:()=>SESSION.tasks.filter(t=>!t.done).length,minMerit:30,depts:'all'},
   {id:'clients',label:'Clients',ic:'◉',sec:'Overview',minMerit:30,depts:'all'},
-  {id:'updates',label:'Client Updates',ic:'✉',sec:'Operations',badge:3,minMerit:30,depts:'all'},
-  {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:4,minMerit:30,depts:'all'},
-  {id:'payments',label:'Payments',ic:'₹',sec:'Operations',minMerit:30,depts:['Creative','Founder']},
+  {id:'updates',label:'Client Updates',ic:'✉',sec:'Operations',minMerit:30,depts:'all'},
+  {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:()=>SESSION.approvals.filter(a=>a.status==='pending').length||0,minMerit:30,depts:'all'},
+  {id:'payments',label:'Payments',ic:'₹',sec:'Operations',minMerit:0,depts:'all'},
   {id:'merit',label:'Merit Points',ic:'◆',sec:'Team',minMerit:0,depts:'all'},
-  {id:'salary',label:'Salary & Cuts',ic:'₹₹',sec:'Team',minMerit:0,depts:['Founder','Creative']},
+  {id:'salary',label:'Salary & Cuts',ic:'₹₹',sec:'Team',minMerit:0,depts:'all'},
   {id:'vault',label:'Secure Vault',ic:'🔐',sec:'Team',minMerit:0,depts:['Founder']},
   {id:'profile',label:'My Profile',ic:'⚙',sec:'Team',minMerit:0,depts:'all'},
   {id:'activity',label:'Activity',ic:'◌',sec:'Team',minMerit:30,depts:'all'},
@@ -712,7 +715,9 @@ function showDenied(item){
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}
 function fmtDur(ms){const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);return `${h}h ${m}m`;}
-function myAttendanceToday(){return SESSION.attendance.find(a=>a.uid===me().id&&a.date===todayKey());}
+function myAttendanceToday(){return SESSION.attendance.filter(a=>a.uid===me().id&&a.date===todayKey());}
+function myActiveSession(){return SESSION.attendance.find(a=>a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);}
+function myTotalHoursToday(){return SESSION.attendance.filter(a=>a.uid===me().id&&a.date===todayKey()&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);}
 
 /* ═══════════════════════════════════════════════════════
    Page Renderers
@@ -720,12 +725,13 @@ function myAttendanceToday(){return SESSION.attendance.find(a=>a.uid===me().id&&
 function rOverview(){
   const openTasks=SESSION.tasks.filter(t=>!t.done).length;
   const totalReceived=SESSION.payments.filter(p=>p.status==='Received').reduce((s,p)=>s+p.amount,0);
-  const att=myAttendanceToday();
+  const active=myActiveSession();
+  const todaySessions=myAttendanceToday();
   let attBanner='';
-  if(!att||!att.clockIn){
+  if(todaySessions.length===0){
     attBanner=`<div class="adm-banner" style="background:var(--red-bg);border-color:var(--red-br)"><div><div class="adm-label" style="color:var(--red)">⏱ You haven't clocked in today</div><div class="adm-sub" style="color:var(--red);opacity:.7">Clock in to start tracking your work hours</div></div><button class="btn-sm red" onclick="showPage('attendance')">Clock In →</button></div>`;
-  } else if(att.clockIn&&!att.clockOut){
-    attBanner=`<div class="adm-banner" style="background:var(--g-bg);border-color:rgba(46,204,113,.3)"><div><div class="adm-label" style="color:var(--g)">● Clocked in since ${fmtTime(att.clockIn)}</div><div class="adm-sub" style="color:var(--g);opacity:.7">Remember to submit work proof before clocking out</div></div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="showPage('attendance')">View →</button></div>`;
+  } else if(active){
+    attBanner=`<div class="adm-banner" style="background:var(--g-bg);border-color:rgba(46,204,113,.3)"><div><div class="adm-label" style="color:var(--g)">● Clocked in since ${fmtTime(active.clockIn)}</div><div class="adm-sub" style="color:var(--g);opacity:.7">Remember to submit work proof before clocking out</div></div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="showPage('attendance')">View →</button></div>`;
   }
   return attBanner+`<div class="sg sg-4">
     <div class="sc"><div class="sl">Active Clients</div><div class="sv">${SESSION.clients.length}</div><div class="sd up">↑ 2 this month</div></div>
@@ -739,9 +745,9 @@ function rOverview(){
     return `<div class="ti" onclick="this.querySelector('.tc').classList.toggle('done');this.querySelector('.tn').classList.toggle('done')"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}</div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
-        ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="markApproved(this)">Approve</button><button class="b-no">Revise</button></div>`:''}</div>`;}).join('')}</div>
+        ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const realIdx=SESSION.approvals.indexOf(a);const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
       <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
-        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey())})).filter(x=>x.att&&x.att.clockIn&&!x.att.clockOut);
+        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut)})).filter(x=>x.att);
         if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
         return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
       </div>
@@ -754,82 +760,77 @@ function rOverview(){
 }
 
 function rAttendance(){
-  const today=myAttendanceToday();
+  const todaySessions=myAttendanceToday();
+  const active=myActiveSession();
+  const completedToday=todaySessions.filter(a=>a.clockOut);
+  const totalToday=myTotalHoursToday();
   const adm=isAdmin();
   let html='';
-  if(!today||!today.clockIn){
-    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div></div>
-    <div style="padding:30px;text-align:center">
-      <div style="font-size:13px;color:var(--ts);margin-bottom:16px">You haven't clocked in yet.</div>
-      <button class="btn-sm red" style="font-size:14px;padding:11px 28px" onclick="clockIn()">▶ Clock In</button>
-    </div></div>`;
-  } else if(today.clockIn && !today.clockOut){
+  if(active){
     html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div><span class="badge b-green">● Active</span></div>
     <div style="padding:24px">
-      <div class="sg sg-2" style="margin-bottom:18px">
-        <div class="sc"><div class="sl">Clocked In</div><div class="sv" style="font-size:20px">${fmtTime(today.clockIn)}</div></div>
-        <div class="sc"><div class="sl">Time Elapsed</div><div class="sv" id="live-timer" style="font-size:20px;color:var(--g)">0h 0m</div></div>
+      <div class="sg sg-3" style="margin-bottom:18px">
+        <div class="sc"><div class="sl">Current Session</div><div class="sv" style="font-size:20px">${fmtTime(active.clockIn)}</div></div>
+        <div class="sc"><div class="sl">Session Elapsed</div><div class="sv" id="live-timer" style="font-size:20px;color:var(--g)">0h 0m</div></div>
+        <div class="sc"><div class="sl">Total Today</div><div class="sv" style="font-size:20px;color:var(--b)">${fmtDur(totalToday)}</div><div class="sd">${completedToday.length} session${completedToday.length!==1?'s':''} done</div></div>
       </div>
       <button class="btn-sm red" style="font-size:14px;padding:11px 28px;width:100%" onclick="openClockOutModal()">■ Clock Out & Submit Work Proof</button>
     </div></div>`;
   } else {
-    const dur=today.clockOut-today.clockIn;
-    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div><span class="badge b-grey">Day complete</span></div>
-    <div style="padding:20px">
-      <div class="sg sg-3">
-        <div class="sc"><div class="sl">Clocked In</div><div class="sv" style="font-size:18px">${fmtTime(today.clockIn)}</div></div>
-        <div class="sc"><div class="sl">Clocked Out</div><div class="sv" style="font-size:18px">${fmtTime(today.clockOut)}</div></div>
-        <div class="sc"><div class="sl">Total Hours</div><div class="sv" style="font-size:18px;color:var(--g)">${fmtDur(dur)}</div></div>
-      </div>
-      <div style="margin-top:16px;background:var(--s2);border-radius:7px;padding:12px 14px">
-        <div style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Work Proof Submitted</div>
-        <div style="font-size:12px;color:var(--ts);line-height:1.6;white-space:pre-wrap">${today.proofText||'—'}</div>
-        ${today.proofFileName?`<div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--b)">📎 ${today.proofFileName}</div>`:''}
-      </div>
+    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div>${completedToday.length?'<span class="badge b-blue">'+completedToday.length+' session'+(completedToday.length!==1?'s':'')+'</span>':''}</div>
+    <div style="padding:30px;text-align:center">
+      ${completedToday.length?`<div style="font-size:20px;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:var(--g);margin-bottom:6px">${fmtDur(totalToday)}</div><div style="font-size:11px;color:var(--tm);margin-bottom:16px">Total worked today across ${completedToday.length} session${completedToday.length!==1?'s':''}</div>`:`<div style="font-size:13px;color:var(--ts);margin-bottom:16px">You haven't clocked in yet.</div>`}
+      <button class="btn-sm red" style="font-size:14px;padding:11px 28px" onclick="clockIn()">▶ ${completedToday.length?'Clock In Again':'Clock In'}</button>
     </div></div>`;
+    if(completedToday.length){
+      html+=`<div class="panel" style="margin-top:12px"><div class="ph"><div class="pt">Today's Sessions</div></div>`;
+      completedToday.forEach(a=>{
+        html+=`<div class="ti" style="cursor:default"><div style="flex:1"><div class="tn">${fmtTime(a.clockIn)} → ${fmtTime(a.clockOut)}</div><div class="tm2">${fmtDur(a.clockOut-a.clockIn)}${a.proofText?' · '+a.proofText.slice(0,60)+(a.proofText.length>60?'...':''):''}</div></div>${a.proofText?'<span class="badge b-green">Proof ✓</span>':'<span class="badge b-amber">No proof</span>'}</div>`;
+      });
+      html+=`</div>`;
+    }
   }
   const myLogs=SESSION.attendance.filter(a=>a.uid===me().id);
   const thisMonth=myLogs.filter(a=>a.date.startsWith(todayKey().slice(0,7)));
   const totalMs=thisMonth.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
-  const daysLogged=thisMonth.filter(a=>a.clockOut).length;
+  const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
   html+=`<div class="sg sg-3" style="margin-top:18px">
-    <div class="sc"><div class="sl">Days This Month</div><div class="sv">${daysLogged}</div></div>
+    <div class="sc"><div class="sl">Days This Month</div><div class="sv">${uniqueDays}</div></div>
     <div class="sc"><div class="sl">Total Hours MTD</div><div class="sv">${fmtDur(totalMs)}</div></div>
-    <div class="sc"><div class="sl">Avg Hours/Day</div><div class="sv">${daysLogged?fmtDur(totalMs/daysLogged):'0h 0m'}</div></div>
+    <div class="sc"><div class="sl">Avg Hours/Day</div><div class="sv">${uniqueDays?fmtDur(totalMs/uniqueDays):'0h 0m'}</div></div>
   </div>`;
   html+=`<div class="panel"><div class="ph"><div class="pt">My Attendance Log</div></div>`;
-  const myRecent=[...myLogs].reverse().slice(0,10);
+  const myRecent=[...myLogs].reverse().slice(0,20);
   if(myRecent.length===0)html+=`<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No records yet.</div>`;
   myRecent.forEach(a=>{
     const dur=a.clockOut&&a.clockIn?fmtDur(a.clockOut-a.clockIn):'In progress';
-    html+=`<div class="ti" style="cursor:default" onclick="event.stopPropagation()">
-      <div style="flex:1"><div class="tn">${a.date}</div><div class="tm2">${fmtTime(a.clockIn)} → ${a.clockOut?fmtTime(a.clockOut):'—'} · ${dur}</div></div>
-      ${a.proofText?`<span class="badge b-green">Proof ✓</span>`:a.clockOut?`<span class="badge b-amber">No proof</span>`:''}
-    </div>`;
+    html+=`<div class="ti" style="cursor:default"><div style="flex:1"><div class="tn">${a.date}</div><div class="tm2">${fmtTime(a.clockIn)} → ${a.clockOut?fmtTime(a.clockOut):'—'} · ${dur}</div></div>
+      ${a.proofText?'<span class="badge b-green">Proof ✓</span>':a.clockOut?'<span class="badge b-amber">No proof</span>':''}</div>`;
   });
   html+=`</div>`;
   if(adm){
     html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Team Attendance</div><div class="adm-sub">Live status across all members</div></div></div>`;
     html+=`<div class="panel"><div class="ph"><div class="pt">Team Status — Today</div></div>`;
     SESSION.members.forEach(m=>{
-      const t=SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey());
+      const mActive=SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
+      const mSessions=SESSION.attendance.filter(a=>a.uid===m.id&&a.date===todayKey());
+      const mDone=mSessions.filter(a=>a.clockOut);
+      const mTotal=mDone.reduce((s,a)=>s+(a.clockOut-a.clockIn),0);
       let statusBadge,statusText;
-      if(!t||!t.clockIn){statusBadge='b-grey';statusText='Not clocked in';}
-      else if(t.clockIn&&!t.clockOut){statusBadge='b-green';statusText='● Active since '+fmtTime(t.clockIn);}
-      else{statusBadge='b-blue';statusText='Done · '+fmtDur(t.clockOut-t.clockIn);}
+      if(mSessions.length===0){statusBadge='b-grey';statusText='Not clocked in';}
+      else if(mActive){statusBadge='b-green';statusText='● Active since '+fmtTime(mActive.clockIn)+(mDone.length?' · '+fmtDur(mTotal)+' prior':'');}
+      else{statusBadge='b-blue';statusText=mDone.length+' session'+(mDone.length!==1?'s':'')+' · '+fmtDur(mTotal);}
       html+=`<div class="ar"><div class="ai" style="background:${m.color}22">${m.initials}</div>
         <div class="ainfo"><div class="at">${m.name}</div><div class="as2">${statusText}</div></div>
-        <span class="badge ${statusBadge}">${statusText.includes('Active')?'Active':t&&t.clockOut?'Complete':'Pending'}</span>
-        ${t&&t.proofText?`<button class="btn-sm" onclick="viewProof('${m.id}')">View Proof</button>`:''}
-      </div>`;
+        <span class="badge ${statusBadge}">${mActive?'Active':mDone.length?'Complete':'Pending'}</span></div>`;
     });
     html+=`</div>`;
   }
   return html;
 }
 async function clockIn(){
-  const existing=myAttendanceToday();
-  if(existing){alert('Already clocked in today.');return;}
+  const active=myActiveSession();
+  if(active){alert('You already have an active session. Clock out first.');return;}
   SESSION.attendance.push({uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''});
   await autoMerit(me().id,'clockInOnTime','Clocked in');
   await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
@@ -838,8 +839,8 @@ async function clockIn(){
   startLiveTimer();
 }
 function startLiveTimer(){
-  const t=myAttendanceToday();
-  if(!t||!t.clockIn||t.clockOut)return;
+  const t=myActiveSession();
+  if(!t)return;
   const el=document.getElementById('live-timer');
   if(!el)return;
   el.textContent=fmtDur(Date.now()-t.clockIn);
@@ -851,16 +852,16 @@ async function submitClockOut(){
   const proofText=document.getElementById('co-text').value.trim();
   if(!proofText){alert('Work summary is required before clocking out.');return;}
   const fileInput=document.getElementById('co-file');
-  const today=myAttendanceToday();
-  if(!today){alert('No active clock-in found.');return;}
-  today.clockOut=Date.now();
-  await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(today.clockOut-today.clockIn)})`,'🔚');
-  today.proofText=proofText;
+  const active=myActiveSession();
+  if(!active){alert('No active clock-in found.');return;}
+  active.clockOut=Date.now();
+  await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(active.clockOut-active.clockIn)})`,'🔚');
+  active.proofText=proofText;
   if(fileInput.files[0]){
     const f=fileInput.files[0];
     if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
-    today.proofFileName=f.name;
-    today.proofFileData=await fileToBase64(f);
+    active.proofFileName=f.name;
+    active.proofFileData=await fileToBase64(f);
   }
   await persist();
   closeModal('mo-clockout');
@@ -869,9 +870,11 @@ async function submitClockOut(){
   showPage('attendance');
 }
 function viewProof(uid){
-  const t=SESSION.attendance.find(a=>a.uid===uid&&a.date===todayKey());
-  if(!t)return;
-  alert((SESSION.members.find(m=>m.id===uid)||{}).name+"'s proof:\n\n"+(t.proofText||'(no text)')+(t.proofFileName?'\n\n📎 '+t.proofFileName:''));
+  const sessions=SESSION.attendance.filter(a=>a.uid===uid&&a.date===todayKey()&&a.proofText);
+  if(!sessions.length)return;
+  const mem=SESSION.members.find(m=>m.id===uid)||{name:'Unknown'};
+  const proofs=sessions.map((s,i)=>`Session ${i+1} (${fmtTime(s.clockIn)}):\n${s.proofText}${s.proofFileName?'\n📎 '+s.proofFileName:''}`).join('\n\n');
+  alert(mem.name+"'s work proof:\n\n"+proofs);
 }
 function rProfile(){
   const m=me();
@@ -1086,19 +1089,27 @@ function rUpdates(){
       <div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div></div></div>`;
 }
 function rApprovals(){
+  const isAdm=canEdit();
   const pending=SESSION.approvals.filter(a=>a.status==='pending');
+  const myPending=pending.filter(a=>a.requestedBy===me().id);
   const approved=SESSION.approvals.filter(a=>a.status==='approved');
   const rejected=SESSION.approvals.filter(a=>a.status==='rejected');
-  return `<div class="adm-banner"><div><div class="adm-label">💬 Open to Everyone</div><div class="adm-sub">Any team member can request approval or suggest something for review</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ Request Approval</button></div>
-  <div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">Awaiting Approval</div><span class="badge b-red">${pending.length} pending</span></div>
+  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Open to Everyone</div><div class="adm-sub">Any team member can request approval or suggest something for review</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ Request Approval</button></div>`;
+  if(!isAdm&&myPending.length>0){
+    html+=`<div class="panel" style="margin-bottom:14px"><div class="ph"><div class="pt">My Pending Requests</div><span class="badge b-amber">${myPending.length} waiting</span></div>`;
+    myPending.forEach(a=>{html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">⏳</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · ${a.date}</div></div><span class="badge b-amber">Pending</span></div>`;});
+    html+=`</div>`;
+  }
+  html+=`<div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">${isAdm?'Awaiting Your Approval':'All Pending'}</div><span class="badge b-red">${pending.length} pending</span></div>
     ${pending.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing pending.</div>':''}
-    ${pending.map((a,idx)=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);const realIdx=SESSION.approvals.indexOf(a);
-    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
+    ${pending.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);const realIdx=SESSION.approvals.indexOf(a);
+    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdm?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Reject</button></div>`:`<span class="badge b-amber">Pending</span>`}</div>`;}).join('')}</div>
   <div class="panel"><div class="ph"><div class="pt">Resolved</div></div>
     ${[...approved,...rejected].length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
-    ${approved.map(a=>`<div class="ar" style="opacity:.5"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Approved · ${a.date}</div></div><span class="badge b-green">Done</span></div>`).join('')}
-    ${rejected.map(a=>`<div class="ar" style="opacity:.5"><div class="ai" style="background:var(--red-bg)">✕</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Needs revision · ${a.date}</div></div><span class="badge b-red">Revise</span></div>`).join('')}
+    ${approved.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Approved · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-green">Approved</span></div>`;}).join('')}
+    ${rejected.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--red-bg)">✕</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Rejected · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-red">Rejected</span></div>`;}).join('')}
   </div></div>`;
+  return html;
 }
 async function submitApproval(){
   const title=document.getElementById('apr-title').value.trim();
@@ -1218,21 +1229,36 @@ async function removeMemberPrompt(id){
 }
 function rSalary(){
   const ed=canEdit();
-  const total=SESSION.members.reduce((s,m)=>s+m.salary.projectCuts.reduce((a,c)=>a+c.cut,0),0);
+  const visibleMembers=ed?SESSION.members:SESSION.members.filter(m=>m.id===me().id);
+  const salaryPayments=(SESSION.salaryPayments||[]);
+  const total=visibleMembers.reduce((s,m)=>s+(m.salary.projectCuts||[]).reduce((a,c)=>a+c.cut,0),0);
   const totalRev=SESSION.payments.filter(p=>p.status==='Received').reduce((s,p)=>s+p.amount,0);
-  return `<div class="sg sg-3"><div class="sc"><div class="sl">Total Disbursed</div><div class="sv" style="color:var(--red)">₹${total.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Revenue Pool</div><div class="sv">₹${totalRev.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Agency Retained</div><div class="sv" style="color:var(--g)">₹${Math.max(0,totalRev-total).toLocaleString('en-IN')}</div></div></div>
-  ${ed?`<div class="adm-banner"><div><div class="adm-label">⚙ Founder — Salary Controls</div><div class="adm-sub">Edit cut %, add entries</div></div></div>`:''}
-  <div class="panel"><div class="ph"><div class="pt">Member Cuts by Project</div>${ed?`<button class="btn-sm red" onclick="addCutEntry()">+ Add Entry</button>`:''}</div>
-  ${SESSION.members.map((m,mi)=>{const total2=m.salary.projectCuts.reduce((s,c)=>s+c.cut,0);const fc=m.merit>=70?'var(--g)':m.merit>=30?'var(--a)':'var(--red)';
-  return `<div class="sal-row"><div class="sal-mem"><div class="mav2" style="background:${m.color};width:32px;height:32px;font-size:10px">${m.initials}</div><div><div style="font-size:12px;font-weight:600">${m.name.split(' ')[0]}</div><div style="font-size:9px;color:var(--tm)">${m.role}</div><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><div style="width:44px;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${m.merit}%;height:100%;background:${fc}"></div></div><span style="font-size:8px;color:var(--tm)">${m.merit}pts</span></div></div></div>
-  <div style="flex:1">${m.salary.projectCuts.map((c,ci)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:10px;color:var(--ts);width:110px;flex-shrink:0">${c.project}</span><div style="flex:1;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${c.pct}%;height:100%;background:${m.color}"></div></div><span style="font-size:9px;color:var(--tm);width:24px;text-align:right">${c.pct}%</span>${ed?`<button class="btn-sm" style="font-size:9px;padding:2px 6px" onclick="editCut(${mi},${ci})">Edit</button>`:''}</div>`).join('')}</div>
-  <div class="sal-right"><div style="text-align:right"><div style="font-size:9px;color:var(--tm)">Total cut</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${total2>15000?'var(--g)':'var(--a)'}">₹${total2.toLocaleString('en-IN')}</div></div>${ed?`<button class="btn-sm green">Pay</button>`:''}</div></div>`;}).join('')}</div>
-  <div class="panel"><div class="ph"><div class="pt">Revenue Split Formula</div></div><div style="padding:14px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-  <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--red)">50%</div><div style="font-size:10px;color:var(--tm)">Expense Pool</div></div>
-  <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--g)">~65%</div><div style="font-size:10px;color:var(--tm)">→ Team Cuts</div></div>
-  <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--b)">Merit</div><div style="font-size:10px;color:var(--tm)">Weighted %</div></div>
-  <div style="background:var(--s2);border-radius:7px;padding:11px;text-align:center"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--gold)">Q</div><div style="font-size:10px;color:var(--tm)">Quarterly reset</div></div></div>
-  <div style="padding:0 16px 14px;font-size:11px;color:var(--tm);line-height:1.7">Cut % × merit score × contribution. Below 30 merit = 0% cut until restored. Synced via Firebase.</div></div>`;
+  let html='';
+  if(ed){
+    html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Disbursed</div><div class="sv" style="color:var(--red)">₹${total.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Revenue Pool</div><div class="sv">₹${totalRev.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Agency Retained</div><div class="sv" style="color:var(--g)">₹${Math.max(0,totalRev-total).toLocaleString('en-IN')}</div></div></div>`;
+    html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Founder — Salary Controls</div><div class="adm-sub">Pay salary, add bonus/cuts, manage payment history</div></div></div>`;
+  } else {
+    const myTotal=(me().salary.projectCuts||[]).reduce((s,c)=>s+c.cut,0);
+    const myPayments=salaryPayments.filter(p=>p.memberId===me().id);
+    const totalPaid=myPayments.filter(p=>p.type==='salary'||p.type==='bonus').reduce((s,p)=>s+p.amount,0);
+    const totalCuts=myPayments.filter(p=>p.type==='cut').reduce((s,p)=>s+p.amount,0);
+    html+=`<div class="sg sg-4"><div class="sc"><div class="sl">My Total Cut</div><div class="sv">₹${myTotal.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Paid to Me</div><div class="sv" style="color:var(--g)">₹${totalPaid.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Deductions</div><div class="sv" style="color:var(--red)">₹${totalCuts.toLocaleString('en-IN')}</div></div><div class="sc"><div class="sl">Net Salary</div><div class="sv" style="color:var(--b)">₹${(totalPaid-totalCuts).toLocaleString('en-IN')}</div></div></div>`;
+  }
+  html+=`<div class="panel"><div class="ph"><div class="pt">${ed?'Member Salary & Cuts':'My Salary Details'}</div>${ed?'<button class="btn-sm red" onclick="addCutEntry()">+ Add Entry</button>':''}</div>`;
+  visibleMembers.forEach((m,idx)=>{
+    const mi=SESSION.members.indexOf(m);
+    const total2=(m.salary.projectCuts||[]).reduce((s,c)=>s+c.cut,0);
+    const fc=m.merit>=70?'var(--g)':m.merit>=30?'var(--a)':'var(--red)';
+    const memberPayments=salaryPayments.filter(p=>p.memberId===m.id);
+    const paidTotal=memberPayments.filter(p=>p.type==='salary'||p.type==='bonus').reduce((s,p)=>s+p.amount,0);
+    const cutsTotal=memberPayments.filter(p=>p.type==='cut').reduce((s,p)=>s+p.amount,0);
+    html+=`<div class="sal-row" style="flex-wrap:wrap"><div class="sal-mem"><div class="mav2" style="background:${m.color};width:32px;height:32px;font-size:10px">${m.initials}</div><div><div style="font-size:12px;font-weight:600">${m.name.split(' ')[0]}</div><div style="font-size:9px;color:var(--tm)">${m.role}</div><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><div style="width:44px;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${m.merit}%;height:100%;background:${fc}"></div></div><span style="font-size:8px;color:var(--tm)">${m.merit}pts</span></div></div></div>
+    <div style="flex:1">${(m.salary.projectCuts||[]).map((c,ci)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:10px;color:var(--ts);width:110px;flex-shrink:0">${c.project}</span><div style="flex:1;height:2px;background:var(--br);border-radius:1px;overflow:hidden"><div style="width:${c.pct}%;height:100%;background:${m.color}"></div></div><span style="font-size:9px;color:var(--tm);width:24px;text-align:right">${c.pct}%</span><span style="font-size:10px;font-weight:600;width:70px;text-align:right">₹${c.cut.toLocaleString('en-IN')}</span>${ed?`<button class="btn-sm" style="font-size:9px;padding:2px 6px" onclick="editCut(${mi},${ci})">Edit</button>`:''}</div>`).join('')}${(m.salary.projectCuts||[]).length===0?'<div style="font-size:11px;color:var(--tm);padding:4px 0">No project cuts assigned yet.</div>':''}</div>
+    <div class="sal-right"><div style="text-align:right"><div style="font-size:9px;color:var(--tm)">Net</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--g)">₹${(paidTotal-cutsTotal).toLocaleString('en-IN')}</div></div>${ed?`<button class="btn-sm green" onclick="paySalary('${m.id}')">Pay</button><button class="btn-sm gold" onclick="addBonus('${m.id}')">Bonus</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="addSalaryCut('${m.id}')">Cut</button>`:''}</div>
+    ${memberPayments.length?`<div style="width:100%;margin-top:8px;padding-top:8px;border-top:1px solid var(--br)"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Payment History</div>${memberPayments.slice(0,5).map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px"><span style="color:${p.type==='cut'?'var(--red)':'var(--g)'};font-weight:600">${p.type==='cut'?'-':'+'} ₹${p.amount.toLocaleString('en-IN')}</span><span style="color:var(--tm)">${p.type.toUpperCase()}</span><span style="color:var(--ts);flex:1">${p.note||''}</span><span style="color:var(--tm);font-size:9px">${p.date}</span></div>`).join('')}</div>`:''}</div>`;
+  });
+  html+=`</div>`;
+  return html;
 }
 async function editCut(mi,ci){
   const cur=SESSION.members[mi].salary.projectCuts[ci];
@@ -1243,6 +1269,33 @@ async function addCutEntry(){
   const member=prompt('Member initials:');const mem=SESSION.members.find(m=>m.initials===member);if(!mem){alert('Not found');return;}
   const project=prompt('Project name:');const pct=parseInt(prompt('Cut %:'));const cut=parseInt(prompt('Cut amount (₹):'));
   if(project&&!isNaN(pct)&&!isNaN(cut)){mem.salary.projectCuts.push({project,pct,cut});await persist();showPage('salary');}
+}
+async function paySalary(memberId){
+  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
+  const amt=parseFloat(prompt(`Pay salary to ${mem.name.split(' ')[0]} — Amount (₹):`));
+  if(!amt||amt<=0)return;
+  const note=prompt('Note (optional):','Monthly salary')||'';
+  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type:'salary',note,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})});
+  await logAct('salary_paid',`₹${amt.toLocaleString('en-IN')} salary paid to ${mem.name.split(' ')[0]}`,'💰');
+  await persist();showPage('salary');
+}
+async function addBonus(memberId){
+  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
+  const amt=parseFloat(prompt(`Bonus for ${mem.name.split(' ')[0]} — Amount (₹):`));
+  if(!amt||amt<=0)return;
+  const note=prompt('Reason:','Performance bonus')||'';
+  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type:'bonus',note,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})});
+  await logAct('bonus_added',`₹${amt.toLocaleString('en-IN')} bonus given to ${mem.name.split(' ')[0]} — ${note}`,'🎁');
+  await persist();showPage('salary');
+}
+async function addSalaryCut(memberId){
+  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
+  const amt=parseFloat(prompt(`Deduction for ${mem.name.split(' ')[0]} — Amount (₹):`));
+  if(!amt||amt<=0)return;
+  const note=prompt('Reason:','Deduction')||'';
+  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type:'cut',note,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})});
+  await logAct('salary_cut',`₹${amt.toLocaleString('en-IN')} deducted from ${mem.name.split(' ')[0]} — ${note}`,'✂');
+  await persist();showPage('salary');
 }
 function rVault(){
   if(!canEdit())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only the founder can access the secure vault.</div></div>`;
@@ -1528,7 +1581,7 @@ async function addMember(){
 }
 function openModal(id){document.getElementById(id).classList.add('on');}
 function closeModal(id){document.getElementById(id).classList.remove('on');}
-function markApproved(btn){btn.textContent='✓ Approved';btn.style.background='var(--g)';btn.style.color='#050505';btn.disabled=true;setTimeout(()=>{btn.closest('.ar').style.opacity='.4';},300);}
+function markApproved(btn){/* deprecated — use actionApproval */}
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');}));
 window.addEventListener('DOMContentLoaded',boot);
 </script>
