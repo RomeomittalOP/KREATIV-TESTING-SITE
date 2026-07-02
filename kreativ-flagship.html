@@ -1,31 +1,31 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Kreativ â€” Tech + Creative Agency by 4 Knotts. Premium web development, AI products, brand strategy, social media and campaign direction â€” built for brands that matter.">
-<meta property="og:title" content="Kreativ â€” Tech + Creative Agency by 4 Knotts">
-<meta property="og:description" content="Premium web development, AI products, brand strategy, social media and campaign direction â€” built for brands that matter.">
+<meta name="description" content="Kreativ — Tech + Creative Agency by 4 Knotts. Premium web development, AI products, brand strategy, social media and campaign direction — built for brands that matter.">
+<meta property="og:title" content="Kreativ — Tech + Creative Agency by 4 Knotts">
+<meta property="og:description" content="Premium web development, AI products, brand strategy, social media and campaign direction — built for brands that matter.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/logo.png">
 <meta property="og:url" content="https://kreativby4knotts.com">
 <meta property="og:site_name" content="Kreativ by 4 Knotts">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Kreativ â€” Tech + Creative Agency by 4 Knotts">
-<meta name="twitter:description" content="Premium web development, AI products, brand strategy, social media and campaign direction â€” built for brands that matter.">
+<meta name="twitter:title" content="Kreativ — Tech + Creative Agency by 4 Knotts">
+<meta name="twitter:description" content="Premium web development, AI products, brand strategy, social media and campaign direction — built for brands that matter.">
 <meta name="twitter:image" content="/logo.png">
 <meta name="theme-color" content="#050505">
-<title>Kreativ â€” Flagship Projects by 4 Knotts</title>
+<title>Kreativ — Flagship Projects by 4 Knotts</title>
 <link rel="icon" type="image/png" href="/logo.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@600;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   KREATIV BY 4KNOTTS â€” FLAGSHIP SITE
-   Palette: Pitch Black #050505 Â· Signal Red #FF1E1E Â· Soft White #F5F5F5
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════
+   KREATIV BY 4KNOTTS — FLAGSHIP SITE
+   Palette: Pitch Black #050505 · Signal Red #FF1E1E · Soft White #F5F5F5
+═══════════════════════════════════════════════════════ */
 :root {
   --pitch:  #050505;
   --ink:    #0C0C0C;
@@ -67,7 +67,7 @@ img { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; border: none; background: none; cursor: none; }
 ::selection { background: var(--red); color: var(--white); }
-/* keyboard accessibility â€” visible focus rings (only for keyboard, not mouse) */
+/* keyboard accessibility — visible focus rings (only for keyboard, not mouse) */
 a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
   outline: 2px solid var(--red);
   outline-offset: 3px;
@@ -75,7 +75,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 }
 .menu-link:focus-visible { outline-offset: 6px; }
 
-/* â”€â”€ GRAIN â”€â”€ */
+/* ── GRAIN ── */
 body::after {
   content:'';
   position: fixed; inset: -150%;
@@ -89,7 +89,7 @@ body::after {
   50%{transform:translate(2%,1%)} 75%{transform:translate(-1%,3%)} 100%{transform:translate(2%,-2%)}
 }
 
-/* â”€â”€ CURSOR â”€â”€ */
+/* ── CURSOR ── */
 .cursor, .cursor-ring { position: fixed; top:0; left:0; pointer-events: none; z-index: 9500; border-radius: 50%; }
 .cursor { width: 7px; height: 7px; background: var(--red); transform: translate(-50%,-50%); }
 .cursor-ring {
@@ -101,7 +101,7 @@ body::after {
 .cursor-ring.hide { opacity: 0; }
 @media (max-width: 768px) { .cursor, .cursor-ring { display: none; } }
 
-/* â”€â”€ LOADER â”€â”€ */
+/* ── LOADER ── */
 .loader {
   position: fixed; inset: 0; z-index: 9999; background: var(--pitch);
   display: flex; align-items: center; justify-content: center; flex-direction: column;
@@ -116,13 +116,13 @@ body::after {
 .loader-bar i { position: absolute; inset: 0; background: var(--red); transform-origin: left; transform: scaleX(0); }
 .loader-label { font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--bone-d); margin-top: 1rem; }
 
-/* â”€â”€ GRID OVERLAY (fixed, behind content) â”€â”€ */
+/* ── GRID OVERLAY (fixed, behind content) ── */
 .grid-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: grid; grid-template-columns: repeat(6, 1fr); }
 .grid-bg span { border-right: 1px solid var(--grid); }
 .grid-bg span:last-child { border-right: none; }
 .section--light .grid-bg span { border-color: var(--grid-w); }
 
-/* â”€â”€ NAV â”€â”€ */
+/* ── NAV ── */
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 800;
   display: flex; align-items: center; justify-content: space-between;
@@ -179,7 +179,7 @@ body::after {
   .nav-menu-btn:hover .menu-toggle { transform: none; }
 }
 
-/* â”€â”€ FULLSCREEN MENU â”€â”€ */
+/* ── FULLSCREEN MENU ── */
 .menu-overlay {
   position: fixed; inset: 0; z-index: 850; background: var(--ink);
   display: flex; flex-direction: column; justify-content: center; padding: 0 clamp(1.5rem, 8vw, 8rem);
@@ -200,7 +200,7 @@ body::after {
 .menu-close-btn { position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10; color: var(--white); cursor: pointer; padding: 0.5rem; border-radius: 50%; background: rgba(255,255,255,0.08); transition: background .3s, color .3s; }
 .menu-close-btn:hover { background: var(--red); color: var(--white); }
 
-/* â”€â”€ THEME TOGGLE â”€â”€ */
+/* ── THEME TOGGLE ── */
 .theme-toggle { position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--smoke); border: 1px solid rgba(245,245,245,0.12); display: grid; place-items: center; cursor: pointer; transition: background .3s, border-color .3s, transform .3s; }
 .theme-toggle:hover { transform: scale(1.1); border-color: var(--red); }
 .theme-toggle svg { width: 20px; height: 20px; transition: transform .5s var(--ease); }
@@ -209,7 +209,7 @@ body::after {
 html.light .theme-toggle .icon-sun { display: block; }
 html.light .theme-toggle .icon-moon { display: none; }
 
-/* â”€â”€ LIGHT THEME â”€â”€ */
+/* ── LIGHT THEME ── */
 html.light { --pitch: #F5F5F5; --ink: #ECECEC; --ash: #E0E0E0; --smoke: #D4D4D4; --white: #0C0C0C; --bone: #555; --bone-d: #777; --grid: rgba(5,5,5,0.055); }
 html.light body { background: #F5F5F5; color: #0C0C0C; }
 html.light body::after { opacity: 0.02; }
@@ -239,20 +239,20 @@ html.light .nav-signin { border-color: rgba(245,245,245,0.2); }
 html.light .nav-signin:hover { background: var(--red); color: #F5F5F5; border-color: var(--red); }
 html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 
-/* â”€â”€ BACK TO TOP â”€â”€ */
+/* ── BACK TO TOP ── */
 .back-to-top { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(10px); transition: opacity .3s, transform .3s, background .3s; }
 .back-to-top.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .back-to-top:hover { background: var(--red-dk); }
 .back-to-top svg { width: 20px; height: 20px; }
 
-/* â”€â”€ HERO â”€â”€ */
+/* ── HERO ── */
 .hero { position: relative; height: 100svh; width: 100%; overflow: hidden; }
 #hero-canvas { position: absolute; inset: 0; z-index: 1; opacity: 0; }
 .hero-fallback { position: absolute; inset: 0; z-index: 1; display: none; align-items: center; justify-content: center; }
 .hero-fallback.show { display: flex; }
 .hero-fallback .fb-word { font-family: var(--f-disp); font-size: clamp(5rem, 20vw, 20rem); color: var(--white); letter-spacing: 0.04em; position: relative; }
 
-/* red motif â€” slash + dot from the logo, animate behind the letters */
+/* red motif — slash + dot from the logo, animate behind the letters */
 .hero-motif { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .motif-slash {
   position: absolute; top: 50%; left: 50%;
@@ -295,7 +295,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .scroll-badge .pill.b { border-radius: 0 0 40px 40px; transform: rotate(180deg) scaleX(-1); margin-right: 14px; }
 @media (max-width: 600px){ .scroll-badge { display: none; } }
 
-/* â”€â”€ SECTION SHELL â”€â”€ */
+/* ── SECTION SHELL ── */
 .section { position: relative; z-index: 2; padding: clamp(5rem, 12vh, 11rem) clamp(1.2rem, 4vw, 3rem); }
 .section--light { background: var(--white); color: var(--pitch); }
 .section-eyebrow { font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--red); display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2rem; }
@@ -307,7 +307,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .r.in { opacity: 1; transform: translateY(0); }
 .r-d1 { transition-delay: .1s; } .r-d2 { transition-delay: .2s; } .r-d3 { transition-delay: .3s; } .r-d4 { transition-delay: .4s; }
 
-/* â”€â”€ MANIFESTO â”€â”€ */
+/* ── MANIFESTO ── */
 .manifesto { max-width: 1300px; margin: 0 auto; }
 .manifesto-text { font-family: var(--f-serif); font-size: clamp(1.8rem, 5.5vw, 5rem); line-height: 1.15; font-weight: 400; letter-spacing: -0.01em; }
 .manifesto-text .em { font-style: italic; color: var(--red); }
@@ -315,7 +315,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .manifesto-foot { margin-top: 3rem; display: flex; gap: 3rem; flex-wrap: wrap; font-family: var(--f-mono); font-size: 0.78rem; letter-spacing: 0.05em; color: var(--bone); }
 .manifesto-foot b { color: var(--white); display: block; font-size: 1.6rem; font-family: var(--f-disp); letter-spacing: 0.03em; margin-bottom: 0.2rem; }
 
-/* â”€â”€ PILLARS â”€â”€ */
+/* ── PILLARS ── */
 .pillars-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1.5rem; max-width: 1500px; margin: 0 auto 3.5rem; }
 .pillars-h2 { font-family: var(--f-disp); font-size: clamp(2.5rem, 7vw, 6rem); line-height: 0.95; letter-spacing: 0.02em; }
 .pillars-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 1500px; margin: 0 auto; perspective: 1400px; }
@@ -331,7 +331,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .pillar-name { font-family: var(--f-disp); font-size: clamp(1.8rem, 3vw, 2.6rem); letter-spacing: 0.03em; line-height: 1; }
 .pillar-desc { font-size: 0.82rem; color: var(--bone); line-height: 1.5; transform: translateZ(20px); }
 
-/* â”€â”€ WORKS â”€â”€ */
+/* ── WORKS ── */
 .works-head { max-width: 1500px; margin: 0 auto 3rem; }
 .works-h2 { font-family: var(--f-disp); font-size: clamp(2.5rem, 7vw, 6rem); line-height: 0.95; letter-spacing: 0.02em; }
 .works-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(1rem, 2.5vw, 2rem); max-width: 1500px; margin: 0 auto; }
@@ -352,7 +352,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .work-badge::before { content:''; width: 5px; height: 5px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); animation: blink 1.8s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
-/* â”€â”€ CAPABILITIES (horizontal) â”€â”€ */
+/* ── CAPABILITIES (horizontal) ── */
 .cap-section { overflow: clip; padding: clamp(5rem,12vh,9rem) 0; position: relative; z-index: 1; }
 .cap-head { padding: 0 clamp(1.2rem,4vw,3rem); max-width: 1500px; margin: 0 auto 3rem; }
 .cap-h2 { font-family: var(--f-disp); font-size: clamp(2.5rem,7vw,6rem); line-height: 0.95; letter-spacing: 0.02em; }
@@ -364,7 +364,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .cap-card-title { font-family: var(--f-disp); font-size: clamp(1.6rem,3vw,2.4rem); letter-spacing: 0.02em; line-height: 1; margin: 1.5rem 0 1rem; }
 .cap-card-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 .cap-card-list li { font-size: 0.85rem; color: var(--bone); display: flex; align-items: center; gap: 0.5rem; }
-.cap-card-list li::before { content: 'â€”'; color: var(--red); }
+.cap-card-list li::before { content: '—'; color: var(--red); }
 
 /* capabilities mobile: native horizontal scroll */
 @media (max-width: 768px) {
@@ -374,7 +374,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
   .cap-card { width: 75vw; min-width: 260px; }
 }
 
-/* â”€â”€ PROCESS â”€â”€ */
+/* ── PROCESS ── */
 .process { max-width: 1300px; margin: 0 auto; }
 .process-h2 { font-family: var(--f-disp); font-size: clamp(2.5rem,7vw,6rem); line-height: 0.95; letter-spacing: 0.02em; margin-bottom: 3.5rem; }
 .process-steps { display: flex; flex-direction: column; gap: 0; }
@@ -391,7 +391,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .section--light .pstep-desc { color: var(--bone-d); }
 @media (max-width: 700px){ .pstep { grid-template-columns: 50px 1fr; } .pstep-desc { display: none; } }
 
-/* â”€â”€ CONTACT (terminal + social hybrid) â”€â”€ */
+/* ── CONTACT (terminal + social hybrid) ── */
 .contact { position: relative; min-height: 100svh; display: flex; align-items: center; overflow: hidden; padding: clamp(5rem,12vh,9rem) clamp(1.2rem,4vw,3rem); }
 #cta-canvas { position: absolute; inset: 0; z-index: 1; }
 .contact-inner { position: relative; z-index: 3; width: 100%; max-width: 1500px; margin: 0 auto; }
@@ -442,7 +442,7 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .cr-time { font-family: var(--f-mono); font-size: 0.8rem; color: var(--bone); }
 .connect-row--static { cursor: default; }
 
-/* â”€â”€ FOOTER â”€â”€ */
+/* ── FOOTER ── */
 footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(3rem,7vh,5rem) clamp(1.2rem,4vw,3rem) 2rem; border-top: 1px solid rgba(245,245,245,0.08); }
 .foot-top { max-width: 1500px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3rem; padding-bottom: 3rem; border-bottom: 1px solid rgba(245,245,245,0.08); }
 .foot-brand { font-family: var(--f-disp); font-size: clamp(3rem,8vw,6rem); line-height: 0.9; letter-spacing: 0.02em; }
@@ -460,7 +460,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 .marquee-inner span.fill { color: var(--red); -webkit-text-stroke: 0; }
 @keyframes marq { from{transform:translateX(0)} to{transform:translateX(-50%)} }
 
-/* â”€â”€ REDUCED MOTION â”€â”€ */
+/* ── REDUCED MOTION ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .r { opacity: 1; transform: none; }
@@ -482,7 +482,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 <div class="loader" id="loader">
   <div class="loader-num" id="loaderNum">0</div>
   <div class="loader-bar"><i id="loaderBar"></i></div>
-  <div class="loader-label">Kreativ â€” tuning the signal</div>
+  <div class="loader-label">Kreativ — tuning the signal</div>
 </div>
 
 <!-- GRID BG -->
@@ -492,7 +492,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 <nav class="nav">
   <a href="#hero" class="nav-logo"><img class="nav-logo-img" src="data:image/png;base64,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" alt="Kreativ by 4Knotts logo"><span class="nav-logo-text">KREATIV<b>/</b>4KNOTTS</span></a>
   <div class="nav-right">
-    <div class="nav-time" id="navTime">NOI Â· 00:00</div>
+    <div class="nav-time" id="navTime">NOI · 00:00</div>
     <a href="kreativ-login" class="nav-signin">Sign in</a>
     <button class="nav-menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">
       <span id="menuLabel">Menu</span>
@@ -520,12 +520,12 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   <a href="kreativ-login" class="menu-link">Sign in <i>05</i></a>
   <div class="menu-foot">
     <a href="#cta">interact@kreativby4knotts.com</a>
-    <span>Noida, UP Â· India</span>
+    <span>Noida, UP · India</span>
     <a href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener">LinkedIn</a>
   </div>
 </div>
 
-<!-- â•â•â• HERO â•â•â• -->
+<!-- ═══ HERO ═══ -->
 <header class="hero" id="hero">
   <canvas id="hero-canvas"></canvas>
   <div class="hero-fallback" id="heroFallback"></div>
@@ -537,7 +537,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 
   <div class="hero-content">
-    <div class="hero-eyebrow"><span>Full-Stack Creative Agency Â· Noida, UP</span></div>
+    <div class="hero-eyebrow"><span>Full-Stack Creative Agency · Noida, UP</span></div>
     <h1 class="hero-title" id="heroTitle" aria-label="Kreativ">
       <span class="ch-mask"><span class="ch">K</span></span><span class="ch-mask"><span class="ch">R</span></span><span class="ch-mask"><span class="ch">E</span></span><span class="ch-mask"><span class="ch">A</span></span><span class="ch-mask"><span class="ch">T</span></span><span class="ch-mask"><span class="ch">I</span></span><span class="ch-mask"><span class="ch">V</span></span>
     </h1>
@@ -549,18 +549,18 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <div class="line"></div>
   </div>
   <div class="scroll-badge" id="scrollBadge">
-    <div class="pill t">Scroll â†“</div>
+    <div class="pill t">Scroll ↓</div>
     <div class="notch"></div>
     <div class="pill b">Explore</div>
   </div>
 </header>
 
-<!-- â•â•â• MANIFESTO â•â•â• -->
+<!-- ═══ MANIFESTO ═══ -->
 <section class="section" id="manifesto">
   <div class="manifesto">
     <div class="section-eyebrow r">Why we exist</div>
     <p class="manifesto-text r r-d1">
-      Most brands are <span class="em">noise</span>. We build the few that become <span class="em">signal</span> â€” sharp enough to cut through, clear enough to remember, built to be impossible to ignore.
+      Most brands are <span class="em">noise</span>. We build the few that become <span class="em">signal</span> — sharp enough to cut through, clear enough to remember, built to be impossible to ignore.
     </p>
     <div class="manifesto-foot r r-d2">
       <div><b>7</b>Pages, full-stack</div>
@@ -570,20 +570,20 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- â•â•â• PILLARS â•â•â• -->
+<!-- ═══ PILLARS ═══ -->
 <section class="section" id="pillars">
   <div class="pillars-head">
     <div>
       <div class="section-eyebrow r">What we do</div>
       <h2 class="pillars-h2 r r-d1">Four pillars.<br>One signal.</h2>
     </div>
-    <p class="r r-d2" style="max-width:34ch;color:var(--bone);font-size:0.95rem;">Strategy without story is data. Design without digital is decoration. We do all four â€” or it doesn't ship.</p>
+    <p class="r r-d2" style="max-width:34ch;color:var(--bone);font-size:0.95rem;">Strategy without story is data. Design without digital is decoration. We do all four — or it doesn't ship.</p>
   </div>
   <div class="pillars-grid">
     <article class="pillar r" data-tilt>
       <div class="pillar-num">01 / STRATEGY</div>
       <div class="pillar-mid">
-        <div class="pillar-icon">â—ˆ</div>
+        <div class="pillar-icon">◈</div>
         <div class="pillar-name">Strategy</div>
       </div>
       <p class="pillar-desc">Positioning, naming, brand architecture. The thinking before the making.</p>
@@ -591,7 +591,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <article class="pillar r r-d1" data-tilt>
       <div class="pillar-num">02 / STORY</div>
       <div class="pillar-mid">
-        <div class="pillar-icon">â—Ž</div>
+        <div class="pillar-icon">◎</div>
         <div class="pillar-name">Story</div>
       </div>
       <p class="pillar-desc">Narrative, copy, content systems. The words that make people care.</p>
@@ -599,7 +599,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <article class="pillar r r-d2" data-tilt>
       <div class="pillar-num">03 / DESIGN</div>
       <div class="pillar-mid">
-        <div class="pillar-icon">â—»</div>
+        <div class="pillar-icon">◻</div>
         <div class="pillar-name">Design</div>
       </div>
       <p class="pillar-desc">Identity, type, motion. The visual signature people remember.</p>
@@ -607,7 +607,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <article class="pillar r r-d3" data-tilt>
       <div class="pillar-num">04 / DIGITAL</div>
       <div class="pillar-mid">
-        <div class="pillar-icon">â—¬</div>
+        <div class="pillar-icon">◬</div>
         <div class="pillar-name">Digital</div>
       </div>
       <p class="pillar-desc">Web, social, launch. Where the brand finally meets the world.</p>
@@ -615,12 +615,12 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- â•â•â• AI LAB â€” WHAT WE'RE BUILDING â•â•â• -->
+<!-- ═══ AI LAB — WHAT WE'RE BUILDING ═══ -->
 <section class="section" id="works">
   <div class="works-head">
     <div class="section-eyebrow r">Kreativ AI Lab</div>
     <h2 class="works-h2 r r-d1">We don't just use AI.<br>We build it.</h2>
-    <p class="r r-d2" style="max-width:48ch;color:var(--bone);font-size:0.95rem;margin-top:1.2rem;">Most agencies bolt on someone else's tools. We're engineering our own â€” a full-stack platform (React + Vite frontend, Node/Express API) with OTP auth, dynamic pricing, project briefing workflows, and AI-powered creative ops. Built in-house, running in production.</p>
+    <p class="r r-d2" style="max-width:48ch;color:var(--bone);font-size:0.95rem;margin-top:1.2rem;">Most agencies bolt on someone else's tools. We're engineering our own — a full-stack platform (React + Vite frontend, Node/Express API) with OTP auth, dynamic pricing, project briefing workflows, and AI-powered creative ops. Built in-house, running in production.</p>
   </div>
   <div class="works-grid">
     <article class="work r" data-work="0">
@@ -704,7 +704,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- â•â•â• CAPABILITIES (horizontal scroll) â•â•â• -->
+<!-- ═══ CAPABILITIES (horizontal scroll) ═══ -->
 <section class="cap-section" id="capabilities">
   <div class="cap-head">
     <div class="section-eyebrow r">Capabilities</div>
@@ -721,7 +721,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- â•â•â• PROCESS (light invert) â•â•â• -->
+<!-- ═══ PROCESS (light invert) ═══ -->
 <section class="section section--light" id="process">
   <div class="grid-bg" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   <div class="process">
@@ -736,7 +736,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- â•â•â• CONTACT â€” TERMINAL + SOCIAL HYBRID â•â•â• -->
+<!-- ═══ CONTACT — TERMINAL + SOCIAL HYBRID ═══ -->
 <section class="contact" id="cta">
   <canvas id="cta-canvas"></canvas>
   <div class="contact-inner">
@@ -750,17 +750,17 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       <div class="terminal r r-d1" id="terminal">
         <div class="term-bar">
           <div class="term-dots"><span class="td td-r"></span><span class="td td-y"></span><span class="td td-g"></span></div>
-          <div class="term-title">kreativ@4knotts â€” bash â€” 80Ã—24</div>
+          <div class="term-title">kreativ@4knotts — bash — 80×24</div>
           <div class="term-spacer"></div>
         </div>
         <div class="term-body" id="termBody">
           <div class="term-output" id="termOutput"></div>
           <div class="term-input-line">
             <span class="term-prompt"><span class="tp-user">kreativ@4knotts</span>:<span class="tp-path">~</span>$</span>
-            <span class="term-input" id="termInput"></span><span class="term-caret" id="termCaret">â–ˆ</span>
+            <span class="term-input" id="termInput"></span><span class="term-caret" id="termCaret">█</span>
           </div>
         </div>
-        <div class="term-hint" id="termHint">type <b>help</b> and hit enter â€” or tap a command below</div>
+        <div class="term-hint" id="termHint">type <b>help</b> and hit enter — or tap a command below</div>
         <div class="term-chips" id="termChips">
           <button class="term-chip" data-cmd="help">help</button>
           <button class="term-chip" data-cmd="services">services</button>
@@ -780,10 +780,10 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 
         <a class="connect-row" href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener" data-magnetic>
           <div class="cr-left">
-            <div class="cr-icon">â—Ž</div>
+            <div class="cr-icon">◎</div>
             <div class="cr-meta"><span class="cr-label">Instagram</span><span class="cr-handle">@kreativby4knotts</span></div>
           </div>
-          <div class="cr-arrow">â†—</div>
+          <div class="cr-arrow">↗</div>
         </a>
 
         <a class="connect-row" href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener" data-magnetic>
@@ -791,7 +791,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
             <div class="cr-icon">in</div>
             <div class="cr-meta"><span class="cr-label">LinkedIn</span><span class="cr-handle">Kreativ by 4Knotts</span></div>
           </div>
-          <div class="cr-arrow">â†—</div>
+          <div class="cr-arrow">↗</div>
         </a>
 
         <button class="connect-row" id="copyEmail" data-magnetic>
@@ -804,10 +804,10 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 
         <div class="connect-row connect-row--static">
           <div class="cr-left">
-            <div class="cr-icon">âŒ–</div>
-            <div class="cr-meta"><span class="cr-label">Studio</span><span class="cr-handle">Noida, UP Â· India</span></div>
+            <div class="cr-icon">⌖</div>
+            <div class="cr-meta"><span class="cr-label">Studio</span><span class="cr-handle">Noida, UP · India</span></div>
           </div>
-          <div class="cr-time" id="connectTime">â€”</div>
+          <div class="cr-time" id="connectTime">—</div>
         </div>
       </div>
     </div>
@@ -829,12 +829,12 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <div class="foot-cols">
       <div class="foot-col"><h4>Navigate</h4><a href="#works">AI Lab</a><a href="#pillars">Pillars</a><a href="#process">Process</a><a href="#cta">Contact</a></div>
       <div class="foot-col"><h4>Connect</h4><a href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener">LinkedIn</a><a href="#cta">Email</a></div>
-      <div class="foot-col"><h4>Studio</h4><p>Noida, UP</p><p>India</p><p>Monâ€“Sat</p></div>
+      <div class="foot-col"><h4>Studio</h4><p>Noida, UP</p><p>India</p><p>Mon–Sat</p></div>
     </div>
   </div>
   <div class="foot-bottom">
-    <span>Â© 2026 Kreativ by 4 Knotts. All rights reserved.</span>
-    <span>Designed & built in-house â€” the proof is this page.</span>
+    <span>© 2026 Kreativ by 4 Knotts. All rights reserved.</span>
+    <span>Designed & built in-house — the proof is this page.</span>
   </div>
 </footer>
 
@@ -864,7 +864,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   const hasTHREE = typeof THREE !== 'undefined';
   if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-  /* â•â•â•â• DETECT WEBGL â•â•â•â• */
+  /* ════ DETECT WEBGL ════ */
   function webglOK(){
     try { const c = document.createElement('canvas');
       return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
@@ -872,7 +872,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   }
   const WEBGL = hasTHREE && webglOK() && !isMobile;
 
-  /* â•â•â•â• CURSOR â•â•â•â• */
+  /* ════ CURSOR ════ */
   const cur = document.getElementById('cursor');
   const ring = document.getElementById('cursorRing');
   if (cur && ring && !isMobile){
@@ -886,27 +886,27 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• CLOCK + GEOLOCATION â•â•â•â• */
+  /* ════ CLOCK + GEOLOCATION ════ */
   const navTime=document.getElementById('navTime');
   let cityCode='NOI';
   if(navTime){
     function tick(){
       const now=new Date();
       const h=String(now.getHours()).padStart(2,'0'), m=String(now.getMinutes()).padStart(2,'0');
-      navTime.textContent=cityCode+' Â· '+h+':'+m;
+      navTime.textContent=cityCode+' · '+h+':'+m;
     }
     tick(); setInterval(tick,10000);
     fetch('https://ipapi.co/json/',{mode:'cors'}).then(r=>r.json()).then(d=>{
       if(d.city){
         cityCode=d.city.substring(0,3).toUpperCase();
         const eyebrow=document.querySelector('.hero-eyebrow span');
-        if(eyebrow) eyebrow.textContent='Full-Stack Creative Agency Â· '+d.city+', '+d.region_code;
+        if(eyebrow) eyebrow.textContent='Full-Stack Creative Agency · '+d.city+', '+d.region_code;
         tick();
       }
     }).catch(()=>{});
   }
 
-  /* â•â•â•â• MENU â•â•â•â• */
+  /* ════ MENU ════ */
   const menuBtn=document.getElementById('menuBtn');
   const menuOv=document.getElementById('menuOverlay');
   const menuToggle=document.getElementById('menuToggle');
@@ -928,14 +928,14 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     if(menuCloseBtn) menuCloseBtn.addEventListener('click',()=>{ menuOv.classList.remove('open'); syncMenu(); });
   }
 
-  /* â•â•â•â• SCROLL TO TOP ON RELOAD â•â•â•â• */
+  /* ════ SCROLL TO TOP ON RELOAD ════ */
   if('scrollRestoration' in history) history.scrollRestoration='manual';
   window.scrollTo({top:0,left:0,behavior:'instant'});
   document.documentElement.scrollTop=0;
   document.body.scrollTop=0;
   window.addEventListener('beforeunload',()=>{ window.scrollTo(0,0); });
 
-  /* â•â•â•â• CLEAN URL â€” remove hash fragments after scroll â•â•â•â• */
+  /* ════ CLEAN URL — remove hash fragments after scroll ════ */
   document.querySelectorAll('a[href^="#"]').forEach(a=>{
     a.addEventListener('click',function(e){
       const target=document.querySelector(this.getAttribute('href'));
@@ -947,7 +947,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   });
 
-  /* â•â•â•â• THEME TOGGLE â•â•â•â• */
+  /* ════ THEME TOGGLE ════ */
   const themeToggle=document.getElementById('themeToggle');
   if(themeToggle){
     const saved=localStorage.getItem('kreativ-theme');
@@ -958,14 +958,14 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• BACK TO TOP â•â•â•â• */
+  /* ════ BACK TO TOP ════ */
   const backToTop=document.getElementById('backToTop');
   if(backToTop){
     window.addEventListener('scroll',()=>{ backToTop.classList.toggle('visible',window.scrollY>600); },{passive:true});
     backToTop.addEventListener('click',()=>{ window.scrollTo({top:0,behavior:'smooth'}); });
   }
 
-  /* â•â•â•â• SMOOTH SCROLL â€” Lenis (integrates with ScrollTrigger) â•â•â•â• */
+  /* ════ SMOOTH SCROLL — Lenis (integrates with ScrollTrigger) ════ */
   let lenis=null;
   function initLenis(){
     if(reduce || isMobile || typeof Lenis==='undefined') return;
@@ -987,7 +987,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• LOADER â•â•â•â• */
+  /* ════ LOADER ════ */
   const loader=document.getElementById('loader');
   const lnum=document.getElementById('loaderNum');
   const lbar=document.getElementById('loaderBar');
@@ -1001,7 +1001,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     },90);
   }
 
-  /* â•â•â•â• HERO CINEMATIC MASTER TIMELINE â•â•â•â•
+  /* ════ HERO CINEMATIC MASTER TIMELINE ════
      Phase 1: each letter K-R-E-A-T-I-V pops up from a mask (slow, staggered, 3D)
      Phase 2: red slash wipes across behind the letters (logo motif)
      Phase 3: red signal-dot drops in top-right + particle field ignites
@@ -1032,7 +1032,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 
     heroTL=gsap.timeline({ defaults:{ ease:'power4.out' } });
 
-    // â”€â”€ PHASE 1 â€” eyebrow + each letter pops up (slow, see every one) â”€â”€
+    // ── PHASE 1 — eyebrow + each letter pops up (slow, see every one) ──
     heroTL
       .to('.hero-eyebrow span',{ y:0, duration:1.0, ease:'power3.out' }, 0.2)
       .to(chars,{
@@ -1042,7 +1042,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         stagger:0.16          // long stagger = each letter clearly pops in turn
       }, 0.45);
 
-    // â”€â”€ PHASE 2 â€” red slash wipes down behind the letters â”€â”€
+    // ── PHASE 2 — red slash wipes down behind the letters ──
     heroTL.fromTo(slash,
       { scaleY:0 },
       { scaleY:1, duration:1.1, ease:'power3.inOut' },
@@ -1051,7 +1051,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     // subtle slash settle / breathing glow
     heroTL.to(slash,{ opacity:0.78, duration:0.6, ease:'sine.out' }, '-=0.2');
 
-    // â”€â”€ PHASE 3 â€” red signal dot drops in top-right + canvas ignites â”€â”€
+    // ── PHASE 3 — red signal dot drops in top-right + canvas ignites ──
     heroTL.fromTo(dot,
       { scale:0, y:-80 },
       { scale:1, y:0, duration:0.7, ease:'back.out(2.2)' },
@@ -1061,7 +1061,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       heroTL.to(canvas,{ opacity:1, duration:1.4, ease:'power2.out' }, '-=0.5');
     }
 
-    // â”€â”€ PHASE 4 â€” subtitle + scroll cues rise â”€â”€
+    // ── PHASE 4 — subtitle + scroll cues rise ──
     heroTL
       .to('#heroSub',{ y:0, opacity:1, duration:0.9, ease:'power3.out' }, '-=0.7')
       .to('#heroScroll',{ opacity:1, duration:0.8 }, '-=0.5')
@@ -1082,7 +1082,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• HERO PARTICLES (WebGL) â•â•â•â• */
+  /* ════ HERO PARTICLES (WebGL) ════ */
   let heroAnim=null;
   function initHeroWebGL(){
     const canvas=document.getElementById('hero-canvas');
@@ -1191,7 +1191,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     const c=document.getElementById('hero-canvas'); if(c) c.style.display='none';
   }
 
-  /* â•â•â•â• PILLAR 3D TILT â•â•â•â• */
+  /* ════ PILLAR 3D TILT ════ */
   function initTilt(){
     if(isMobile) return;
     document.querySelectorAll('[data-tilt]').forEach(card=>{
@@ -1205,7 +1205,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• WORK SHADER HOVER (WebGL distortion) â•â•â•â• */
+  /* ════ WORK SHADER HOVER (WebGL distortion) ════ */
   const workScenes=[];
   function initWorks(){
     const colors=[0x1a1a1a,0x141414,0x1e1e1e,0x161616,0x181818,0x121212];
@@ -1291,7 +1291,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• CAPABILITIES HORIZONTAL SCROLL â•â•â•â• */
+  /* ════ CAPABILITIES HORIZONTAL SCROLL ════ */
   function initCapabilities(){
     if(!hasGSAP||!ScrollTrigger) return;
     const track=document.getElementById('capTrack');
@@ -1308,7 +1308,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• SCROLL REVEALS â•â•â•â• */
+  /* ════ SCROLL REVEALS ════ */
   function initReveals(){
     const els=document.querySelectorAll('.r');
     if('IntersectionObserver' in window){
@@ -1319,7 +1319,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     } else { els.forEach(el=>el.classList.add('in')); }
   }
 
-  /* â•â•â•â• MANIFESTO WORD SPLIT (scroll-velocity feel via stagger reveal) â•â•â•â• */
+  /* ════ MANIFESTO WORD SPLIT (scroll-velocity feel via stagger reveal) ════ */
   function initManifesto(){
     const mt=document.querySelector('.manifesto-text');
     if(!mt||!hasGSAP||!ScrollTrigger) return;
@@ -1345,7 +1345,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       scrollTrigger:{trigger:mt,start:'top 80%',end:'bottom 55%',scrub:1}});
   }
 
-  /* â•â•â•â• CTA PARTICLES â•â•â•â• */
+  /* ════ CTA PARTICLES ════ */
   function initCTA(){
     const canvas=document.getElementById('cta-canvas');
     if(!canvas||!WEBGL) return;
@@ -1378,7 +1378,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     addEventListener('resize',()=>{ const s=size(); renderer.setSize(s.w,s.h); cam.aspect=s.w/s.h; cam.updateProjectionMatrix(); });
   }
 
-  /* â•â•â•â• MAGNETIC ELEMENTS â•â•â•â• */
+  /* ════ MAGNETIC ELEMENTS ════ */
   function initMagnetic(){
     if(isMobile||!hasGSAP) return;
     document.querySelectorAll('[data-magnetic]').forEach(btn=>{
@@ -1390,7 +1390,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* â•â•â•â• INTERACTIVE TERMINAL â•â•â•â• */
+  /* ════ INTERACTIVE TERMINAL ════ */
   function initTerminal(){
     const out=document.getElementById('termOutput');
     const inp=document.getElementById('termInput');
@@ -1419,7 +1419,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     function print(html){ const d=document.createElement('div'); d.className='term-line'; d.innerHTML=html; out.appendChild(d); body.scrollTop=body.scrollHeight; }
     function blank(){ print('&nbsp;'); }
 
-    // typing printer for boot lines â€” types plain text, then swaps in final HTML
+    // typing printer for boot lines — types plain text, then swaps in final HTML
     function typeLines(lines, done){
       busy=true; bootLines=lines; let li=0;
       function nextLine(){
@@ -1447,36 +1447,36 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     const COMMANDS={
       help(){ return [
         '<span class="c-bone">Available commands:</span>',
-        '  <span class="c-red">services</span>   â€” what we build',
-        '  <span class="c-red">pitch</span>      â€” why work with us',
-        '  <span class="c-red">contact</span>    â€” how to reach us',
-        '  <span class="c-red">social</span>     â€” find us online',
-        '  <span class="c-red">about</span>      â€” who we are',
-        '  <span class="c-red">clear</span>      â€” wipe the screen',
+        '  <span class="c-red">services</span>   — what we build',
+        '  <span class="c-red">pitch</span>      — why work with us',
+        '  <span class="c-red">contact</span>    — how to reach us',
+        '  <span class="c-red">social</span>     — find us online',
+        '  <span class="c-red">about</span>      — who we are',
+        '  <span class="c-red">clear</span>      — wipe the screen',
         '&nbsp;'
       ];},
       services(){ return [
-        '<span class="c-bone">// what we build â€” 4knotts-kreativ stack</span>',
-        '  â—ˆ Frontend  â€” React 18 + Vite, GSAP, Framer Motion',
-        '  â—Ž Backend   â€” Node.js + Express, JWT, Mongoose',
-        '  â—» Auth      â€” OTP flow (6-digit, 5-min TTL, 5 attempts)',
-        '  â—¬ Services  â€” Pricing engine, email, file upload (Multer)',
-        '<span class="c-dim">  + KnottBox AI (Claude API, 14 tools) Â· try: <span class="c-red">about</span></span>',
+        '<span class="c-bone">// what we build — 4knotts-kreativ stack</span>',
+        '  ◈ Frontend  — React 18 + Vite, GSAP, Framer Motion',
+        '  ◎ Backend   — Node.js + Express, JWT, Mongoose',
+        '  ◻ Auth      — OTP flow (6-digit, 5-min TTL, 5 attempts)',
+        '  ◬ Services  — Pricing engine, email, file upload (Multer)',
+        '<span class="c-dim">  + KnottBox AI (Claude API, 14 tools) · try: <span class="c-red">about</span></span>',
         '&nbsp;'
       ];},
       pitch(){ return [
         '<span class="c-white">We turn brand noise into signal.</span>',
-        '<span class="c-bone">Most agencies talk taste. We ship it â€”</span>',
+        '<span class="c-bone">Most agencies talk taste. We ship it —</span>',
         '<span class="c-bone">this very site is the proof you\'re reading.</span>',
-        '<span class="c-dim">Ready when you are. â†’ type <span class="c-red">contact</span></span>',
+        '<span class="c-dim">Ready when you are. → type <span class="c-red">contact</span></span>',
         '&nbsp;'
       ];},
       contact(){ return [
         '<span class="c-bone">// reach the studio</span>',
         '  email   : <span class="c-red">'+EMAIL+'</span>',
-        '  studio  : Noida, UP Â· India',
-        '  hours   : Monâ€“Sat Â· 10:00â€“19:00 IST',
-        '<span class="c-dim">  tip: click the Email tile on the right to copy â†’</span>',
+        '  studio  : Noida, UP · India',
+        '  hours   : Mon–Sat · 10:00–19:00 IST',
+        '<span class="c-dim">  tip: click the Email tile on the right to copy →</span>',
         '&nbsp;'
       ];},
       social(){ return [
@@ -1487,11 +1487,11 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         '&nbsp;'
       ];},
       about(){ return [
-        '<span class="c-white">4 Knotts Kreativ â€” Platform v2</span>',
+        '<span class="c-white">4 Knotts Kreativ — Platform v2</span>',
         '<span class="c-bone">Multi-page React + GSAP site with OTP auth,</span>',
         '<span class="c-bone">dynamic package builder, project briefing workflow,</span>',
         '<span class="c-bone">automated email, and MongoDB persistence (JSON fallback).</span>',
-        '<span class="c-dim">  7 pages Â· 6 API routes Â· Port 3000 (Vite) + 5000 (Express)</span>',
+        '<span class="c-dim">  7 pages · 6 API routes · Port 3000 (Vite) + 5000 (Express)</span>',
         '&nbsp;'
       ];},
       clear(){ out.innerHTML=''; return null; },
@@ -1523,8 +1523,8 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       if(booted) return; booted=true;
       typeLines([
         '<span class="c-dim">Last login: '+new Date().toDateString()+'</span>',
-        '<span class="c-white">kreativ-os v5.0</span> <span class="c-dim">â€” booting signalâ€¦</span>',
-        '<span class="c-red">â— online.</span> welcome to the studio.',
+        '<span class="c-white">kreativ-os v5.0</span> <span class="c-dim">— booting signal…</span>',
+        '<span class="c-red">● online.</span> welcome to the studio.',
         '<span class="c-dim">type <span class="c-red">help</span> to begin.</span>',
         '&nbsp;'
       ], ()=>{ if(hint) hint.style.opacity='1'; });
@@ -1534,7 +1534,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       io.observe(terminal);
     } else boot();
 
-    // keyboard â€” capture typing when terminal is in viewport / focused
+    // keyboard — capture typing when terminal is in viewport / focused
     let active=false;
     terminal.addEventListener('mouseenter',()=>active=true);
     terminal.addEventListener('mouseleave',()=>active=false);
@@ -1562,7 +1562,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     if(copyBtn){
       copyBtn.addEventListener('click',()=>{
         const txt=EMAIL;
-        const done=()=>{ if(copyArrow){ const o=copyArrow.textContent; copyArrow.textContent='copied âœ“'; copyArrow.style.color='#28C840'; setTimeout(()=>{ copyArrow.textContent=o; copyArrow.style.color=''; },1600); } };
+        const done=()=>{ if(copyArrow){ const o=copyArrow.textContent; copyArrow.textContent='copied ✓'; copyArrow.style.color='#28C840'; setTimeout(()=>{ copyArrow.textContent=o; copyArrow.style.color=''; },1600); } };
         if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(done); }
         else { const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(t); done(); }
       });
@@ -1576,7 +1576,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     }
   }
 
-  /* â•â•â•â• MOBILE ANIMATIONS â•â•â•â• */
+  /* ════ MOBILE ANIMATIONS ════ */
   function initMobileAnimations(){
     if(!isMobile||!hasGSAP) return;
     const animEls=document.querySelectorAll('.work, .pillar, .cap-card, .pstep, .manifesto-text, .foot-top');
@@ -1591,7 +1591,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     animEls.forEach(el=>{el.style.opacity='0'; io.observe(el);});
   }
 
-  /* â•â•â•â• BOOT â•â•â•â• */
+  /* ════ BOOT ════ */
   function boot(){
     initLenis();
     if(WEBGL){ const ok=initHeroWebGL(); if(!ok) initHeroFallback(); }
