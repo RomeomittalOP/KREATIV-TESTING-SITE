@@ -11,10 +11,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 :root{
   --pitch:#050505; --ink:#0C0C0C; --ash:#141414; --smoke:#1E1E1E; --line:#262626;
@@ -645,7 +645,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   // Real-time notifications from Firestore activity_feed
   (function(){
     window._portalNotifications=[];
-    firebase.firestore().collection('activity_feed').orderBy('ts','desc').limit(1)
+    firebase.firestore('kreativby4knotts').collection('activity_feed').orderBy('ts','desc').limit(1)
       .onSnapshot(function(snap){
         snap.docChanges().forEach(function(change){
           if(change.type==='added'){
@@ -679,7 +679,7 @@ firebase.auth().onAuthStateChanged(function(user) {
 })();
 
 /* â•â•â•â•â•â•â•â• PROFILE FUNCTIONS (global scope for onclick) â•â•â•â•â•â•â•â• */
-const _db = firebase.firestore();
+const _db = firebase.firestore('kreativby4knotts');
 
 function generateClientId(email) {
   return 'CL-' + email.split('@')[0].replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,6) + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
