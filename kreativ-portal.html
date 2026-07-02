@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 :root{
@@ -433,7 +434,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* â•â•â• Firebase Init + Auth Gate â•â•â• */
-const _portalFirebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
   authDomain: "kreativ-by-4-knotts.firebaseapp.com",
   projectId: "kreativ-by-4-knotts",
@@ -441,64 +442,12 @@ const _portalFirebaseConfig = {
   messagingSenderId: "224866350696",
   appId: "1:224866350696:web:b890444abd8aee12a2eddd",
   measurementId: "G-MC6QDM9DJY"
-};
-firebase.initializeApp(_portalFirebaseConfig);
-
-let _db = null;
-let _portalFsMod = null;
-
-async function _initPortalFirestore() {
-  try {
-    const { initializeApp: modInit, getApp: modGetApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const fsMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const authMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-    let app2;
-    try { app2 = modGetApp(); } catch(e) { app2 = modInit(_portalFirebaseConfig); }
-    const a2 = authMod.getAuth(app2);
-    await new Promise(resolve => { const u = authMod.onAuthStateChanged(a2, () => { u(); resolve(); }); });
-    const db = fsMod.getFirestore(app2, 'kreativby4knotts');
-    _portalFsMod = fsMod;
-    _db = _makeDbWrapper(db, fsMod);
-    return true;
-  } catch(e) { console.error('Portal Firestore init failed:', e); return false; }
-}
-
-function _makeDbWrapper(db, fsMod) {
-  function wrapDoc(colName, docId) {
-    const ref = fsMod.doc(db, colName, docId);
-    return {
-      get: async () => { const s = await fsMod.getDoc(ref); return { exists: s.exists(), data: () => s.data() }; },
-      set: (data, opts) => opts && opts.merge ? fsMod.setDoc(ref, data, { merge: true }) : fsMod.setDoc(ref, data),
-      update: (data) => fsMod.updateDoc(ref, data),
-      delete: () => fsMod.deleteDoc(ref),
-      onSnapshot: (cb, errCb) => fsMod.onSnapshot(ref, s => cb({ exists: s.exists(), data: () => s.data() }), errCb),
-    };
-  }
-  function wrapQuery(colName, field, dir) {
-    const colRef = fsMod.collection(db, colName);
-    const constraints = [fsMod.orderBy(field, dir || 'asc')];
-    return {
-      limit: (n) => {
-        const q = fsMod.query(colRef, ...constraints, fsMod.limit(n));
-        return {
-          get: async () => { const s = await fsMod.getDocs(q); const d = []; s.forEach(x => d.push({ data: () => x.data(), id: x.id })); return { forEach: cb => d.forEach(cb) }; },
-          onSnapshot: (cb, errCb) => fsMod.onSnapshot(q, s => cb({ docChanges: () => s.docChanges().map(c => ({ type: c.type, doc: { data: () => c.doc.data(), id: c.doc.id } })) }), errCb),
-        };
-      },
-    };
-  }
-  return {
-    collection: (name) => ({
-      doc: (id) => wrapDoc(name, id),
-      add: (data) => fsMod.addDoc(fsMod.collection(db, name), data),
-      orderBy: (field, dir) => wrapQuery(name, field, dir),
-    }),
-  };
-}
-
-function _portalServerTimestamp() {
-  return _portalFsMod ? _portalFsMod.serverTimestamp() : new Date();
-}
+});
+const _db = (function(){
+  const db = firebase.firestore();
+  try { if(db._delegate && db._delegate._databaseId) db._delegate._databaseId.database = 'kreativby4knotts'; } catch(e){}
+  return db;
+})();
 
 const TEAM_EMAILS = ['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
 
@@ -698,24 +647,21 @@ firebase.auth().onAuthStateChanged(function(user) {
       toast(window._portalNotifications[0],'â—†');
     } else { toast('No new notifications.','â—†'); }
   });
-  // Real-time notifications from Firestore activity_feed (deferred until Firestore ready)
+  // Real-time notifications from Firestore activity_feed
   window._portalNotifications=[];
-  function _startPortalNotifications(){
-    if(!_db) return;
-    _db.collection('activity_feed').orderBy('ts','desc').limit(1)
-      .onSnapshot(function(snap){
-        snap.docChanges().forEach(function(change){
-          if(change.type==='added'){
-            var d=change.doc.data();
-            if(Date.now()-d.ts<300000){
-              window._portalNotifications.unshift((d.icon||'â—Œ')+' '+(d.detail||d.action));
-              if(window._portalNotifications.length>10)window._portalNotifications.length=10;
-              $('#bellBtn .dot').style.display='block';
-            }
+  _db.collection('activity_feed').orderBy('ts','desc').limit(1)
+    .onSnapshot(function(snap){
+      snap.docChanges().forEach(function(change){
+        if(change.type==='added'){
+          var d=change.doc.data();
+          if(Date.now()-d.ts<300000){
+            window._portalNotifications.unshift((d.icon||'â—Œ')+' '+(d.detail||d.action));
+            if(window._portalNotifications.length>10)window._portalNotifications.length=10;
+            $('#bellBtn .dot').style.display='block';
           }
-        });
+        }
       });
-  }
+    });
   $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
   /* â•â•â•â•â•â•â•â• MOBILE SIDEBAR â•â•â•â•â•â•â•â• */
@@ -736,7 +682,7 @@ firebase.auth().onAuthStateChanged(function(user) {
 })();
 
 /* â•â•â•â•â•â•â•â• PROFILE FUNCTIONS (global scope for onclick) â•â•â•â•â•â•â•â• */
-/* _db is initialized by _initPortalFirestore() after auth */
+/* _db initialized above via firebase.firestore() with database override */
 
 function generateClientId(email) {
   return 'CL-' + email.split('@')[0].replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,6) + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
@@ -792,7 +738,7 @@ async function saveClientProfile() {
     address: document.getElementById('pf-address').value.trim(),
     bio: document.getElementById('pf-bio').value.trim(),
     email: user.email,
-    updatedAt: _portalServerTimestamp()
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   const photoImg = document.getElementById('pf-photo-img');
   if (photoImg.src && photoImg.style.display !== 'none') data.photoData = photoImg.src;
@@ -851,12 +797,7 @@ function sendResetFromProfile() {
 }
 
 // Load profile when auth is ready
-firebase.auth().onAuthStateChanged(async u=>{
-  if(!u) return;
-  await _initPortalFirestore();
-  _startPortalNotifications();
-  setTimeout(loadClientProfile, 300);
-});
+firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500); });
 
 /* â•â•â•â•â•â•â•â• CLIENT SESSION TRACKING (auto-analytics) â•â•â•â•â•â•â•â• */
 (function(){
@@ -868,8 +809,6 @@ firebase.auth().onAuthStateChanged(async u=>{
     if(!user) return;
     const TEAM_EMAILS_CHECK=['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
     if(TEAM_EMAILS_CHECK.includes(user.email.toLowerCase())) return;
-    if(!_db) await _initPortalFirestore();
-    if(!_db) return;
 
     try{
       const docRef=await _db.collection('client_sessions').add({

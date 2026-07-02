@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 :root{--pitch:#050505;--red:#FF1E1E;--red-d:#CC0000;--red-bg:rgba(255,30,30,0.08);--red-br:rgba(255,30,30,0.22);--s1:#111;--s2:#181818;--s3:#222;--br:rgba(255,255,255,0.07);--br2:rgba(255,255,255,0.13);--tp:#F5F5F5;--ts:rgba(245,245,245,0.58);--tm:rgba(245,245,245,0.32);--g:#2ECC71;--g-bg:rgba(46,204,113,0.1);--a:#F5A623;--a-bg:rgba(245,166,35,0.1);--b:#4A90E2;--b-bg:rgba(74,144,226,0.1);--pu:#9B59B6;--pu-bg:rgba(155,89,182,0.1);--gold:#C9A84C;--gold-bg:rgba(201,168,76,0.1);}
@@ -367,95 +368,15 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-let firestore = null;
-let _fsModular = null;
+let firestore;
+try {
+  firestore = firebase.firestore();
+  if (firestore._delegate && firestore._delegate._databaseId) {
+    firestore._delegate._databaseId.database = 'kreativby4knotts';
+  }
+} catch(e) { firestore = null; }
 let storage;
 try { storage = firebase.storage(); } catch(e) { storage = null; }
-
-async function initFirestore() {
-  try {
-    const { initializeApp: modInit, getApp: modGetApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const fsMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const authMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-    let app2;
-    try { app2 = modGetApp(); } catch(e) { app2 = modInit(firebaseConfig); }
-    const a2 = authMod.getAuth(app2);
-    await new Promise(resolve => { const u = authMod.onAuthStateChanged(a2, () => { u(); resolve(); }); });
-    const db = fsMod.getFirestore(app2, 'kreativby4knotts');
-    _fsModular = { db, fsMod };
-    firestore = { collection: (name) => _wrapCollection(name) };
-    return true;
-  } catch(e) {
-    console.error('Firestore modular init failed:', e);
-    return false;
-  }
-}
-
-function _wrapCollection(name) {
-  const { db, fsMod } = _fsModular;
-  return {
-    doc: (id) => _wrapDoc(name, id),
-    add: async (data) => {
-      if (data.ts && typeof data.ts === 'number') { /* keep numeric ts */ }
-      return fsMod.addDoc(fsMod.collection(db, name), data);
-    },
-    orderBy: (field, dir) => _wrapQuery(name, field, dir),
-  };
-}
-
-function _wrapDoc(colName, docId) {
-  const { db, fsMod } = _fsModular;
-  const ref = fsMod.doc(db, colName, docId);
-  return {
-    get: async () => {
-      const snap = await fsMod.getDoc(ref);
-      return { exists: snap.exists(), data: () => snap.data() };
-    },
-    set: (data, opts) => opts && opts.merge ? fsMod.setDoc(ref, data, { merge: true }) : fsMod.setDoc(ref, data),
-    update: (data) => fsMod.updateDoc(ref, data),
-    delete: () => fsMod.deleteDoc(ref),
-    onSnapshot: (cb, errCb) => {
-      return fsMod.onSnapshot(ref, snap => {
-        cb({ exists: snap.exists(), data: () => snap.data() });
-      }, errCb);
-    },
-  };
-}
-
-function _wrapQuery(colName, field, dir) {
-  const { db, fsMod } = _fsModular;
-  const colRef = fsMod.collection(db, colName);
-  const constraints = [fsMod.orderBy(field, dir || 'asc')];
-  return {
-    limit: (n) => {
-      const allConstraints = [...constraints, fsMod.limit(n)];
-      const q = fsMod.query(colRef, ...allConstraints);
-      return {
-        get: async () => {
-          const snap = await fsMod.getDocs(q);
-          const docs = [];
-          snap.forEach(d => docs.push({ data: () => d.data(), id: d.id }));
-          return { forEach: cb => docs.forEach(cb) };
-        },
-        onSnapshot: (cb, errCb) => {
-          return fsMod.onSnapshot(q, snap => {
-            cb({
-              docChanges: () => snap.docChanges().map(c => ({
-                type: c.type,
-                doc: { data: () => c.doc.data(), id: c.doc.id }
-              }))
-            });
-          }, errCb);
-        },
-      };
-    },
-  };
-}
-
-function _serverTimestamp() {
-  if (_fsModular) return _fsModular.fsMod.serverTimestamp();
-  return new Date();
-}
 
 const ALLOWED_EMAILS = {
   'shubhammittal3555@gmail.com': 'shubham',
@@ -482,13 +403,13 @@ const DB = {
   async set(k, v) {
     if (this.firebaseOk) {
       _selfWrite = true;
-      try { await firestore.collection('workspace').doc(k).set({ v, ts: _serverTimestamp() }); updateSyncStatus(true); } catch(e) { console.warn('Firestore write failed:', e); updateSyncStatus(false); }
+      try { await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() }); updateSyncStatus(true); } catch(e) { console.warn('Firestore write failed:', e); updateSyncStatus(false); }
       setTimeout(() => { _selfWrite = false; }, 500);
     }
   },
   async init() {
     if (!firestore) { this.firebaseOk = false; updateSyncStatus(false); return; }
-    try { await firestore.collection('workspace').doc('_ping').set({ ts: _serverTimestamp() }); this.firebaseOk = true; updateSyncStatus(true); this.startRealtimeSync(); } catch(e) { this.firebaseOk = false; updateSyncStatus(false); console.warn('Firestore init failed:', e); }
+    try { await firestore.collection('workspace').doc('_ping').set({ ts: firebase.firestore.FieldValue.serverTimestamp() }); this.firebaseOk = true; updateSyncStatus(true); this.startRealtimeSync(); } catch(e) { this.firebaseOk = false; updateSyncStatus(false); console.warn('Firestore init failed:', e); }
   },
   startRealtimeSync() {
     if (!this.firebaseOk || this.unsub) return;
@@ -558,7 +479,6 @@ async function boot() {
     const email = user.email.toLowerCase();
     const memberId = ALLOWED_EMAILS[email];
     if (!memberId) { switchScreen('scr-denied'); return; }
-    await initFirestore();
     await DB.init();
     await loadSession(memberId);
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
