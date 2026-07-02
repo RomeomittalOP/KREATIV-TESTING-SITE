@@ -1317,40 +1317,82 @@ async function loadClientAnalytics(){
     SESSION.clientAnalytics=ca;
   }catch(e){console.log('Analytics load error',e);}
 }
-/* ═══ Cloud Storage ═══ */
-let _cloudFiles=[];
+/* ═══ Cloud Storage — Google Drive ═══ */
+const GDRIVE={
+  API_KEY:'AIzaSyBZDdZrgQ-zYNyN9YQ4GkE4HSW21k6Tq7s',
+  CLIENT_ID:'29907020981-3o6bnpmjf77hhvqqogg7jd3oqse6iff1.apps.googleusercontent.com',
+  SCOPES:'https://www.googleapis.com/auth/drive.file',
+  FOLDER_NAME:'Kreativ Workspace',
+  token:null,folderId:null,files:[],loaded:false,apisReady:false
+};
+function loadGapiScripts(){
+  if(document.getElementById('gapi-script'))return;
+  const s1=document.createElement('script');s1.id='gapi-script';
+  s1.src='https://apis.google.com/js/api.js';
+  s1.onload=()=>{gapi.load('client:picker',async()=>{
+    await gapi.client.init({apiKey:GDRIVE.API_KEY,discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});
+    GDRIVE.apisReady=true;console.log('Google Drive API ready');
+  });};
+  document.head.appendChild(s1);
+  const s2=document.createElement('script');s2.src='https://accounts.google.com/gsi/client';
+  document.head.appendChild(s2);
+}
+loadGapiScripts();
+function gdriveAuth(){
+  return new Promise((resolve,reject)=>{
+    if(GDRIVE.token){resolve(GDRIVE.token);return;}
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:GDRIVE.CLIENT_ID,scope:GDRIVE.SCOPES,
+      callback:r=>{if(r.error){reject(r);return;}GDRIVE.token=r.access_token;resolve(r.access_token);}
+    });
+    client.requestAccessToken();
+  });
+}
+async function gdriveGetFolder(){
+  if(GDRIVE.folderId)return GDRIVE.folderId;
+  const resp=await gapi.client.drive.files.list({q:`name='${GDRIVE.FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:'files(id,name)',spaces:'drive'});
+  if(resp.result.files&&resp.result.files.length>0){GDRIVE.folderId=resp.result.files[0].id;return GDRIVE.folderId;}
+  const create=await gapi.client.drive.files.create({resource:{name:GDRIVE.FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'},fields:'id'});
+  GDRIVE.folderId=create.result.id;return GDRIVE.folderId;
+}
 async function loadCloudFiles(){
-  if(!DB.firebaseOk)return;
+  if(!GDRIVE.token)return;
   try{
-    const snap=await firestore.collection('cloud_files').orderBy('uploadedAt','desc').get();
-    _cloudFiles=[];
-    snap.forEach(doc=>{_cloudFiles.push({id:doc.id,...doc.data()});});
-  }catch(e){console.log('Cloud files load error',e);}
+    const folderId=await gdriveGetFolder();
+    const resp=await gapi.client.drive.files.list({q:`'${folderId}' in parents and trashed=false`,fields:'files(id,name,size,mimeType,createdTime,webViewLink,webContentLink,iconLink,owners)',orderBy:'createdTime desc',pageSize:100});
+    GDRIVE.files=resp.result.files||[];GDRIVE.loaded=true;
+  }catch(e){console.log('Drive load error',e);GDRIVE.files=[];}
 }
 function rCloudFiles(){
-  let html=`<div class="adm-banner"><div><div class="adm-label">☁ Cloud Storage — Firebase</div><div class="adm-sub">Upload, share and manage files. All files stored in Firebase Cloud Storage.</div></div>
-  ${canEdit()?`<button class="btn-sm red" onclick="document.getElementById('cf-upload').click()">+ Upload File</button>`:''}
-  </div>
-  <input type="file" id="cf-upload" style="display:none" onchange="uploadCloudFile(this)" multiple>`;
-  html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Files</div><div class="sv">${_cloudFiles.length}</div></div>
-  <div class="sc"><div class="sl">Total Size</div><div class="sv">${formatFileSize(_cloudFiles.reduce((s,f)=>s+(f.size||0),0))}</div></div>
-  <div class="sc"><div class="sl">Storage</div><div class="sv" style="color:var(--g)">Firebase</div></div></div>`;
-  html+=`<div class="panel"><div class="ph"><div class="pt">Files</div><span class="badge b-green">${_cloudFiles.length} uploaded</span></div>`;
-  if(_cloudFiles.length===0){
-    html+=`<div style="padding:30px;text-align:center;font-size:12px;color:var(--tm)">No files uploaded yet.${canEdit()?' Click "+ Upload File" to add files.':''}</div>`;
+  const files=GDRIVE.files;
+  let html=`<div class="adm-banner"><div><div class="adm-label">☁ Cloud Storage — Google Drive</div><div class="adm-sub">Files stored in Shubhrat's Google Drive (5TB). Folder: "${GDRIVE.FOLDER_NAME}"</div></div>
+  <div style="display:flex;gap:8px">
+  ${canEdit()?`<button class="btn-sm red" onclick="gdriveUpload()">+ Upload File</button>`:''}
+  <button class="btn-sm" onclick="gdriveRefresh()">↻ Refresh</button>
+  ${!GDRIVE.token?`<button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="gdriveConnect()">🔗 Connect Drive</button>`:`<span class="badge b-green" style="align-self:center">Connected</span>`}
+  </div></div>`;
+  html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Files</div><div class="sv">${files.length}</div></div>
+  <div class="sc"><div class="sl">Total Size</div><div class="sv">${formatFileSize(files.reduce((s,f)=>s+parseInt(f.size||0),0))}</div></div>
+  <div class="sc"><div class="sl">Storage</div><div class="sv" style="color:var(--g)">Google Drive 5TB</div></div></div>`;
+  html+=`<div class="panel"><div class="ph"><div class="pt">Files</div><span class="badge b-green">${files.length} in folder</span></div>`;
+  if(!GDRIVE.token){
+    html+=`<div style="padding:30px;text-align:center;font-size:12px;color:var(--tm)">Click "🔗 Connect Drive" to authenticate with Google Drive and view files.</div>`;
+  } else if(files.length===0){
+    html+=`<div style="padding:30px;text-align:center;font-size:12px;color:var(--tm)">No files in "${GDRIVE.FOLDER_NAME}" folder.${canEdit()?' Click "+ Upload File" to add files.':''}</div>`;
   } else {
-    _cloudFiles.forEach((f,i)=>{
+    files.forEach(f=>{
       const ext=(f.name||'').split('.').pop().toUpperCase()||'?';
       const icon=ext==='PDF'?'📄':ext==='PNG'||ext==='JPG'||ext==='JPEG'||ext==='WEBP'?'🖼':ext==='MP4'||ext==='MOV'?'🎬':ext==='DOC'||ext==='DOCX'?'📝':ext==='XLS'||ext==='XLSX'?'📊':'📁';
-      const uploadDate=f.uploadedAt?new Date(f.uploadedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
-      const uploader=f.uploaderName||'Unknown';
+      const dt=f.createdTime?new Date(f.createdTime).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const owner=f.owners&&f.owners[0]?f.owners[0].displayName:'—';
       html+=`<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--br)">
         <div style="font-size:20px;width:28px;text-align:center">${icon}</div>
         <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name||'Untitled'}</div>
-        <div style="font-size:10px;color:var(--tm);margin-top:1px">${formatFileSize(f.size||0)} · ${uploader} · ${uploadDate}</div></div>
+        <div style="font-size:10px;color:var(--tm);margin-top:1px">${formatFileSize(parseInt(f.size||0))} · ${owner} · ${dt}</div></div>
         <span class="badge b-blue">${ext}</span>
-        <a href="${f.url||'#'}" target="_blank" class="btn-sm" style="text-decoration:none">↓ Download</a>
-        ${canEdit()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteCloudFile('${f.id}','${(f.path||'').replace(/'/g,"\\'")}')">✕</button>`:''}
+        <a href="${f.webViewLink||'#'}" target="_blank" class="btn-sm" style="text-decoration:none">👁 View</a>
+        ${f.webContentLink?`<a href="${f.webContentLink}" class="btn-sm" style="text-decoration:none">↓ Download</a>`:''}
+        ${canEdit()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="gdriveDelete('${f.id}','${(f.name||'').replace(/'/g,"\\'")}')">✕</button>`:''}
       </div>`;
     });
   }
@@ -1358,43 +1400,54 @@ function rCloudFiles(){
   return html;
 }
 function formatFileSize(bytes){
-  if(bytes===0)return '0 B';
+  if(!bytes||bytes===0)return '0 B';
   const k=1024;const sizes=['B','KB','MB','GB'];
   const i=Math.floor(Math.log(bytes)/Math.log(k));
   return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i];
 }
-async function uploadCloudFile(input){
-  if(!storage){alert('Cloud storage not available.');return;}
-  const files=input.files;
-  if(!files||files.length===0)return;
-  for(let i=0;i<files.length;i++){
-    const file=files[i];
-    if(file.size>50*1024*1024){alert(`"${file.name}" is too large. Max 50MB per file.`);continue;}
-    const path='workspace_files/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    try{
-      const ref=storage.ref(path);
-      await ref.put(file);
-      const url=await ref.getDownloadURL();
-      await firestore.collection('cloud_files').add({
-        name:file.name,size:file.size,type:file.type,path:path,url:url,
-        uploadedBy:me().id,uploaderName:me().name,
-        uploadedAt:Date.now()
-      });
-      await logAct('file_upload',`${me().name.split(' ')[0]} uploaded "${file.name}" (${formatFileSize(file.size)})`,'☁');
-    }catch(e){alert('Upload failed: '+e.message);}
-  }
-  input.value='';
-  await loadCloudFiles();
-  showPage('cloudfiles');
-}
-async function deleteCloudFile(docId,path){
-  if(!confirm('Delete this file permanently?'))return;
+async function gdriveConnect(){
   try{
-    if(path&&storage){try{await storage.ref(path).delete();}catch(e){}}
-    await firestore.collection('cloud_files').doc(docId).delete();
-    await logAct('file_delete','File deleted from cloud storage','🗑');
+    await gdriveAuth();
     await loadCloudFiles();
     showPage('cloudfiles');
+  }catch(e){alert('Google Drive connection failed. Please try again.');}
+}
+async function gdriveRefresh(){
+  if(!GDRIVE.token){alert('Connect to Google Drive first.');return;}
+  await loadCloudFiles();showPage('cloudfiles');
+}
+async function gdriveUpload(){
+  try{
+    const token=await gdriveAuth();
+    const folderId=await gdriveGetFolder();
+    const input=document.createElement('input');input.type='file';input.multiple=true;
+    input.onchange=async()=>{
+      const files=input.files;if(!files||!files.length)return;
+      for(let i=0;i<files.length;i++){
+        const file=files[i];
+        if(file.size>100*1024*1024){alert(`"${file.name}" too large. Max 100MB.`);continue;}
+        const metadata={name:file.name,parents:[folderId]};
+        const form=new FormData();
+        form.append('metadata',new Blob([JSON.stringify(metadata)],{type:'application/json'}));
+        form.append('file',file);
+        try{
+          await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size',{
+            method:'POST',headers:{Authorization:'Bearer '+token},body:form
+          });
+          await logAct('file_upload',`${me().name.split(' ')[0]} uploaded "${file.name}" to Google Drive`,'☁');
+        }catch(e){alert('Upload failed: '+e.message);}
+      }
+      await loadCloudFiles();showPage('cloudfiles');
+    };
+    input.click();
+  }catch(e){alert('Upload failed: '+e.message);}
+}
+async function gdriveDelete(fileId,fileName){
+  if(!confirm(`Delete "${fileName}" from Google Drive permanently?`))return;
+  try{
+    await gapi.client.drive.files.delete({fileId:fileId});
+    await logAct('file_delete',`${me().name.split(' ')[0]} deleted "${fileName}" from Google Drive`,'🗑');
+    await loadCloudFiles();showPage('cloudfiles');
   }catch(e){alert('Delete failed: '+e.message);}
 }
 function rTeamManage(){
