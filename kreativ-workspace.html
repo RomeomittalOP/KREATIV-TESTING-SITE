@@ -384,6 +384,8 @@ const ALLOWED_EMAILS = {
 /* ═══════════════════════════════════════════════════════
    Storage: Firestore primary — cloud-first, no localStorage
    ═══════════════════════════════════════════════════════ */
+let _currentPage = 'overview';
+let _selfWrite = false;
 const DB = {
   firebaseOk: false,
   unsub: null,
@@ -395,7 +397,9 @@ const DB = {
   },
   async set(k, v) {
     if (this.firebaseOk) {
+      _selfWrite = true;
       try { await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() }); updateSyncStatus(true); } catch(e) { console.warn('Firestore write failed:', e); updateSyncStatus(false); }
+      setTimeout(() => { _selfWrite = false; }, 500);
     }
   },
   async init() {
@@ -404,26 +408,27 @@ const DB = {
   },
   startRealtimeSync() {
     if (!this.firebaseOk || this.unsub) return;
-    this.unsub = firestore.collection('workspace').onSnapshot(snapshot => {
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'modified') {
-          const k = change.doc.id;
-          if (k === '_ping' || k !== 'workspace_data') return;
-          const val = change.doc.data().v;
-          if (val) {
-            SESSION.members = val.members || SESSION.members;
-            SESSION.tasks = val.tasks || SESSION.tasks;
-            SESSION.payments = val.payments || SESSION.payments;
-            SESSION.clients = val.clients || SESSION.clients;
-            SESSION.approvals = val.approvals || SESSION.approvals;
-            SESSION.attendance = val.attendance || SESSION.attendance;
-            SESSION.salaryPayments = val.salaryPayments || SESSION.salaryPayments;
-            SESSION.meritRequests = val.meritRequests || SESSION.meritRequests;
-            SESSION.activityLog = val.activityLog || SESSION.activityLog;
-            buildSidebar();
-          }
-        }
-      });
+    this.unsub = firestore.collection('workspace').doc('workspace_data').onSnapshot(doc => {
+      if (_selfWrite) return;
+      if (!doc.exists) return;
+      const val = doc.data().v;
+      if (!val) return;
+      SESSION.members = val.members || SESSION.members;
+      SESSION.tasks = val.tasks || SESSION.tasks;
+      SESSION.payments = val.payments || SESSION.payments;
+      SESSION.clients = val.clients || SESSION.clients;
+      SESSION.approvals = val.approvals || SESSION.approvals;
+      SESSION.attendance = val.attendance || SESSION.attendance;
+      SESSION.salaryPayments = val.salaryPayments || SESSION.salaryPayments;
+      SESSION.meritRequests = val.meritRequests || SESSION.meritRequests;
+      SESSION.activityLog = val.activityLog || SESSION.activityLog;
+      SESSION.dataEntries = val.dataEntries || SESSION.dataEntries;
+      SESSION.chats = val.chats || SESSION.chats;
+      SESSION.clientMeta = val.clientMeta || SESSION.clientMeta;
+      SESSION.user = SESSION.members.find(m => m.id === SESSION.user.id) || SESSION.user;
+      buildSidebar();
+      showPage(_currentPage);
+      pushNotification('🔄', 'Data updated by another team member', 'now');
     }, err => { console.warn('Realtime sync error:', err); });
   }
 };
@@ -690,6 +695,7 @@ function buildSidebar(){
 }
 const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage',team_manage:'Team Management'};
 function showPage(id,navEl){
+  _currentPage=id;
   const item=NAV.find(n=>n.id===id);
   if(item&&!canAccess(item)){showDenied(item);return;}
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
