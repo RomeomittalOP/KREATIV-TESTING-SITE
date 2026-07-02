@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -21,10 +21,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@600;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    KREATIV BY 4KNOTTS — FLAGSHIP SITE
    Palette: Pitch Black #050505 · Signal Red #FF1E1E · Soft White #F5F5F5
-═══════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 :root {
   --pitch:  #050505;
   --ink:    #0C0C0C;
@@ -524,7 +524,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </div>
 
-<!-- ═══ HERO ═══ -->
+<!-- â•â•â• HERO â•â•â• -->
 <header class="hero" id="hero">
   <canvas id="hero-canvas"></canvas>
   <div class="hero-fallback" id="heroFallback"></div>
@@ -554,7 +554,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </header>
 
-<!-- ═══ MANIFESTO ═══ -->
+<!-- â•â•â• MANIFESTO â•â•â• -->
 <section class="section" id="manifesto">
   <div class="manifesto">
     <div class="section-eyebrow r">Why we exist</div>
@@ -569,7 +569,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- ═══ PILLARS ═══ -->
+<!-- â•â•â• PILLARS â•â•â• -->
 <section class="section" id="pillars">
   <div class="pillars-head">
     <div>
@@ -614,7 +614,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- ═══ AI LAB — WHAT WE'RE BUILDING ═══ -->
+<!-- â•â•â• AI LAB — WHAT WE'RE BUILDING â•â•â• -->
 <section class="section" id="works">
   <div class="works-head">
     <div class="section-eyebrow r">Kreativ AI Lab</div>
@@ -703,7 +703,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- ═══ CAPABILITIES (horizontal scroll) ═══ -->
+<!-- â•â•â• CAPABILITIES (horizontal scroll) â•â•â• -->
 <section class="cap-section" id="capabilities">
   <div class="cap-head">
     <div class="section-eyebrow r">Capabilities</div>
@@ -720,7 +720,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- ═══ PROCESS (light invert) ═══ -->
+<!-- â•â•â• PROCESS (light invert) â•â•â• -->
 <section class="section section--light" id="process">
   <div class="grid-bg" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   <div class="process">
@@ -735,7 +735,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 </section>
 
-<!-- ═══ CONTACT — TERMINAL + SOCIAL HYBRID ═══ -->
+<!-- â•â•â• CONTACT — TERMINAL + SOCIAL HYBRID â•â•â• -->
 <section class="contact" id="cta">
   <canvas id="cta-canvas"></canvas>
   <div class="contact-inner">
@@ -863,7 +863,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   const hasTHREE = typeof THREE !== 'undefined';
   if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-  /* ════ DETECT WEBGL ════ */
+  /* â•â•â•â• DETECT WEBGL â•â•â•â• */
   function webglOK(){
     try { const c = document.createElement('canvas');
       return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
@@ -871,7 +871,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   }
   const WEBGL = hasTHREE && webglOK() && !isMobile;
 
-  /* ════ CURSOR ════ */
+  /* â•â•â•â• CURSOR â•â•â•â• */
   const cur = document.getElementById('cursor');
   const ring = document.getElementById('cursorRing');
   if (cur && ring && !isMobile){
@@ -885,7 +885,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ CLOCK + GEOLOCATION ════ */
+  /* â•â•â•â• CLOCK + GEOLOCATION â•â•â•â• */
   const navTime=document.getElementById('navTime');
   let cityCode='NOI';
   if(navTime){
@@ -905,7 +905,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     }).catch(()=>{});
   }
 
-  /* ════ MENU ════ */
+  /* â•â•â•â• MENU â•â•â•â• */
   const menuBtn=document.getElementById('menuBtn');
   const menuOv=document.getElementById('menuOverlay');
   const menuToggle=document.getElementById('menuToggle');
@@ -927,14 +927,14 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     if(menuCloseBtn) menuCloseBtn.addEventListener('click',()=>{ menuOv.classList.remove('open'); syncMenu(); });
   }
 
-  /* ════ SCROLL TO TOP ON RELOAD ════ */
+  /* â•â•â•â• SCROLL TO TOP ON RELOAD â•â•â•â• */
   if('scrollRestoration' in history) history.scrollRestoration='manual';
   window.scrollTo({top:0,left:0,behavior:'instant'});
   document.documentElement.scrollTop=0;
   document.body.scrollTop=0;
   window.addEventListener('beforeunload',()=>{ window.scrollTo(0,0); });
 
-  /* ════ CLEAN URL — remove hash fragments after scroll ════ */
+  /* â•â•â•â• CLEAN URL — remove hash fragments after scroll â•â•â•â• */
   document.querySelectorAll('a[href^="#"]').forEach(a=>{
     a.addEventListener('click',function(e){
       const target=document.querySelector(this.getAttribute('href'));
@@ -946,7 +946,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   });
 
-  /* ════ THEME TOGGLE ════ */
+  /* â•â•â•â• THEME TOGGLE â•â•â•â• */
   const themeToggle=document.getElementById('themeToggle');
   if(themeToggle){
     const saved=localStorage.getItem('kreativ-theme');
@@ -957,14 +957,14 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ BACK TO TOP ════ */
+  /* â•â•â•â• BACK TO TOP â•â•â•â• */
   const backToTop=document.getElementById('backToTop');
   if(backToTop){
     window.addEventListener('scroll',()=>{ backToTop.classList.toggle('visible',window.scrollY>600); },{passive:true});
     backToTop.addEventListener('click',()=>{ window.scrollTo({top:0,behavior:'smooth'}); });
   }
 
-  /* ════ SMOOTH SCROLL — Lenis (integrates with ScrollTrigger) ════ */
+  /* â•â•â•â• SMOOTH SCROLL — Lenis (integrates with ScrollTrigger) â•â•â•â• */
   let lenis=null;
   function initLenis(){
     if(reduce || isMobile || typeof Lenis==='undefined') return;
@@ -986,7 +986,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ LOADER ════ */
+  /* â•â•â•â• LOADER â•â•â•â• */
   const loader=document.getElementById('loader');
   const lnum=document.getElementById('loaderNum');
   const lbar=document.getElementById('loaderBar');
@@ -1000,7 +1000,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     },90);
   }
 
-  /* ════ HERO CINEMATIC MASTER TIMELINE ════
+  /* â•â•â•â• HERO CINEMATIC MASTER TIMELINE â•â•â•â•
      Phase 1: each letter K-R-E-A-T-I-V pops up from a mask (slow, staggered, 3D)
      Phase 2: red slash wipes across behind the letters (logo motif)
      Phase 3: red signal-dot drops in top-right + particle field ignites
@@ -1081,7 +1081,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ HERO PARTICLES (WebGL) ════ */
+  /* â•â•â•â• HERO PARTICLES (WebGL) â•â•â•â• */
   let heroAnim=null;
   function initHeroWebGL(){
     const canvas=document.getElementById('hero-canvas');
@@ -1190,7 +1190,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     const c=document.getElementById('hero-canvas'); if(c) c.style.display='none';
   }
 
-  /* ════ PILLAR 3D TILT ════ */
+  /* â•â•â•â• PILLAR 3D TILT â•â•â•â• */
   function initTilt(){
     if(isMobile) return;
     document.querySelectorAll('[data-tilt]').forEach(card=>{
@@ -1204,7 +1204,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ WORK SHADER HOVER (WebGL distortion) ════ */
+  /* â•â•â•â• WORK SHADER HOVER (WebGL distortion) â•â•â•â• */
   const workScenes=[];
   function initWorks(){
     const colors=[0x1a1a1a,0x141414,0x1e1e1e,0x161616,0x181818,0x121212];
@@ -1290,7 +1290,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ CAPABILITIES HORIZONTAL SCROLL ════ */
+  /* â•â•â•â• CAPABILITIES HORIZONTAL SCROLL â•â•â•â• */
   function initCapabilities(){
     if(!hasGSAP||!ScrollTrigger) return;
     const track=document.getElementById('capTrack');
@@ -1307,7 +1307,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ SCROLL REVEALS ════ */
+  /* â•â•â•â• SCROLL REVEALS â•â•â•â• */
   function initReveals(){
     const els=document.querySelectorAll('.r');
     if('IntersectionObserver' in window){
@@ -1318,7 +1318,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     } else { els.forEach(el=>el.classList.add('in')); }
   }
 
-  /* ════ MANIFESTO WORD SPLIT (scroll-velocity feel via stagger reveal) ════ */
+  /* â•â•â•â• MANIFESTO WORD SPLIT (scroll-velocity feel via stagger reveal) â•â•â•â• */
   function initManifesto(){
     const mt=document.querySelector('.manifesto-text');
     if(!mt||!hasGSAP||!ScrollTrigger) return;
@@ -1344,7 +1344,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       scrollTrigger:{trigger:mt,start:'top 80%',end:'bottom 55%',scrub:1}});
   }
 
-  /* ════ CTA PARTICLES ════ */
+  /* â•â•â•â• CTA PARTICLES â•â•â•â• */
   function initCTA(){
     const canvas=document.getElementById('cta-canvas');
     if(!canvas||!WEBGL) return;
@@ -1377,7 +1377,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     addEventListener('resize',()=>{ const s=size(); renderer.setSize(s.w,s.h); cam.aspect=s.w/s.h; cam.updateProjectionMatrix(); });
   }
 
-  /* ════ MAGNETIC ELEMENTS ════ */
+  /* â•â•â•â• MAGNETIC ELEMENTS â•â•â•â• */
   function initMagnetic(){
     if(isMobile||!hasGSAP) return;
     document.querySelectorAll('[data-magnetic]').forEach(btn=>{
@@ -1389,7 +1389,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     });
   }
 
-  /* ════ INTERACTIVE TERMINAL ════ */
+  /* â•â•â•â• INTERACTIVE TERMINAL â•â•â•â• */
   function initTerminal(){
     const out=document.getElementById('termOutput');
     const inp=document.getElementById('termInput');
@@ -1523,7 +1523,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       typeLines([
         '<span class="c-dim">Last login: '+new Date().toDateString()+'</span>',
         '<span class="c-white">kreativ-os v5.0</span> <span class="c-dim">— booting signal…</span>',
-        '<span class="c-red">● online.</span> welcome to the studio.',
+        '<span class="c-red">â— online.</span> welcome to the studio.',
         '<span class="c-dim">type <span class="c-red">help</span> to begin.</span>',
         '&nbsp;'
       ], ()=>{ if(hint) hint.style.opacity='1'; });
@@ -1575,7 +1575,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     }
   }
 
-  /* ════ MOBILE ANIMATIONS ════ */
+  /* â•â•â•â• MOBILE ANIMATIONS â•â•â•â• */
   function initMobileAnimations(){
     if(!isMobile||!hasGSAP) return;
     const animEls=document.querySelectorAll('.work, .pillar, .cap-card, .pstep, .manifesto-text, .foot-top');
@@ -1590,7 +1590,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     animEls.forEach(el=>{el.style.opacity='0'; io.observe(el);});
   }
 
-  /* ════ BOOT ════ */
+  /* â•â•â•â• BOOT â•â•â•â• */
   function boot(){
     initLenis();
     if(WEBGL){ const ok=initHeroWebGL(); if(!ok) initHeroFallback(); }

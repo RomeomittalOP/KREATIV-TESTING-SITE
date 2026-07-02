@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -275,7 +275,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 
     <div class="content">
 
-      <!-- ═══ OVERVIEW ═══ -->
+      <!-- â•â•â• OVERVIEW â•â•â• -->
       <section class="view active" id="v-overview">
         <div class="welcome">
           <div>
@@ -309,18 +309,18 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
         <div id="ovApprovals"></div>
       </section>
 
-      <!-- ═══ PROJECTS ═══ -->
+      <!-- â•â•â• PROJECTS â•â•â• -->
       <section class="view" id="v-projects">
         <div id="allProjects"></div>
       </section>
 
-      <!-- ═══ APPROVALS ═══ -->
+      <!-- â•â•â• APPROVALS â•â•â• -->
       <section class="view" id="v-approvals">
         <p style="color:var(--bone);margin-bottom:1.3rem;font-size:0.92rem">Review and approve deliverables. Approving moves the project to its next stage.</p>
         <div id="allApprovals"></div>
       </section>
 
-      <!-- ═══ FILES ═══ -->
+      <!-- â•â•â• FILES â•â•â• -->
       <section class="view" id="v-files">
         <div class="panel">
           <div class="panel-head"><h3>All files</h3><span style="font-family:var(--f-mono);font-size:0.74rem;color:var(--bone-d)">52 files · 248 MB</span></div>
@@ -328,10 +328,10 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
         </div>
       </section>
 
-      <!-- ═══ MESSAGES ═══ -->
+      <!-- â•â•â• MESSAGES â•â•â• -->
       <section class="view" id="v-messages">
         <div class="panel">
-          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">● Kreativ team online</span></div>
+          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">â— Kreativ team online</span></div>
           <div id="msgList"></div>
           <div class="msg-compose">
             <input type="text" id="msgInput" placeholder="Message the studio…" aria-label="Message">
@@ -340,7 +340,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
         </div>
       </section>
 
-      <!-- ═══ PROFILE ═══ -->
+      <!-- â•â•â• PROFILE â•â•â• -->
       <section class="view" id="v-profile">
         <div style="max-width:680px">
           <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:2rem">
@@ -413,7 +413,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
         </div>
       </section>
 
-      <!-- ═══ INVOICES ═══ -->
+      <!-- â•â•â• INVOICES â•â•â• -->
       <section class="view" id="v-invoices">
         <div class="stats" style="grid-template-columns:repeat(3,1fr)">
           <div class="stat"><div class="sl">Paid to date</div><div class="sv">₹0</div><div class="sc">No invoices yet</div></div>
@@ -433,7 +433,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 <div class="toast" id="toast"><span class="ti" id="toastIcon">✓</span><span id="toastMsg"></span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-/* ═══ Firebase Init + Auth Gate ═══ */
+/* â•â•â• Firebase Init + Auth Gate â•â•â• */
 firebase.initializeApp({
   apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
   authDomain: "kreativ-by-4-knotts.firebaseapp.com",
@@ -490,7 +490,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   const $=s=>document.querySelector(s);
   const $$=s=>[...document.querySelectorAll(s)];
 
-  /* ════════ SAMPLE DATA (replace with backend fetch) ════════ */
+  /* â•â•â•â•â•â•â•â• SAMPLE DATA (replace with backend fetch) â•â•â•â•â•â•â•â• */
   const STAGES=['Listen','Sharpen','Shape','Broadcast'];
   const projects=[];
   const approvals=[];
@@ -499,7 +499,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   const invoices=[];
   const activity=[];
 
-  /* ════════ RENDER HELPERS ════════ */
+  /* â•â•â•â•â•â•â•â• RENDER HELPERS â•â•â•â•â•â•â•â• */
   function pipelineHTML(stage){
     let steps=STAGES.map((s,i)=>{
       const cls = i<stage?'done' : i===stage?'current' : '';
@@ -558,7 +558,7 @@ firebase.auth().onAuthStateChanged(function(user) {
     <button class="inv-btn">${v.status==='paid'?'Receipt':'Pay now'}</button>
   </div>`).join('');
 
-  /* ════════ SHADER THUMBNAILS (approval previews) ════════ */
+  /* â•â•â•â•â•â•â•â• SHADER THUMBNAILS (approval previews) â•â•â•â•â•â•â•â• */
   function initThumbs(){
     if(typeof THREE==='undefined') return;
     $$('.approve-thumb canvas').forEach(canvas=>{
@@ -587,7 +587,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   }
   initThumbs();
 
-  /* ════════ VIEW ROUTING ════════ */
+  /* â•â•â•â•â•â•â•â• VIEW ROUTING â•â•â•â•â•â•â•â• */
   const titles={overview:'Overview',projects:'Projects',approvals:'Approvals',files:'Files',messages:'Messages',invoices:'Invoices',profile:'My Profile'};
   function go(view){
     $$('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
@@ -599,11 +599,11 @@ firebase.auth().onAuthStateChanged(function(user) {
   $$('.sb-link').forEach(l=>l.addEventListener('click',()=>go(l.dataset.view)));
   $$('[data-jump]').forEach(j=>j.addEventListener('click',()=>go(j.dataset.jump)));
 
-  /* ════════ TOAST ════════ */
+  /* â•â•â•â•â•â•â•â• TOAST â•â•â•â•â•â•â•â• */
   let tt=null;
   function toast(msg,icon){$('#toastMsg').textContent=msg;$('#toastIcon').textContent=icon||'✓';const t=$('#toast');t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3500);}
 
-  /* ════════ INTERACTIONS ════════ */
+  /* â•â•â•â•â•â•â•â• INTERACTIONS â•â•â•â•â•â•â•â• */
   // approve / comment
   $$('[data-action]').forEach(btn=>{
     btn.addEventListener('click',e=>{
@@ -649,31 +649,31 @@ firebase.auth().onAuthStateChanged(function(user) {
   _rtdb.ref('activity_feed').orderByChild('ts').limitToLast(1).on('child_added', function(snap){
     var d=snap.val();
     if(d && Date.now()-d.ts<300000){
-      window._portalNotifications.unshift((d.icon||'?')+' '+(d.detail||d.action));
+      window._portalNotifications.unshift((d.icon||'◌')+' '+(d.detail||d.action));
       if(window._portalNotifications.length>10)window._portalNotifications.length=10;
       $('#bellBtn .dot').style.display='block';
     }
   });
   $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
-  /* ════════ MOBILE SIDEBAR ════════ */
+  /* â•â•â•â•â•â•â•â• MOBILE SIDEBAR â•â•â•â•â•â•â•â• */
   const sidebar=$('#sidebar'), scrim=$('#scrim');
   function openSidebar(){sidebar.classList.add('open');scrim.classList.add('show');}
   function closeSidebar(){sidebar.classList.remove('open');scrim.classList.remove('show');}
   $('#menuBtn').addEventListener('click',openSidebar);
   scrim.addEventListener('click',closeSidebar);
 
-  /* ════════ CLOCK + DATE ════════ */
+  /* â•â•â•â•â•â•â•â• CLOCK + DATE â•â•â•â•â•â•â•â• */
   function tick(){const n=new Date();const ist=new Date(n.getTime()+(n.getTimezoneOffset()*60000)+(5.5*3600000));$('#clock').textContent='NOI · '+String(ist.getHours()).padStart(2,'0')+':'+String(ist.getMinutes()).padStart(2,'0');}
   tick();setInterval(tick,10000);
   $('#welcomeDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-  /* ════════ SEARCH SHORTCUT ════════ */
+  /* â•â•â•â•â•â•â•â• SEARCH SHORTCUT â•â•â•â•â•â•â•â• */
   document.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT'){ e.preventDefault(); $('.tb-search input')?.focus(); } });
 
 })();
 
-/* ════════ PROFILE FUNCTIONS (global scope for onclick) ════════ */
+/* â•â•â•â•â•â•â•â• PROFILE FUNCTIONS (global scope for onclick) â•â•â•â•â•â•â•â• */
 /* _rtdb initialized above via firebase.database() */
 
 function generateClientId(email) {
@@ -791,7 +791,7 @@ function sendResetFromProfile() {
 // Load profile when auth is ready
 firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500); });
 
-/* ════════ CLIENT SESSION TRACKING (auto-analytics) ════════ */
+/* â•â•â•â•â•â•â•â• CLIENT SESSION TRACKING (auto-analytics) â•â•â•â•â•â•â•â• */
 (function(){
   let _sessionDocId=null;
   const _pagesVisited=[];
@@ -840,7 +840,7 @@ firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500)
     }
   });
 
-  // On exit � log duration
+  // On exit — log duration
   function endSession(){
     if(!_sessionDocId) return;
     const duration=Date.now()-_loginTime;
