@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 :root{--pitch:#050505;--red:#FF1E1E;--red-d:#CC0000;--red-bg:rgba(255,30,30,0.08);--red-br:rgba(255,30,30,0.22);--s1:#111;--s2:#181818;--s3:#222;--br:rgba(255,255,255,0.07);--br2:rgba(255,255,255,0.13);--tp:#F5F5F5;--ts:rgba(245,245,245,0.58);--tm:rgba(245,245,245,0.32);--g:#2ECC71;--g-bg:rgba(46,204,113,0.1);--a:#F5A623;--a-bg:rgba(245,166,35,0.1);--b:#4A90E2;--b-bg:rgba(74,144,226,0.1);--pu:#9B59B6;--pu-bg:rgba(155,89,182,0.1);--gold:#C9A84C;--gold-bg:rgba(201,168,76,0.1);}
@@ -360,6 +360,7 @@ body{background:var(--pitch);color:var(--tp);font-family:'Space Grotesk',sans-se
 const firebaseConfig = {
   apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
   authDomain: "kreativ-by-4-knotts.firebaseapp.com",
+  databaseURL: "https://kreativ-by-4-knotts-default-rtdb.firebaseio.com",
   projectId: "kreativ-by-4-knotts",
   storageBucket: "kreativ-by-4-knotts.firebasestorage.app",
   messagingSenderId: "224866350696",
@@ -368,13 +369,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-let firestore;
-try {
-  firestore = firebase.firestore();
-  if (firestore._delegate && firestore._delegate._databaseId) {
-    firestore._delegate._databaseId.database = 'kreativby4knotts';
-  }
-} catch(e) { firestore = null; }
+const rtdb = firebase.database();
 let storage;
 try { storage = firebase.storage(); } catch(e) { storage = null; }
 
@@ -387,36 +382,36 @@ const ALLOWED_EMAILS = {
 };
 
 /* ═══════════════════════════════════════════════════════
-   Storage: Firestore primary — cloud-first, no localStorage
+   Storage: Firebase Realtime Database — cloud-first, real-time sync
    ═══════════════════════════════════════════════════════ */
 let _currentPage = 'overview';
 let _selfWrite = false;
 const DB = {
   firebaseOk: false,
-  unsub: null,
   async get(k) {
-    if (this.firebaseOk) {
-      try { const doc = await firestore.collection('workspace').doc(k).get(); if (doc.exists) { return doc.data().v; } } catch(e) { console.warn('Firestore read failed:', e); }
-    }
-    return null;
+    if (!this.firebaseOk) return null;
+    try { const snap = await rtdb.ref('workspace/' + k).once('value'); return snap.exists() ? snap.val() : null; } catch(e) { console.warn('DB read failed:', e); return null; }
   },
   async set(k, v) {
-    if (this.firebaseOk) {
-      _selfWrite = true;
-      try { await firestore.collection('workspace').doc(k).set({ v, ts: firebase.firestore.FieldValue.serverTimestamp() }); updateSyncStatus(true); } catch(e) { console.warn('Firestore write failed:', e); updateSyncStatus(false); }
-      setTimeout(() => { _selfWrite = false; }, 500);
-    }
+    if (!this.firebaseOk) return;
+    _selfWrite = true;
+    try { await rtdb.ref('workspace/' + k).set(v); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
+    setTimeout(() => { _selfWrite = false; }, 500);
   },
   async init() {
-    if (!firestore) { this.firebaseOk = false; updateSyncStatus(false); return; }
-    try { await firestore.collection('workspace').doc('_ping').set({ ts: firebase.firestore.FieldValue.serverTimestamp() }); this.firebaseOk = true; updateSyncStatus(true); this.startRealtimeSync(); } catch(e) { this.firebaseOk = false; updateSyncStatus(false); console.warn('Firestore init failed:', e); }
+    try {
+      await rtdb.ref('workspace/_ping').set(Date.now());
+      this.firebaseOk = true;
+      updateSyncStatus(true);
+      this.startRealtimeSync();
+    } catch(e) { this.firebaseOk = false; updateSyncStatus(false); console.warn('DB init failed:', e); }
   },
   startRealtimeSync() {
-    if (!this.firebaseOk || this.unsub) return;
-    this.unsub = firestore.collection('workspace').doc('workspace_data').onSnapshot(doc => {
+    if (!this.firebaseOk) return;
+    rtdb.ref('workspace/workspace_data').on('value', snap => {
       if (_selfWrite) return;
-      if (!doc.exists) return;
-      const val = doc.data().v;
+      if (!snap.exists()) return;
+      const val = snap.val();
       if (!val) return;
       SESSION.members = val.members || SESSION.members;
       SESSION.tasks = val.tasks || SESSION.tasks;
@@ -539,9 +534,8 @@ async function logAct(action, detail, icon) {
   SESSION.activityLog.unshift(entry);
   if (SESSION.activityLog.length > 200) SESSION.activityLog.length = 200;
   await persist();
-  // Also push to Firestore activity_feed for real-time notifications
   if (DB.firebaseOk) {
-    try { await firestore.collection('activity_feed').add({ ...entry, memberName: me() ? me().name : 'System' }); } catch(e) {}
+    try { await rtdb.ref('activity_feed').push({ ...entry, memberName: me() ? me().name : 'System' }); } catch(e) {}
   }
 }
 
@@ -570,35 +564,24 @@ function clearNotifications(){_notifications=[];renderNotifications();document.g
 function timeAgoShort(ts){const d=Date.now()-ts;if(d<60000)return 'now';if(d<3600000)return Math.floor(d/60000)+'m';if(d<86400000)return Math.floor(d/3600000)+'h';return Math.floor(d/86400000)+'d';}
 function startRealtimeNotifications(){
   if(!DB.firebaseOk)return;
-  firestore.collection('activity_feed').orderBy('ts','desc').limit(1)
-    .onSnapshot(snap=>{
-      snap.docChanges().forEach(change=>{
-        if(change.type==='added'){
-          const d=change.doc.data();
-          if(d.uid!==me().id && Date.now()-d.ts<300000){
-            pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
-          }
-        }
-      });
-    },err=>console.log('Notification listener error',err));
-  // Client session listener — track login/logout
-  firestore.collection('client_sessions').orderBy('login','desc').limit(1)
-    .onSnapshot(snap=>{
-      snap.docChanges().forEach(change=>{
-        if(change.type==='added'){
-          const d=change.doc.data();
-          if(Date.now()-d.login<300000){
-            pushNotification('👤', `Client ${d.name||d.email||'Unknown'} logged in`, timeAgoShort(d.login));
-          }
-        }
-        if(change.type==='modified'){
-          const d=change.doc.data();
-          if(d.logout&&Date.now()-d.logout<300000){
-            pushNotification('👋', `Client ${d.name||d.email||'Unknown'} logged out (${d.duration?Math.round(d.duration/60000)+'m':'?'})`, timeAgoShort(d.logout));
-          }
-        }
-      });
-    },err=>console.log('Client session listener error',err));
+  rtdb.ref('activity_feed').orderByChild('ts').limitToLast(1).on('child_added', snap=>{
+    const d=snap.val();
+    if(d && d.uid!==me().id && Date.now()-d.ts<300000){
+      pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
+    }
+  });
+  rtdb.ref('client_sessions').orderByChild('login').limitToLast(1).on('child_added', snap=>{
+    const d=snap.val();
+    if(d && Date.now()-d.login<300000){
+      pushNotification('👤', `Client ${d.name||d.email||'Unknown'} logged in`, timeAgoShort(d.login));
+    }
+  });
+  rtdb.ref('client_sessions').on('child_changed', snap=>{
+    const d=snap.val();
+    if(d && d.logout && Date.now()-d.logout<300000){
+      pushNotification('👋', `Client ${d.name||d.email||'Unknown'} logged out (${d.duration?Math.round(d.duration/60000)+'m':'?'})`, timeAgoShort(d.logout));
+    }
+  });
 }
 
 /* ═══ Auto-Merit Engine ═══ */
@@ -1371,10 +1354,10 @@ function rAnalytics(){
 async function loadClientAnalytics(){
   if(!DB.firebaseOk)return;
   try{
-    const snap=await firestore.collection('client_sessions').orderBy('login','desc').limit(200).get();
+    const snap=await rtdb.ref('client_sessions').orderByChild('login').limitToLast(200).once('value');
     const ca={};
-    snap.forEach(doc=>{
-      const d=doc.data();const uid=d.uid||'unknown';
+    snap.forEach(child=>{
+      const d=child.val();const uid=d.uid||'unknown';
       if(!ca[uid])ca[uid]={name:d.name||uid,sessions:[]};
       ca[uid].sessions.push({login:d.login,logout:d.logout||null,duration:d.duration||null,pages:d.pages||[]});
     });

@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 :root{
@@ -437,17 +437,14 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
 firebase.initializeApp({
   apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
   authDomain: "kreativ-by-4-knotts.firebaseapp.com",
+  databaseURL: "https://kreativ-by-4-knotts-default-rtdb.firebaseio.com",
   projectId: "kreativ-by-4-knotts",
   storageBucket: "kreativ-by-4-knotts.firebasestorage.app",
   messagingSenderId: "224866350696",
   appId: "1:224866350696:web:b890444abd8aee12a2eddd",
   measurementId: "G-MC6QDM9DJY"
 });
-const _db = (function(){
-  const db = firebase.firestore();
-  try { if(db._delegate && db._delegate._databaseId) db._delegate._databaseId.database = 'kreativby4knotts'; } catch(e){}
-  return db;
-})();
+const _rtdb = firebase.database();
 
 const TEAM_EMAILS = ['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
 
@@ -647,21 +644,16 @@ firebase.auth().onAuthStateChanged(function(user) {
       toast(window._portalNotifications[0],'â—†');
     } else { toast('No new notifications.','â—†'); }
   });
-  // Real-time notifications from Firestore activity_feed
+  // Real-time notifications from activity_feed
   window._portalNotifications=[];
-  _db.collection('activity_feed').orderBy('ts','desc').limit(1)
-    .onSnapshot(function(snap){
-      snap.docChanges().forEach(function(change){
-        if(change.type==='added'){
-          var d=change.doc.data();
-          if(Date.now()-d.ts<300000){
-            window._portalNotifications.unshift((d.icon||'â—Œ')+' '+(d.detail||d.action));
-            if(window._portalNotifications.length>10)window._portalNotifications.length=10;
-            $('#bellBtn .dot').style.display='block';
-          }
-        }
-      });
-    });
+  _rtdb.ref('activity_feed').orderByChild('ts').limitToLast(1).on('child_added', function(snap){
+    var d=snap.val();
+    if(d && Date.now()-d.ts<300000){
+      window._portalNotifications.unshift((d.icon||'◌')+' '+(d.detail||d.action));
+      if(window._portalNotifications.length>10)window._portalNotifications.length=10;
+      $('#bellBtn .dot').style.display='block';
+    }
+  });
   $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
   /* â•â•â•â•â•â•â•â• MOBILE SIDEBAR â•â•â•â•â•â•â•â• */
@@ -682,7 +674,7 @@ firebase.auth().onAuthStateChanged(function(user) {
 })();
 
 /* â•â•â•â•â•â•â•â• PROFILE FUNCTIONS (global scope for onclick) â•â•â•â•â•â•â•â• */
-/* _db initialized above via firebase.firestore() with database override */
+/* _rtdb initialized above via firebase.database() */
 
 function generateClientId(email) {
   return 'CL-' + email.split('@')[0].replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,6) + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
@@ -697,9 +689,9 @@ async function loadClientProfile() {
   document.getElementById('pf-av-letter').textContent = window._clientInitial || '?';
 
   try {
-    const doc = await _db.collection('client_profiles').doc(user.uid).get();
-    if (doc.exists) {
-      const d = doc.data();
+    const snap = await _rtdb.ref('client_profiles/' + user.uid).once('value');
+    if (snap.exists()) {
+      const d = snap.val();
       document.getElementById('pf-name').value = d.name || '';
       document.getElementById('pf-company').value = d.company || '';
       document.getElementById('pf-phone').value = d.phone || '';
@@ -738,13 +730,13 @@ async function saveClientProfile() {
     address: document.getElementById('pf-address').value.trim(),
     bio: document.getElementById('pf-bio').value.trim(),
     email: user.email,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    updatedAt: Date.now()
   };
   const photoImg = document.getElementById('pf-photo-img');
   if (photoImg.src && photoImg.style.display !== 'none') data.photoData = photoImg.src;
 
   try {
-    await _db.collection('client_profiles').doc(user.uid).set(data, {merge: true});
+    await _rtdb.ref('client_profiles/' + user.uid).update(data);
     if (data.name) {
       document.getElementById('pf-display-name').textContent = data.name;
       document.getElementById('sb-name').textContent = data.name;
@@ -811,7 +803,8 @@ firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500)
     if(TEAM_EMAILS_CHECK.includes(user.email.toLowerCase())) return;
 
     try{
-      const docRef=await _db.collection('client_sessions').add({
+      const newRef=_rtdb.ref('client_sessions').push();
+      await newRef.set({
         uid:user.uid,
         name:user.displayName||user.email.split('@')[0],
         email:user.email,
@@ -820,7 +813,7 @@ firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500)
         duration:null,
         pages:['dashboard']
       });
-      _sessionDocId=docRef.id;
+      _sessionDocId=newRef.key;
     }catch(e){console.log('Session track error',e);}
   });
 
@@ -830,7 +823,7 @@ firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500)
     window.showPage=function(page){
       _pagesVisited.push(page);
       if(_sessionDocId){
-        try{_db.collection('client_sessions').doc(_sessionDocId).update({pages:_pagesVisited});}catch(e){}
+        try{_rtdb.ref('client_sessions/'+_sessionDocId).update({pages:_pagesVisited});}catch(e){}
       }
       return origShowPage.apply(this,arguments);
     };
@@ -842,18 +835,17 @@ firebase.auth().onAuthStateChanged(u=>{ if(u) setTimeout(loadClientProfile, 500)
       const label=navItem.textContent.trim();
       _pagesVisited.push(label);
       if(_sessionDocId){
-        try{_db.collection('client_sessions').doc(_sessionDocId).update({pages:_pagesVisited});}catch(e){}
+        try{_rtdb.ref('client_sessions/'+_sessionDocId).update({pages:_pagesVisited});}catch(e){}
       }
     }
   });
 
-  // On exit â€” log duration
+  // On exit — log duration
   function endSession(){
     if(!_sessionDocId) return;
     const duration=Date.now()-_loginTime;
     try{
-      navigator.sendBeacon||null;
-      _db.collection('client_sessions').doc(_sessionDocId).update({logout:Date.now(),duration:duration});
+      _rtdb.ref('client_sessions/'+_sessionDocId).update({logout:Date.now(),duration:duration});
     }catch(e){}
   }
   window.addEventListener('beforeunload',endSession);
