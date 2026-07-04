@@ -427,6 +427,7 @@ const DB = {
       SESSION.dataEntries = val.dataEntries || SESSION.dataEntries;
       SESSION.chats = val.chats || SESSION.chats;
       SESSION.clientMeta = val.clientMeta || SESSION.clientMeta;
+      SESSION.attendanceDeductions = val.attendanceDeductions || SESSION.attendanceDeductions;
       SESSION.user = SESSION.members.find(m => m.id === SESSION.user.id) || SESSION.user;
       buildSidebar();
       showPage(_currentPage);
@@ -450,7 +451,7 @@ function updateSyncStatus(ok) {
 /* ═══════════════════════════════════════════════════════
    Session & Default Data
    ═══════════════════════════════════════════════════════ */
-let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[]};
+let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}};
 
 const DEFAULT_MEMBERS = [
   {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
@@ -482,6 +483,7 @@ async function boot() {
     buildApp();
     logAct('login', me().name + ' signed in', '→');
     checkOverdueTasks();
+    checkMonthlyAttendanceDeduction();
     loadClientAnalytics();
     loadCloudFiles();
     startRealtimeNotifications();
@@ -506,6 +508,7 @@ async function loadSession(memberId) {
     SESSION.activityLog = saved.activityLog || [];
     SESSION.clientAnalytics = saved.clientAnalytics || {};
     SESSION.salaryPayments = saved.salaryPayments || [];
+    SESSION.attendanceDeductions = saved.attendanceDeductions || {};
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
     SESSION.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
@@ -520,13 +523,14 @@ async function loadSession(memberId) {
     SESSION.activityLog = [];
     SESSION.clientAnalytics = {};
     SESSION.salaryPayments = [];
+    SESSION.attendanceDeductions = {};
     await persist();
   }
   SESSION.user = SESSION.members.find(m => m.id === memberId) || SESSION.members[0];
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions};
   if (!DB.firebaseOk) return;
   _selfWrite = true;
   try { await rtdb.ref('workspace/workspace_data').update(payload); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
@@ -623,6 +627,33 @@ function checkOverdueTasks() {
       }
     }
   });
+}
+
+async function checkMonthlyAttendanceDeduction() {
+  const now = new Date();
+  if (now.getDate() < 2) return;
+  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const monthKey = prevMonth.getFullYear() + '-' + String(prevMonth.getMonth() + 1).padStart(2, '0');
+  if (SESSION.attendanceDeductions[monthKey]) return;
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const prevMonthStr = monthKey;
+  let anyDeduction = false;
+  SESSION.members.forEach(m => {
+    if (m.isFounder) return;
+    const memberLogs = SESSION.attendance.filter(a => a.uid === m.id && a.date && a.date.startsWith(prevMonthStr) && a.clockIn && a.clockOut);
+    const totalMs = memberLogs.reduce((s, a) => s + (a.clockOut - a.clockIn), 0);
+    const totalHours = totalMs / 3600000;
+    if (totalHours < 190) {
+      const shortfall = Math.floor(190 - totalHours);
+      const deduction = shortfall * 5;
+      const oldMerit = m.merit;
+      m.merit = Math.max(0, m.merit - deduction);
+      anyDeduction = true;
+      logAct('merit_auto', `${m.name.split(' ')[0]}: ${oldMerit} → ${m.merit} (-${deduction}) — Attendance shortfall: ${shortfall}h below 190h in ${prevMonthStr}`, '▼');
+    }
+  });
+  SESSION.attendanceDeductions[monthKey] = { processed: now.toISOString(), applied: anyDeduction };
+  if (anyDeduction) await persist();
 }
 
 function doLogout() {
@@ -794,11 +825,19 @@ function rAttendance(){
   const thisMonth=myLogs.filter(a=>a.date.startsWith(todayKey().slice(0,7)));
   const totalMs=thisMonth.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
   const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
+  const totalHoursMTD=totalMs/3600000;
+  const hoursRemaining=Math.max(0,190-totalHoursMTD);
+  const onTrack=totalHoursMTD>=190;
   html+=`<div class="sg sg-3" style="margin-top:18px">
     <div class="sc"><div class="sl">Days This Month</div><div class="sv">${uniqueDays}</div></div>
     <div class="sc"><div class="sl">Total Hours MTD</div><div class="sv">${fmtDur(totalMs)}</div></div>
     <div class="sc"><div class="sl">Avg Hours/Day</div><div class="sv">${uniqueDays?fmtDur(totalMs/uniqueDays):'0h 0m'}</div></div>
   </div>`;
+  html+=`<div class="panel" style="margin-top:12px;border:1px solid ${onTrack?'var(--g-br)':'var(--red-br)'};background:${onTrack?'var(--g-bg)':'var(--red-bg)'}"><div style="padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:${onTrack?'var(--g)':'var(--red)'}">${onTrack?'✓ Monthly Target Met':'⚠ Monthly Target: 190 Hours'}</div><div style="font-size:11px;color:var(--tm)">${Math.round(totalHoursMTD)}h / 190h</div></div>
+    <div style="height:6px;border-radius:3px;background:${onTrack?'rgba(46,204,113,.2)':'rgba(255,30,30,.15)'};overflow:hidden"><div style="height:100%;width:${Math.min(100,totalHoursMTD/190*100)}%;background:${onTrack?'var(--g)':'var(--red)'};border-radius:3px"></div></div>
+    ${!onTrack?`<div style="margin-top:8px;font-size:11px;color:var(--red)">Shortfall penalty: <strong>-5 merit points per missing hour</strong> at month end. ${hoursRemaining>0?Math.ceil(hoursRemaining)+'h remaining to avoid deduction.':''}</div>`:''}
+  </div></div>`;
   html+=`<div class="panel"><div class="ph"><div class="pt">My Attendance Log</div></div>`;
   const myRecent=[...myLogs].reverse().slice(0,20);
   if(myRecent.length===0)html+=`<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No records yet.</div>`;
@@ -1186,6 +1225,7 @@ function rMerit(){
   <div style="background:var(--s2);border-radius:7px;padding:11px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;margin-bottom:5px">Earn</div><div style="font-size:11px;color:var(--ts);line-height:1.9">+8 Major deliverable<br>+5 Task on time<br>+10 Client approval<br>+15 Project won</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;margin-bottom:5px">Lose</div><div style="font-size:11px;color:var(--ts);line-height:1.9">-10 Missed deadline<br>-5 Incomplete work<br>-8 Client complaint<br>-15 Project failure</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;margin-bottom:5px">Thresholds</div><div style="font-size:11px;color:var(--ts);line-height:1.9"><span style="color:var(--g)">70–100</span> Full access<br><span style="color:var(--a)">30–69</span> View only<br><span style="color:var(--red)">0–29</span> Suspended</div></div></div></div>`;
+  html+=`<div class="panel" style="margin-top:12px;border:1px solid var(--red-br);background:var(--red-bg)"><div style="padding:14px 16px"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px">⚠ Attendance Rule</div><div style="font-size:11px;color:var(--ts);line-height:1.7">Monthly requirement: <strong>190 hours</strong><br>If not met: <strong>-5 merit points per missing hour</strong> (auto-deducted at month end)</div></div></div>`;
   return html;
 }
 async function submitMeritRequest(){
