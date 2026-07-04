@@ -496,6 +496,7 @@ async function loadSession(memberId) {
   if (saved) {
     SESSION.members = saved.members || DEFAULT_MEMBERS;
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
+    if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
     SESSION.clients = saved.clients || DEFAULT_CLIENTS;
@@ -530,7 +531,7 @@ async function loadSession(memberId) {
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, _meritResetJul2026:SESSION._meritResetJul2026||false};
   if (!DB.firebaseOk) return;
   _selfWrite = true;
   try { await rtdb.ref('workspace/workspace_data').update(payload); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
@@ -634,13 +635,12 @@ async function checkMonthlyAttendanceDeduction() {
   if (now.getDate() < 2) return;
   const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const monthKey = prevMonth.getFullYear() + '-' + String(prevMonth.getMonth() + 1).padStart(2, '0');
+  if (monthKey < '2026-07') return;
   if (SESSION.attendanceDeductions[monthKey]) return;
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const prevMonthStr = monthKey;
   let anyDeduction = false;
   SESSION.members.forEach(m => {
     if (m.isFounder) return;
-    const memberLogs = SESSION.attendance.filter(a => a.uid === m.id && a.date && a.date.startsWith(prevMonthStr) && a.clockIn && a.clockOut);
+    const memberLogs = SESSION.attendance.filter(a => a.uid === m.id && a.date && a.date.startsWith(monthKey) && a.clockIn && a.clockOut);
     const totalMs = memberLogs.reduce((s, a) => s + (a.clockOut - a.clockIn), 0);
     const totalHours = totalMs / 3600000;
     if (totalHours < 190) {
@@ -649,7 +649,7 @@ async function checkMonthlyAttendanceDeduction() {
       const oldMerit = m.merit;
       m.merit = Math.max(0, m.merit - deduction);
       anyDeduction = true;
-      logAct('merit_auto', `${m.name.split(' ')[0]}: ${oldMerit} → ${m.merit} (-${deduction}) — Attendance shortfall: ${shortfall}h below 190h in ${prevMonthStr}`, '▼');
+      logAct('merit_auto', `${m.name.split(' ')[0]}: ${oldMerit} → ${m.merit} (-${deduction}) — Attendance shortfall: ${shortfall}h below 190h in ${monthKey}`, '▼');
     }
   });
   SESSION.attendanceDeductions[monthKey] = { processed: now.toISOString(), applied: anyDeduction };
@@ -659,7 +659,7 @@ async function checkMonthlyAttendanceDeduction() {
 function doLogout() {
   logAct('logout', me().name + ' signed out', '⎋');
   auth.signOut().then(() => {
-    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[]};
+    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}};
     window.location.href = '/kreativ-login';
   });
 }
