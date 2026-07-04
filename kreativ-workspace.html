@@ -526,7 +526,10 @@ async function loadSession(memberId) {
 
 async function persist() {
   const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments};
-  await DB.set('workspace_data', payload);
+  if (!DB.firebaseOk) return;
+  _selfWrite = true;
+  try { await rtdb.ref('workspace/workspace_data').update(payload); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
+  setTimeout(() => { _selfWrite = false; }, 500);
 }
 
 /* ═══ Activity Logger ═══ */
