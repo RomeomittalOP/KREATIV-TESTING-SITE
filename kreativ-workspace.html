@@ -902,25 +902,27 @@ async function saveProfileContact(){
 }
 
 function rTasks(){
-  return `<div class="panel"><div class="ph"><div class="pt">All Tasks</div>${canEdit()?`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Add Task</button>`:''}</div>
-  ${SESSION.tasks.map((t,i)=>{
+  const myTasks=canEdit()?SESSION.tasks:SESSION.tasks.filter(t=>t.assignee===me().id);
+  return `<div class="panel"><div class="ph"><div class="pt">${canEdit()?'All Tasks':'My Tasks'}</div>${canEdit()?`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Add Task</button>`:''}</div>
+  ${myTasks.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No tasks assigned to you.</div>':''}
+  ${myTasks.map((t,i)=>{ const ri=SESSION.tasks.indexOf(t);
     const mem=SESSION.members.find(m=>m.id===t.assignee);
     const isUnassigned=!t.assignee||!mem;
     const displayMem=mem||{initials:'—',color:'#444',name:'Unassigned'};
     const pc=t.priority==='Urgent'||t.priority==='High'?'b-red':t.priority==='Mid'?'b-amber':'b-blue';
     const isMine=t.assignee===me().id;
     const canJoin=(isUnassigned||t.needsHelp)&&!t.done&&!isMine;
-    return `<div class="ti" style="cursor:default"><div class="tc${t.done?' done':''}" style="cursor:pointer" onclick="toggleTaskDone(${i})"></div>
-    <div style="flex:1;cursor:pointer" onclick="toggleTaskDone(${i})"><div class="tn${t.done?' done':''}">${t.name}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due} · ${t.merit}pts</div></div>
+    return `<div class="ti" style="cursor:default"><div class="tc${t.done?' done':''}" style="cursor:pointer" onclick="toggleTaskDone(${ri})"></div>
+    <div style="flex:1;cursor:pointer" onclick="toggleTaskDone(${ri})"><div class="tn${t.done?' done':''}">${t.name}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due} · ${t.merit}pts</div></div>
     <div class="tr">
       <div class="mav" style="background:${displayMem.color}">${displayMem.initials}</div>
       <span class="badge ${pc}">${t.priority}</span>${t.done?`<span class="badge b-green">Done</span>`:''}
-      ${canJoin?`<button class="btn-sm green" onclick="joinTask(${i})">🙋 I'm In</button>`:''}
-      ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="toggleSeekHelp(${i})">🆘 Seek Help</button>`:''}
-      ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="toggleSeekHelp(${i})">Cancel Help Request</button>`:''}
-      ${canEdit()?`<button class="btn-sm" onclick="editTaskPrompt(${i})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteTask(${i})">✕</button>`:''}
+      ${canJoin?`<button class="btn-sm green" onclick="joinTask(${ri})">🙋 I'm In</button>`:''}
+      ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="toggleSeekHelp(${ri})">🆘 Seek Help</button>`:''}
+      ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="toggleSeekHelp(${ri})">Cancel Help Request</button>`:''}
+      ${canEdit()?`<button class="btn-sm" onclick="editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteTask(${ri})">✕</button>`:''}
     </div></div>`;}).join('')}
-  ${SESSION.tasks.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No tasks yet.</div>':''}</div>`;
+  ${myTasks.length===0?'':'</div>'}`;
 }
 async function toggleTaskDone(i){
   const t=SESSION.tasks[i]; t.done=!t.done;
