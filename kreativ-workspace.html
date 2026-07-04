@@ -12,14 +12,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 :root{--pitch:#050505;--red:#FF1E1E;--red-d:#CC0000;--red-bg:rgba(255,30,30,0.08);--red-br:rgba(255,30,30,0.22);--s1:#111;--s2:#181818;--s3:#222;--br:rgba(255,255,255,0.07);--br2:rgba(255,255,255,0.13);--tp:#F5F5F5;--ts:rgba(245,245,245,0.58);--tm:rgba(245,245,245,0.32);--g:#2ECC71;--g-bg:rgba(46,204,113,0.1);--a:#F5A623;--a-bg:rgba(245,166,35,0.1);--b:#4A90E2;--b-bg:rgba(74,144,226,0.1);--pu:#9B59B6;--pu-bg:rgba(155,89,182,0.1);--gold:#C9A84C;--gold-bg:rgba(201,168,76,0.1);}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--pitch);color:var(--tp);font-family:'Space Grotesk',sans-serif;font-size:14px;overflow:hidden;height:100vh}
+*{box-sizing:border-box;margin:0;padding:0;cursor:default}
+body{background:var(--pitch);color:var(--tp);font-family:'Space Grotesk',sans-serif;font-size:14px;overflow:hidden;height:100vh;-webkit-user-select:none;user-select:none}
+input,textarea,select,[contenteditable]{cursor:text;-webkit-user-select:text;user-select:text}
+button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
 .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--pitch);z-index:100}
 .screen.on{display:flex}
 .lock-wrap{width:420px;display:flex;flex-direction:column;align-items:center;gap:24px}
 .lock-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:34px;letter-spacing:.05em;text-align:center}
 .lock-logo span{color:var(--red)}
-.lock-sub{font-size:11px;color:var(--tm);letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:-18px}
+.lock-sub{font-size:11px;color:var(--tm);letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:2px}
 .lock-box{background:var(--s1);border:1px solid var(--br2);border-radius:16px;padding:30px;width:100%}
 .lock-icon{width:52px;height:52px;border-radius:50%;background:var(--red-bg);border:1px solid var(--red-br);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 18px}
 .lock-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;text-align:center;margin-bottom:5px}
