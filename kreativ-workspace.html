@@ -428,7 +428,6 @@ const DB = {
       SESSION.user = SESSION.members.find(m => m.id === SESSION.user.id) || SESSION.user;
       buildSidebar();
       showPage(_currentPage);
-      pushNotification('🔄', 'Data updated by another team member', 'now');
     }, err => { console.warn('Realtime sync error:', err); });
   }
 };
@@ -921,6 +920,8 @@ function rTasks(){
     <div class="tr">
       <div class="mav" style="background:${displayMem.color}">${displayMem.initials}</div>
       <span class="badge ${pc}">${t.priority}</span>${t.done?`<span class="badge b-green">Done</span>`:''}
+      ${isMine&&!t.done?`<button class="btn-sm green" onclick="toggleTaskDone(${ri})">✓ Done</button>`:''}
+      ${isMine&&t.done?`<button class="btn-sm" onclick="toggleTaskDone(${ri})">↺ Reopen</button>`:''}
       ${canJoin?`<button class="btn-sm green" onclick="joinTask(${ri})">🙋 I'm In</button>`:''}
       ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="toggleSeekHelp(${ri})">🆘 Seek Help</button>`:''}
       ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="toggleSeekHelp(${ri})">Cancel Help Request</button>`:''}
