@@ -404,7 +404,7 @@ const DB = {
   },
   async init() {
     try {
-      await rtdb.ref('workspace/_ping').set(Date.now());
+      const snap = await rtdb.ref('workspace/workspace_data').once('value');
       this.firebaseOk = true;
       updateSyncStatus(true);
       this.startRealtimeSync();
