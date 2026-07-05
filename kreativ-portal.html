@@ -408,7 +408,7 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
               </div>
               <div style="border-top:1px solid var(--line);padding-top:0.8rem;display:flex;align-items:center;justify-content:space-between">
                 <div><div style="font-size:0.9rem;font-weight:500">Sign Out</div><div style="font-size:0.78rem;color:var(--bone-d)">Log out of your account</div></div>
-                <button type="button" style="padding:0.5rem 1rem;border:1px solid var(--red);border-radius:6px;font-size:0.8rem;color:var(--red);background:rgba(255,30,30,0.08);transition:background .2s" onmouseover="this.style.background='var(--red)';this.style.color='var(--white)'" onmouseout="this.style.background='rgba(255,30,30,0.08)';this.style.color='var(--red)'" onclick="firebase.auth().signOut().then(()=>{window.location.href='/kreativ-login'})">Sign Out</button>
+                <button type="button" style="padding:0.5rem 1rem;border:1px solid var(--red);border-radius:6px;font-size:0.8rem;color:var(--red);background:rgba(255,30,30,0.08);transition:background .2s" onmouseover="this.style.background='var(--red)';this.style.color='var(--white)'" onmouseout="this.style.background='rgba(255,30,30,0.08)';this.style.color='var(--red)'" onclick="sessionStorage.removeItem('kreativ_client');firebase.auth().signOut().then(()=>{window.location.href='/kreativ-login'})">Sign Out</button>
               </div>
             </div>
           </div>
@@ -464,14 +464,8 @@ function parseCompany(user) {
 
 document.querySelector('.app').style.display = 'none';
 
-firebase.auth().onAuthStateChanged(function(user) {
-  if (!user) { window.location.href = '/kreativ-login'; return; }
-  if (TEAM_EMAILS.includes(user.email.toLowerCase())) { window.location.href = '/kreativ-workspace'; return; }
-
-  const clientName = parseClientName(user);
+function initPortalUI(clientName, company) {
   const clientInitial = clientName.charAt(0).toUpperCase();
-  const company = parseCompany(user);
-
   window._clientName = clientName;
   window._clientInitial = clientInitial;
 
@@ -484,7 +478,20 @@ firebase.auth().onAuthStateChanged(function(user) {
   document.querySelectorAll('.msg-name').forEach(el => { if (el.textContent === '__CLIENT_NAME__') el.textContent = clientName; });
 
   document.querySelector('.app').style.display = 'grid';
-});
+}
+
+const _clientSession = sessionStorage.getItem('kreativ_client');
+if (_clientSession) {
+  const cd = JSON.parse(_clientSession);
+  window._kreativClientId = cd.clientId;
+  initPortalUI(cd.name, cd.company);
+} else {
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (!user) { window.location.href = '/kreativ-login'; return; }
+    if (TEAM_EMAILS.includes(user.email.toLowerCase())) { window.location.href = '/kreativ-workspace'; return; }
+    initPortalUI(parseClientName(user), parseCompany(user));
+  });
+}
 </script>
 <script>
 (function(){
@@ -656,7 +663,7 @@ firebase.auth().onAuthStateChanged(function(user) {
       $('#bellBtn .dot').style.display='block';
     }
   });
-  $('#signout').addEventListener('click',()=>{ firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
+  $('#signout').addEventListener('click',()=>{ sessionStorage.removeItem('kreativ_client'); firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
   /* â•â•â•â•â•â•â•â• MOBILE SIDEBAR â•â•â•â•â•â•â•â• */
   const sidebar=$('#sidebar'), scrim=$('#scrim');

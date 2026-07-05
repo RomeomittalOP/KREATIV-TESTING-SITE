@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "workspace": {
+      "workspace_data": {
+        ".read": "auth != null && (auth.token.email === 'shubhrat.sryvstv@gmail.com' || auth.token.email === 'shubhammittal3555@gmail.com' || auth.token.email === 'keshavmathur2006@gmail.com' || auth.token.email === 'manikm.work@gmail.com' || auth.token.email === 'ckhanna591@gmail.com')",
+        ".write": "auth != null && (auth.token.email === 'shubhrat.sryvstv@gmail.com' || auth.token.email === 'shubhammittal3555@gmail.com' || auth.token.email === 'keshavmathur2006@gmail.com' || auth.token.email === 'manikm.work@gmail.com' || auth.token.email === 'ckhanna591@gmail.com')"
+      }
+    },
+    "enquiries": {
+      ".read": "auth != null && (auth.token.email === 'shubhrat.sryvstv@gmail.com' || auth.token.email === 'shubhammittal3555@gmail.com')",
+      "$enquiryId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['clientId','name','email','message'])"
+      }
+    }
+  }
+}

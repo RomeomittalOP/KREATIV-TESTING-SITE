@@ -399,6 +399,24 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .contact-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: clamp(1.2rem, 2.5vw, 2rem); align-items: stretch; }
 @media (max-width: 880px){ .contact-grid { grid-template-columns: 1fr; } }
 
+/* contact form */
+.cform { background: rgba(8,8,8,0.82); border: 1px solid rgba(245,245,245,0.1); border-radius: 10px; padding: 2rem; backdrop-filter: blur(10px); }
+.cform h3 { font-family: var(--f-disp); font-size: 1.4rem; color: var(--white); margin-bottom: 0.3rem; }
+.cform .cform-sub { font-family: var(--f-mono); font-size: 0.72rem; color: var(--bone-d); letter-spacing: 0.08em; margin-bottom: 1.5rem; }
+.cform-field { margin-bottom: 1rem; }
+.cform-field label { display: block; font-family: var(--f-mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bone-d); margin-bottom: 0.4rem; }
+.cform-field input, .cform-field textarea, .cform-field select { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(245,245,245,0.12); border-radius: 6px; padding: 0.7rem 0.9rem; font-family: var(--f-mono); font-size: 0.82rem; color: var(--white); outline: none; transition: border-color .3s; cursor: text; -webkit-user-select: text; user-select: text; }
+.cform-field input:focus, .cform-field textarea:focus, .cform-field select:focus { border-color: var(--red); }
+.cform-field textarea { min-height: 90px; resize: vertical; }
+.cform-field select { cursor: pointer; }
+.cform-field select option { background: #111; color: #f5f5f5; }
+.cform-btn { width: 100%; padding: 0.85rem; background: var(--red); color: var(--pitch); font-family: var(--f-mono); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; border: none; border-radius: 6px; cursor: pointer; transition: background .3s, transform .15s; margin-top: 0.5rem; }
+.cform-btn:hover { background: #e01818; transform: translateY(-1px); }
+.cform-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.cform-msg { font-family: var(--f-mono); font-size: 0.75rem; text-align: center; margin-top: 0.8rem; padding: 0.6rem; border-radius: 6px; }
+.cform-msg.ok { color: #28C840; background: rgba(40,200,64,0.08); border: 1px solid rgba(40,200,64,0.25); }
+.cform-msg.err { color: var(--red); background: rgba(255,30,30,0.08); border: 1px solid rgba(255,30,30,0.25); }
+
 /* terminal */
 .terminal { background: rgba(8,8,8,0.82); border: 1px solid rgba(245,245,245,0.1); border-radius: 10px; overflow: hidden; backdrop-filter: blur(10px); box-shadow: 0 30px 80px rgba(0,0,0,0.5); display: flex; flex-direction: column; min-height: 420px; }
 .term-bar { display: flex; align-items: center; gap: 1rem; padding: 0.7rem 1rem; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(245,245,245,0.08); }
@@ -522,7 +540,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   <div class="menu-foot">
     <a href="#cta">interact@kreativby4knotts.com</a>
     <span>Noida, UP · India</span>
-    <a href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener">LinkedIn</a>
+    <a href="https://www.instagram.com/kreativby4knotts?igsh=MW43eHEzZmVwemhrdQ==" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativ-by-4knotts/posts/?feedView=all" target="_blank" rel="noopener">LinkedIn</a>
   </div>
 </div>
 
@@ -747,29 +765,28 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     </div>
 
     <div class="contact-grid">
-      <!-- TERMINAL -->
-      <div class="terminal r r-d1" id="terminal">
-        <div class="term-bar">
-          <div class="term-dots"><span class="td td-r"></span><span class="td td-y"></span><span class="td td-g"></span></div>
-          <div class="term-title">kreativ@4knotts — bash — 80×24</div>
-          <div class="term-spacer"></div>
+      <!-- CONTACT FORM -->
+      <div class="cform r r-d1" id="contactForm">
+        <h3>Start a project</h3>
+        <p class="cform-sub">Tell us what you need — we'll get back within 24h.</p>
+        <div class="cform-field"><label>Name *</label><input type="text" id="cf-name" placeholder="Your full name" required></div>
+        <div class="cform-field"><label>Email *</label><input type="email" id="cf-email" placeholder="you@company.com" required></div>
+        <div class="cform-field"><label>Phone</label><input type="tel" id="cf-phone" placeholder="+91 XXXXX XXXXX"></div>
+        <div class="cform-field"><label>Company / Brand</label><input type="text" id="cf-company" placeholder="Your company name"></div>
+        <div class="cform-field"><label>Service needed</label>
+          <select id="cf-service">
+            <option value="">Select a service</option>
+            <option value="branding">Branding & Identity</option>
+            <option value="web">Website / Web App</option>
+            <option value="social">Social Media Marketing</option>
+            <option value="video">Video Production</option>
+            <option value="ai">AI Solutions</option>
+            <option value="other">Other</option>
+          </select>
         </div>
-        <div class="term-body" id="termBody">
-          <div class="term-output" id="termOutput"></div>
-          <div class="term-input-line">
-            <span class="term-prompt"><span class="tp-user">kreativ@4knotts</span>:<span class="tp-path">~</span>$</span>
-            <span class="term-input" id="termInput"></span><span class="term-caret" id="termCaret">█</span>
-          </div>
-        </div>
-        <div class="term-hint" id="termHint">type <b>help</b> and hit enter — or tap a command below</div>
-        <div class="term-chips" id="termChips">
-          <button class="term-chip" data-cmd="help">help</button>
-          <button class="term-chip" data-cmd="services">services</button>
-          <button class="term-chip" data-cmd="contact">contact</button>
-          <button class="term-chip" data-cmd="social">social</button>
-          <button class="term-chip" data-cmd="pitch">pitch</button>
-          <button class="term-chip" data-cmd="clear">clear</button>
-        </div>
+        <div class="cform-field"><label>Project details *</label><textarea id="cf-message" placeholder="Brief us on your project — budget, timeline, goals..."></textarea></div>
+        <button class="cform-btn" id="cf-submit" onclick="submitContactForm()">Send Enquiry →</button>
+        <div id="cf-msg" style="display:none"></div>
       </div>
 
       <!-- SOCIAL / CONNECT PANEL -->
@@ -779,7 +796,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
           <span class="cs-text">Available for new projects</span>
         </div>
 
-        <a class="connect-row" href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener" data-magnetic>
+        <a class="connect-row" href="https://www.instagram.com/kreativby4knotts?igsh=MW43eHEzZmVwemhrdQ==" target="_blank" rel="noopener" data-magnetic>
           <div class="cr-left">
             <div class="cr-icon">◎</div>
             <div class="cr-meta"><span class="cr-label">Instagram</span><span class="cr-handle">@kreativby4knotts</span></div>
@@ -787,7 +804,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
           <div class="cr-arrow">↗</div>
         </a>
 
-        <a class="connect-row" href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener" data-magnetic>
+        <a class="connect-row" href="https://www.linkedin.com/company/kreativ-by-4knotts/posts/?feedView=all" target="_blank" rel="noopener" data-magnetic>
           <div class="cr-left">
             <div class="cr-icon">in</div>
             <div class="cr-meta"><span class="cr-label">LinkedIn</span><span class="cr-handle">Kreativ by 4Knotts</span></div>
@@ -829,7 +846,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <div class="foot-brand">KREATIV<br><b>BY 4KNOTTS</b></div>
     <div class="foot-cols">
       <div class="foot-col"><h4>Navigate</h4><a href="#works">AI Lab</a><a href="#pillars">Pillars</a><a href="#process">Process</a><a href="#cta">Contact</a></div>
-      <div class="foot-col"><h4>Connect</h4><a href="https://www.instagram.com/kreativby4knotts" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativby4knotts" target="_blank" rel="noopener">LinkedIn</a><a href="#cta">Email</a></div>
+      <div class="foot-col"><h4>Connect</h4><a href="https://www.instagram.com/kreativby4knotts?igsh=MW43eHEzZmVwemhrdQ==" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativ-by-4knotts/posts/?feedView=all" target="_blank" rel="noopener">LinkedIn</a><a href="#cta">Email</a></div>
       <div class="foot-col"><h4>Studio</h4><p>Noida, UP</p><p>India</p><p>Mon–Sat</p></div>
     </div>
   </div>
@@ -1614,6 +1631,58 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   if(loader){ runLoader(()=>{ loader.classList.add('done'); boot(); }); }
   else boot();
 
+})();
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  const fb=firebase.initializeApp({apiKey:"AIzaSyAp6e0hhVPSEOipGBMfqfJyLP_JtiXqaB4",authDomain:"kreativ-by-4-knotts.firebaseapp.com",databaseURL:"https://kreativ-by-4-knotts-default-rtdb.firebaseio.com",projectId:"kreativ-by-4-knotts"});
+  const db=firebase.database();
+
+  function genId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='KR-';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+  function genPass(){const c='abcdefghjkmnpqrstuvwxyz23456789';let s='';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+
+  window.submitContactForm=async function(){
+    const name=document.getElementById('cf-name').value.trim();
+    const email=document.getElementById('cf-email').value.trim();
+    const phone=document.getElementById('cf-phone').value.trim();
+    const company=document.getElementById('cf-company').value.trim();
+    const service=document.getElementById('cf-service').value;
+    const message=document.getElementById('cf-message').value.trim();
+    const msgEl=document.getElementById('cf-msg');
+    const btn=document.getElementById('cf-submit');
+
+    if(!name||!email||!message){
+      msgEl.className='cform-msg err';msgEl.textContent='Please fill all required fields.';msgEl.style.display='block';return;
+    }
+
+    btn.disabled=true;btn.textContent='Sending...';
+    const clientId=genId();
+    const clientPass=genPass();
+
+    try{
+      await db.ref('enquiries/'+clientId).set({
+        clientId,clientPass,name,email,phone,company,service,message,
+        status:'new',createdAt:new Date().toISOString()
+      });
+
+      document.getElementById('cf-name').value='';
+      document.getElementById('cf-email').value='';
+      document.getElementById('cf-phone').value='';
+      document.getElementById('cf-company').value='';
+      document.getElementById('cf-service').value='';
+      document.getElementById('cf-message').value='';
+
+      msgEl.className='cform-msg ok';
+      msgEl.innerHTML='Enquiry sent! Your credentials:<br><b>Client ID:</b> '+clientId+'<br><b>Password:</b> '+clientPass+'<br><span style="font-size:0.65rem;opacity:0.7">Save these — use them to log in to the client portal.</span>';
+      msgEl.style.display='block';
+    }catch(e){
+      msgEl.className='cform-msg err';msgEl.textContent='Failed to send. Please try again.';msgEl.style.display='block';
+    }
+    btn.disabled=false;btn.textContent='Send Enquiry →';
+  };
 })();
 </script>
 </body>

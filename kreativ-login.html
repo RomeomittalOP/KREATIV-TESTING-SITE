@@ -254,12 +254,12 @@ body::after{
 
         <form class="form" id="loginForm" novalidate>
           <div class="field" id="fEmail">
-            <label for="email">Email</label>
+            <label for="email" id="lbl-email">Email</label>
             <div class="input-wrap">
-              <span class="sigil">@</span>
-              <input type="email" id="email" name="email" placeholder="you@company.com" autocomplete="email" required>
+              <span class="sigil" id="sigil-email">@</span>
+              <input type="text" id="email" name="email" placeholder="you@company.com" autocomplete="email" required>
             </div>
-            <div class="field-error" id="errEmail">Enter a valid email.</div>
+            <div class="field-error" id="errEmail">Enter a valid email or Client ID.</div>
           </div>
 
           <div class="field" id="fPass">
@@ -386,6 +386,18 @@ body::after{
     $('#promptArg').textContent=r.promptArg;
     $('#asideEyebrow').textContent=r.asideEyebrow;
     $('#asideHeadline').innerHTML=r.asideHeadline;
+    // client mode: show Client ID field
+    if(role==='client'){
+      $('#lbl-email').textContent='Client ID or Email';
+      $('#sigil-email').textContent='ID';
+      $('#email').placeholder='KR-XXXXXX or you@company.com';
+      $('#email').type='text';
+    } else {
+      $('#lbl-email').textContent='Email';
+      $('#sigil-email').textContent='@';
+      $('#email').placeholder='you@company.com';
+      $('#email').type='email';
+    }
     // sso swap
     $('#googleBtn').style.display = r.sso==='google'?'flex':'none';
     $('#ssoBtn').style.display = r.sso==='sso'?'flex':'none';
@@ -415,7 +427,8 @@ body::after{
   const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   function validateEmail(){
     const f=$('#fEmail'), v=$('#email').value.trim();
-    const ok=emailRe.test(v);
+    const isClientId=v.toUpperCase().startsWith('KR-')&&v.length>=5;
+    const ok=emailRe.test(v)||isClientId;
     f.classList.toggle('invalid',!ok && v.length>0);
     return ok;
   }
@@ -452,15 +465,24 @@ body::after{
     $('#btnLabel').textContent='Authenticating…';
     try{
 
-const email=$("#email").value.trim();
-
+const emailVal=$("#email").value.trim();
 const password=$("#password").value;
 
-await window.firebase.signInWithEmailAndPassword(auth,email,password);
-
-toast("Login Successful","✓");
-
-window.location.href = currentRole === "team" ? "/kreativ-workspace" : "/kreativ-portal";
+if(currentRole==='client' && emailVal.toUpperCase().startsWith('KR-')){
+  const clientId=emailVal.toUpperCase();
+  const _rtdb=window.firebase.database();
+  const snap=await _rtdb.ref('enquiries/'+clientId).once('value');
+  const data=snap.val();
+  if(!data){throw new Error('Client ID not found.');}
+  if(data.clientPass!==password){throw new Error('Invalid password.');}
+  sessionStorage.setItem('kreativ_client',JSON.stringify({clientId,name:data.name,email:data.email,company:data.company||'',service:data.service||''}));
+  toast("Welcome "+data.name.split(' ')[0],"✓");
+  setTimeout(()=>{window.location.href="/kreativ-portal";},600);
+} else {
+  await window.firebase.signInWithEmailAndPassword(auth,emailVal,password);
+  toast("Login Successful","✓");
+  window.location.href = currentRole === "team" ? "/kreativ-workspace" : "/kreativ-portal";
+}
 
 }
 catch(e){
