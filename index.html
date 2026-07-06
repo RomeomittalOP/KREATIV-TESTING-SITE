@@ -539,7 +539,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   <a href="kreativ-login" class="menu-link">Sign in <i>05</i></a>
   <div class="menu-foot">
     <a href="#cta">interact@kreativby4knotts.com</a>
-    <span>Noida, UP · India</span>
+    <span>Delhi · India</span>
     <a href="https://www.instagram.com/kreativby4knotts?igsh=MW43eHEzZmVwemhrdQ==" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativ-by-4knotts/posts/?feedView=all" target="_blank" rel="noopener">LinkedIn</a>
   </div>
 </div>
@@ -556,7 +556,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
   </div>
 
   <div class="hero-content">
-    <div class="hero-eyebrow"><span>Full-Stack Creative Agency · Noida, UP</span></div>
+    <div class="hero-eyebrow"><span>Full-Stack Creative Agency · Delhi</span></div>
     <h1 class="hero-title" id="heroTitle" aria-label="Kreativ">
       <span class="ch-mask"><span class="ch">K</span></span><span class="ch-mask"><span class="ch">R</span></span><span class="ch-mask"><span class="ch">E</span></span><span class="ch-mask"><span class="ch">A</span></span><span class="ch-mask"><span class="ch">T</span></span><span class="ch-mask"><span class="ch">I</span></span><span class="ch-mask"><span class="ch">V</span></span>
     </h1>
@@ -765,28 +765,50 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     </div>
 
     <div class="contact-grid">
-      <!-- CONTACT FORM -->
-      <div class="cform r r-d1" id="contactForm">
-        <h3>Start a project</h3>
-        <p class="cform-sub">Tell us what you need — we'll get back within 24h.</p>
-        <div class="cform-field"><label>Name *</label><input type="text" id="cf-name" placeholder="Your full name" required></div>
-        <div class="cform-field"><label>Email *</label><input type="email" id="cf-email" placeholder="you@company.com" required></div>
-        <div class="cform-field"><label>Phone</label><input type="tel" id="cf-phone" placeholder="+91 XXXXX XXXXX"></div>
-        <div class="cform-field"><label>Company / Brand</label><input type="text" id="cf-company" placeholder="Your company name"></div>
-        <div class="cform-field"><label>Service needed</label>
-          <select id="cf-service">
-            <option value="">Select a service</option>
-            <option value="branding">Branding & Identity</option>
-            <option value="web">Website / Web App</option>
-            <option value="social">Social Media Marketing</option>
-            <option value="video">Video Production</option>
-            <option value="ai">AI Solutions</option>
-            <option value="other">Other</option>
-          </select>
+      <!-- TERMINAL WITH BUILT-IN FORM -->
+      <div class="terminal r r-d1" id="terminal">
+        <div class="term-bar">
+          <div class="term-dots"><span class="td td-r"></span><span class="td td-y"></span><span class="td td-g"></span></div>
+          <div class="term-title">kreativ@4knotts — bash — 80×24</div>
+          <div class="term-spacer"></div>
         </div>
-        <div class="cform-field"><label>Project details *</label><textarea id="cf-message" placeholder="Brief us on your project — budget, timeline, goals..."></textarea></div>
-        <button class="cform-btn" id="cf-submit" onclick="submitContactForm()">Send Enquiry →</button>
-        <div id="cf-msg" style="display:none"></div>
+        <div class="term-body" id="termBody">
+          <div class="term-output" id="termOutput"></div>
+          <div class="term-input-line">
+            <span class="term-prompt"><span class="tp-user">kreativ@4knotts</span>:<span class="tp-path">~</span>$</span>
+            <span class="term-input" id="termInput"></span><span class="term-caret" id="termCaret">█</span>
+          </div>
+        </div>
+        <div class="term-hint" id="termHint">type <b>enquiry</b> to open the form — or <b>help</b> for commands</div>
+        <div class="term-chips" id="termChips">
+          <button class="term-chip" data-cmd="enquiry">enquiry</button>
+          <button class="term-chip" data-cmd="help">help</button>
+          <button class="term-chip" data-cmd="services">services</button>
+          <button class="term-chip" data-cmd="contact">contact</button>
+          <button class="term-chip" data-cmd="social">social</button>
+          <button class="term-chip" data-cmd="clear">clear</button>
+        </div>
+        <!-- INLINE FORM (hidden by default, shown via enquiry command) -->
+        <div class="cform" id="termForm" style="display:none;border:none;border-top:1px solid rgba(245,245,245,0.08);border-radius:0;padding:1.2rem">
+          <div class="cform-field"><label>Name *</label><input type="text" id="cf-name" placeholder="Your full name"></div>
+          <div class="cform-field"><label>Email *</label><input type="email" id="cf-email" placeholder="you@company.com"></div>
+          <div class="cform-field"><label>Phone</label><input type="tel" id="cf-phone" placeholder="+91 XXXXX XXXXX"></div>
+          <div class="cform-field"><label>Company / Brand</label><input type="text" id="cf-company" placeholder="Your company name"></div>
+          <div class="cform-field"><label>Service needed</label>
+            <select id="cf-service">
+              <option value="">Select a service</option>
+              <option value="branding">Branding & Identity</option>
+              <option value="web">Website / Web App</option>
+              <option value="social">Social Media Marketing</option>
+              <option value="video">Video Production</option>
+              <option value="ai">AI Solutions</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="cform-field"><label>Project details *</label><textarea id="cf-message" placeholder="Brief us — budget, timeline, goals..."></textarea></div>
+          <button class="cform-btn" id="cf-submit" onclick="submitContactForm()">Submit Enquiry →</button>
+          <div id="cf-msg" style="display:none"></div>
+        </div>
       </div>
 
       <!-- SOCIAL / CONNECT PANEL -->
@@ -823,7 +845,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         <div class="connect-row connect-row--static">
           <div class="cr-left">
             <div class="cr-icon">⌖</div>
-            <div class="cr-meta"><span class="cr-label">Studio</span><span class="cr-handle">Noida, UP · India</span></div>
+            <div class="cr-meta"><span class="cr-label">Studio</span><span class="cr-handle">Delhi · India</span></div>
           </div>
           <div class="cr-time" id="connectTime">—</div>
         </div>
@@ -847,7 +869,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <div class="foot-cols">
       <div class="foot-col"><h4>Navigate</h4><a href="#works">AI Lab</a><a href="#pillars">Pillars</a><a href="#process">Process</a><a href="#cta">Contact</a></div>
       <div class="foot-col"><h4>Connect</h4><a href="https://www.instagram.com/kreativby4knotts?igsh=MW43eHEzZmVwemhrdQ==" target="_blank" rel="noopener">Instagram</a><a href="https://www.linkedin.com/company/kreativ-by-4knotts/posts/?feedView=all" target="_blank" rel="noopener">LinkedIn</a><a href="#cta">Email</a></div>
-      <div class="foot-col"><h4>Studio</h4><p>Noida, UP</p><p>India</p><p>Mon–Sat</p></div>
+      <div class="foot-col"><h4>Studio</h4><p>Delhi</p><p>India</p><p>Mon–Sat</p></div>
     </div>
   </div>
   <div class="foot-bottom">
@@ -1470,6 +1492,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
         '  <span class="c-red">contact</span>    — how to reach us',
         '  <span class="c-red">social</span>     — find us online',
         '  <span class="c-red">about</span>      — who we are',
+        '  <span class="c-red">enquiry</span>    — open project enquiry form',
         '  <span class="c-red">clear</span>      — wipe the screen',
         '&nbsp;'
       ];},
@@ -1492,7 +1515,7 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       contact(){ return [
         '<span class="c-bone">// reach the studio</span>',
         '  email   : <span class="c-red">'+EMAIL+'</span>',
-        '  studio  : Noida, UP · India',
+        '  studio  : Delhi · India',
         '  hours   : Mon–Sat · 10:00–19:00 IST',
         '<span class="c-dim">  tip: click the Email tile on the right to copy →</span>',
         '&nbsp;'
@@ -1514,7 +1537,8 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       ];},
       clear(){ out.innerHTML=''; return null; },
       whoami(){ return ['<span class="c-bone">a brand that wants to be impossible to ignore.</span>','&nbsp;']; },
-      ls(){ return ['<span class="c-red">services</span>  <span class="c-red">pitch</span>  <span class="c-red">contact</span>  <span class="c-red">social</span>  <span class="c-red">about</span>','&nbsp;']; }
+      ls(){ return ['<span class="c-red">services</span>  <span class="c-red">pitch</span>  <span class="c-red">contact</span>  <span class="c-red">social</span>  <span class="c-red">enquiry</span>  <span class="c-red">about</span>','&nbsp;']; },
+      enquiry(){ const f=document.getElementById('termForm'); if(f){f.style.display=f.style.display==='none'?'block':'none';} return ['<span class="c-white">Opening enquiry form...</span>','<span class="c-dim">Fill the form below to start a project. You\'ll get a Client ID & password.</span>','&nbsp;']; }
     };
 
     function run(raw){

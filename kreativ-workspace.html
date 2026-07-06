@@ -621,18 +621,21 @@ async function autoMerit(memberId, rule, reason) {
   await logAct('merit_auto', `${mem.name.split(' ')[0]}: ${oldMerit} → ${mem.merit} (${pts > 0 ? '+' : ''}${pts}) — ${reason}`, pts > 0 ? '▲' : '▼');
 }
 
-function checkOverdueTasks() {
+async function checkOverdueTasks() {
   const today = todayKey();
-  SESSION.tasks.forEach(t => {
-    if (t.done || !t.due || t.due === 'TBD' || t._overdueNotified) return;
+  let changed = false;
+  for (const t of SESSION.tasks) {
+    if (t.done || !t.due || t.due === 'TBD' || t.overdueNotified) continue;
     if (t.due < today) {
-      t._overdueNotified = true;
+      t.overdueNotified = true;
+      changed = true;
       const mem = SESSION.members.find(m => m.id === t.assignee);
       if (mem && !mem.isFounder) {
-        autoMerit(t.assignee, 'taskMissedDeadline', `Overdue: "${t.name}"`);
+        await autoMerit(t.assignee, 'taskMissedDeadline', `Overdue: "${t.name}"`);
       }
     }
-  });
+  }
+  if (changed) await persist();
 }
 
 async function checkMonthlyAttendanceDeduction() {

@@ -12,10 +12,12 @@
   browserLocalPersistence,
   setPersistence
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAJ57GMAuZfJZHuxk6znWjCRSHhov3l87M",
     authDomain: "kreativ-by-4-knotts.firebaseapp.com",
+    databaseURL: "https://kreativ-by-4-knotts-default-rtdb.firebaseio.com",
     projectId: "kreativ-by-4-knotts",
     storageBucket: "kreativ-by-4-knotts.firebasestorage.app",
     messagingSenderId: "224866350696",
@@ -24,6 +26,7 @@
   };
 
   const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
 const auth = getAuth(app);
 
@@ -33,6 +36,9 @@ setPersistence(auth,browserLocalPersistence);
 
 window.auth = auth;
 window.provider = provider;
+window._fbDb = db;
+window._fbRef = ref;
+window._fbGet = get;
 
 window.firebase = {
   signInWithPopup,
@@ -308,7 +314,7 @@ body::after{
     </div>
 
     <div class="auth-foot">
-      <div class="status"><span class="dot"></span><span id="footStatus">Secure connection · Noida, UP</span></div>
+      <div class="status"><span class="dot"></span><span id="footStatus">Secure connection · Delhi</span></div>
       <span id="footClock">—</span>
     </div>
   </main>
@@ -470,10 +476,9 @@ const password=$("#password").value;
 
 if(currentRole==='client' && emailVal.toUpperCase().startsWith('KR-')){
   const clientId=emailVal.toUpperCase();
-  const _rtdb=window.firebase.database();
-  const snap=await _rtdb.ref('enquiries/'+clientId).once('value');
+  const snap=await window._fbGet(window._fbRef(window._fbDb,'enquiries/'+clientId));
+  if(!snap.exists()){throw new Error('Client ID not found.');}
   const data=snap.val();
-  if(!data){throw new Error('Client ID not found.');}
   if(data.clientPass!==password){throw new Error('Invalid password.');}
   sessionStorage.setItem('kreativ_client',JSON.stringify({clientId,name:data.name,email:data.email,company:data.company||'',service:data.service||''}));
   toast("Welcome "+data.name.split(' ')[0],"✓");
