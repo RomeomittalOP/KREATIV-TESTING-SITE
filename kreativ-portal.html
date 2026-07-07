@@ -325,15 +325,15 @@ textarea.pf-input{font-family:var(--f-body);line-height:1.5}
       <!-- â•â•â• FILES â•â•â• -->
       <section class="view" id="v-files">
         <div class="panel">
-          <div class="panel-head"><h3>All files</h3><span style="font-family:var(--f-mono);font-size:0.74rem;color:var(--bone-d)">52 files · 248 MB</span></div>
-          <div id="fileList"></div>
+          <div class="panel-head"><h3>All files</h3><span id="fileStats" style="font-family:var(--f-mono);font-size:0.74rem;color:var(--bone-d)">No files yet</span></div>
+          <div id="fileList"><div style="padding:2rem 1.3rem;text-align:center;color:var(--bone-d);font-size:0.88rem">No files shared yet. Files will appear here once your project begins.</div></div>
         </div>
       </section>
 
       <!-- â•â•â• MESSAGES â•â•â• -->
       <section class="view" id="v-messages">
         <div class="panel">
-          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">â— Kreativ team online</span></div>
+          <div class="panel-head"><h3>Studio thread</h3><span style="font-family:var(--f-mono);font-size:0.72rem;color:var(--green)">&#9679; Kreativ team online</span></div>
           <div id="msgList"></div>
           <div class="msg-compose">
             <input type="text" id="msgInput" placeholder="Message the studio…" aria-label="Message">
@@ -549,13 +549,16 @@ if (_clientSession) {
   $('#ovApprovals').innerHTML=approvals.map(approvalHTML).join('');
   $('#allApprovals').innerHTML=approvals.map(approvalHTML).join('');
   $('#timeline').innerHTML=activity.map(a=>`<div class="tl-item"><div class="tl-time">${a.time}</div><div class="tl-text">${a.text}</div></div>`).join('');
-  $('#fileList').innerHTML=files.map(f=>`<div class="file-row">
+  if(files.length>0){
+    $('#fileStats').textContent=files.length+' files';
+    $('#fileList').innerHTML=files.map(f=>`<div class="file-row">
     <div class="file-ico">${f.ext}</div>
     <div><div class="file-name">${f.name}</div><div class="file-sub">${f.sub}</div></div>
     <div class="file-size">${f.size}</div>
     <div class="file-date">${f.date}</div>
     <button class="file-dl" aria-label="Download ${f.name}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
   </div>`).join('');
+  }
   $('#msgList').innerHTML=messages.map(m=>`<div class="msg">
     <div class="msg-av ${m.who}">${m.who==='studio'?'K':(window._clientInitial||'?')}</div>
     <div class="msg-body"><div class="msg-head"><span class="msg-name">${m.name==='__CLIENT_NAME__'?(window._clientName||'You'):m.name}</span><span class="msg-time">${m.time}</span></div><div class="msg-text">${m.text}</div></div>

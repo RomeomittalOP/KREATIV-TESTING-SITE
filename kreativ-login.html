@@ -10,7 +10,8 @@
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   browserLocalPersistence,
-  setPersistence
+  setPersistence,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
   import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
@@ -45,6 +46,17 @@ window.firebase = {
   signInWithEmailAndPassword,
   sendPasswordResetEmail
 };
+
+const _TEAM = ['shubhammittal3555@gmail.com','keshavmathur2006@gmail.com','manikm.work@gmail.com','shubhrat.sryvstv@gmail.com','ckhanna591@gmail.com'];
+if(sessionStorage.getItem('kreativ_client')){
+  window.location.replace('/kreativ-portal');
+}
+onAuthStateChanged(auth, user => {
+  if(user){
+    const em = user.email.toLowerCase();
+    window.location.replace(_TEAM.includes(em) ? '/kreativ-workspace' : '/kreativ-portal');
+  }
+});
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
