@@ -656,16 +656,7 @@ if (_clientSession) {
       toast(window._portalNotifications[0],'◆');
     } else { toast('No new notifications.','◆'); }
   });
-  // Real-time notifications from activity_feed
   window._portalNotifications=[];
-  _rtdb.ref('activity_feed').orderByChild('ts').limitToLast(1).on('child_added', function(snap){
-    var d=snap.val();
-    if(d && Date.now()-d.ts<300000){
-      window._portalNotifications.unshift((d.icon||'◌')+' '+(d.detail||d.action));
-      if(window._portalNotifications.length>10)window._portalNotifications.length=10;
-      $('#bellBtn .dot').style.display='block';
-    }
-  });
   $('#signout').addEventListener('click',()=>{ sessionStorage.removeItem('kreativ_client'); firebase.auth().signOut().then(()=>{ window.location.href='/kreativ-login'; }); });
 
   /* â•â•â•â•â•â•â•â• MOBILE SIDEBAR â•â•â•â•â•â•â•â• */

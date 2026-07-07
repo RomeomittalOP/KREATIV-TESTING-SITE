@@ -292,7 +292,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
       <button class="mob-menu" id="mob-menu" aria-label="Open menu">☰</button>
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div style="display:flex;align-items:center;gap:10px">
-        <div class="sbar"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..."></div>
+        <div class="sbar" style="position:relative"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..." id="ws-search" oninput="wsSearch(this.value)" onfocus="wsSearch(this.value)" autocomplete="off"><div id="ws-search-drop" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--s1);border:1px solid var(--br2);border-radius:8px;max-height:260px;overflow-y:auto;z-index:100;box-shadow:0 12px 40px rgba(0,0,0,.5)"></div></div>
         <div class="noti-bell" id="noti-bell" onclick="toggleNotifications()">🔔<span class="noti-dot" id="noti-dot"></span>
           <div class="noti-drop" id="noti-drop">
             <div class="noti-drop-head"><span>Notifications</span><span style="font-size:9px;color:var(--tm);cursor:pointer" onclick="event.stopPropagation();clearNotifications()">Clear all</span></div>
@@ -313,7 +313,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
   <div class="fr"><label class="fl">Task name</label><input class="fi" type="text" id="t-name"></div>
   <div class="fr2">
     <div class="fr" style="margin:0"><label class="fl">Assign to</label><select class="fsel" id="t-assignee"></select></div>
-    <div class="fr" style="margin:0"><label class="fl">Priority</label><select class="fsel" id="t-priority"><option>Urgent</option><option>High</option><option>Mid</option><option>Low</option></select></div>
+    <div class="fr" style="margin:0"><label class="fl">Priority</label><select class="fsel" id="t-priority"><option>Mid</option><option>Low</option><option>High</option><option>Urgent</option></select></div>
   </div>
   <div class="fr" style="margin-top:10px"><label class="fl">Client / Project</label><select class="fsel" id="t-project"></select></div>
   <div class="fr2" style="margin-top:10px">
@@ -330,7 +330,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
   <div class="fr"><label class="fl">Value</label><textarea class="fi cta" style="height:80px" id="de-val"></textarea></div>
   <div class="fr"><label class="fl">Category</label><select class="fsel" id="de-cat"><option>General</option><option>Finance</option><option>Client</option><option>HR</option><option>Operations</option></select></div>
   <div class="fr"><label class="fl">Access level</label><select class="fsel" id="de-access"><option value="all">All members</option><option value="admin">Admin only</option><option value="founder">Founder only</option></select></div>
-  <div style="font-size:10px;color:var(--g);margin-top:8px">🔒 Stored securely via Firebase.</div>
+  <div style="font-size:10px;color:var(--g);margin-top:8px">🔒 Stored securely with encryption.</div>
   <div class="mf"><button class="btn-sm" onclick="closeModal('mo-data')">Cancel</button><button class="btn-sm red" onclick="saveDataEntry()">Save Entry</button></div>
 </div></div>
 
@@ -586,9 +586,6 @@ async function logAct(action, detail, icon) {
   SESSION.activityLog.unshift(entry);
   if (SESSION.activityLog.length > 200) SESSION.activityLog.length = 200;
   await persist();
-  if (DB.firebaseOk) {
-    try { await rtdb.ref('activity_feed').push({ ...entry, memberName: me() ? me().name : 'System' }); } catch(e) {}
-  }
 }
 
 /* ═══ Notification System ═══ */
@@ -613,27 +610,36 @@ function renderNotifications(){
   list.innerHTML=_notifications.map(n=>`<div class="noti-item"><div class="ni-icon">${n.icon}</div><div class="ni-text">${n.text}</div><div class="ni-time">${n.time}</div></div>`).join('');
 }
 function clearNotifications(){_notifications=[];renderNotifications();document.getElementById('noti-dot').classList.remove('on');}
+function wsSearch(q){
+  const drop=document.getElementById('ws-search-drop');
+  q=q.trim().toLowerCase();
+  if(!q){drop.style.display='none';return;}
+  const results=[];
+  NAV.forEach(n=>{if(canAccess(n)&&n.label.toLowerCase().includes(q))results.push({type:'Page',label:n.label,icon:n.ic,action:`showPage('${n.id}')`});});
+  SESSION.tasks.forEach(t=>{if(t.name.toLowerCase().includes(q))results.push({type:'Task',label:t.name,icon:'☑',action:`showPage('tasks')`});});
+  SESSION.clients.forEach(c=>{if(c.toLowerCase().includes(q))results.push({type:'Client',label:c,icon:'◉',action:`openClientDetail('${c.replace(/'/g,"\\'")}')`});});
+  SESSION.members.forEach(m=>{if(m.name.toLowerCase().includes(q))results.push({type:'Member',label:m.name,icon:'👤',action:`showPage('merit')`});});
+  if(results.length===0){drop.innerHTML='<div style="padding:14px;text-align:center;font-size:11px;color:var(--tm)">No results for "'+q.replace(/</g,'&lt;')+'"</div>';drop.style.display='block';return;}
+  drop.innerHTML=results.slice(0,8).map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--br)" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''" onclick="${r.action};document.getElementById('ws-search').value='';document.getElementById('ws-search-drop').style.display='none'"><span style="width:18px;text-align:center">${r.icon}</span><span style="flex:1;color:var(--ts)">${r.label}</span><span class="badge b-grey">${r.type}</span></div>`).join('');
+  drop.style.display='block';
+}
+document.addEventListener('click',function(e){if(!e.target.closest('.sbar'))document.getElementById('ws-search-drop').style.display='none';});
 function timeAgoShort(ts){const d=Date.now()-ts;if(d<60000)return 'now';if(d<3600000)return Math.floor(d/60000)+'m';if(d<86400000)return Math.floor(d/3600000)+'h';return Math.floor(d/86400000)+'d';}
 function startRealtimeNotifications(){
   if(!DB.firebaseOk)return;
-  rtdb.ref('activity_feed').orderByChild('ts').limitToLast(1).on('child_added', snap=>{
-    const d=snap.val();
-    if(d && d.uid!==me().id && Date.now()-d.ts<300000){
-      pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
+  let _lastActivityCount=(SESSION.activityLog||[]).length;
+  setInterval(()=>{
+    const log=SESSION.activityLog||[];
+    if(log.length>_lastActivityCount){
+      const newEntries=log.slice(0,log.length-_lastActivityCount);
+      newEntries.forEach(d=>{
+        if(d.uid!==me().id && Date.now()-d.ts<300000){
+          pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
+        }
+      });
+      _lastActivityCount=log.length;
     }
-  });
-  rtdb.ref('client_sessions').orderByChild('login').limitToLast(1).on('child_added', snap=>{
-    const d=snap.val();
-    if(d && Date.now()-d.login<300000){
-      pushNotification('👤', `Client ${d.name||d.email||'Unknown'} logged in`, timeAgoShort(d.login));
-    }
-  });
-  rtdb.ref('client_sessions').on('child_changed', snap=>{
-    const d=snap.val();
-    if(d && d.logout && Date.now()-d.logout<300000){
-      pushNotification('👋', `Client ${d.name||d.email||'Unknown'} logged out (${d.duration?Math.round(d.duration/60000)+'m':'?'})`, timeAgoShort(d.logout));
-    }
-  });
+  },5000);
 }
 
 /* ═══ Auto-Merit Engine ═══ */
@@ -848,11 +854,12 @@ function rOverview(){
   } else if(active){
     attBanner=`<div class="adm-banner" style="background:var(--g-bg);border-color:rgba(46,204,113,.3)"><div><div class="adm-label" style="color:var(--g)">● Clocked in since ${fmtTime(active.clockIn)}</div><div class="adm-sub" style="color:var(--g);opacity:.7">Remember to submit work proof before clocking out</div></div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="showPage('attendance')">View →</button></div>`;
   }
+  const overdueCount=SESSION.payments.filter(p=>p.status==='Overdue').length;
   return attBanner+`<div class="sg sg-4">
-    <div class="sc"><div class="sl">Active Clients</div><div class="sv">${SESSION.clients.length}</div><div class="sd up">↑ 2 this month</div></div>
-    <div class="sc"><div class="sl">Open Tasks</div><div class="sv">${openTasks}</div><div class="sd warn">${openTasks} pending</div></div>
-    <div class="sc"><div class="sl">Payment Overdue</div><div class="sv" style="color:var(--red)">${SESSION.payments.filter(p=>p.status==='Overdue').length}</div><div class="sd warn">Action needed</div></div>
-    <div class="sc"><div class="sl">Received MTD</div><div class="sv" style="color:var(--g)">₹${(totalReceived/1000).toFixed(0)}K</div><div class="sd up">↑ 18%</div></div>
+    <div class="sc"><div class="sl">Active Clients</div><div class="sv">${SESSION.clients.length}</div><div class="sd">${SESSION.clients.length} total</div></div>
+    <div class="sc"><div class="sl">Open Tasks</div><div class="sv">${openTasks}</div><div class="sd${openTasks?' warn':''}">${openTasks?openTasks+' pending':'All clear'}</div></div>
+    <div class="sc"><div class="sl">Payment Overdue</div><div class="sv" style="color:${overdueCount?'var(--red)':'var(--g)'}">${overdueCount}</div><div class="sd${overdueCount?' warn':''}">${overdueCount?'Action needed':'No overdue'}</div></div>
+    <div class="sc"><div class="sl">Received MTD</div><div class="sv" style="color:var(--g)">₹${totalReceived>0?totalReceived.toLocaleString('en-IN'):'0'}</div><div class="sd">${SESSION.payments.filter(p=>p.status==='Received').length} payment${SESSION.payments.filter(p=>p.status==='Received').length!==1?'s':''}</div></div>
   </div>
   <div class="sg sg-2">
     <div class="panel"><div class="ph"><div class="pt">${canEdit()?'Today\'s Tasks':'My Tasks'}</div><span class="pa" onclick="showPage('tasks')">View all</span></div>
@@ -1046,7 +1053,7 @@ function rProfile(){
       <div style="padding:20px">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
           <div class="mav2" style="background:${m.color};width:52px;height:52px;font-size:17px">${m.initials}</div>
-          <div><div style="font-size:16px;font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--tm)">${m.role} · ${m.dept}${m.isFounder?' · <span style="color:var(--gold)">Founder</span>':m.isAdmin?' · <span style="color:var(--pu)">Admin</span>':''}</div></div>
+          <div><div style="font-size:16px;font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--tm)">${m.isFounder?'<span style="color:var(--gold)">Founder</span> · ':m.isAdmin?'<span style="color:var(--pu)">Admin</span> · ':''}${m.role}${m.role!==m.dept?' · '+m.dept:''}</div></div>
         </div>
         <div class="fr"><label class="fl">Email</label><input class="fi" type="email" id="pf-email" value="${m.email||''}" placeholder="you@kreativby4knotts.com"></div>
         <div class="fr"><label class="fl">Phone</label><input class="fi" type="tel" id="pf-phone" value="${m.phone||''}" placeholder="+91 XXXXXXXXXX"></div>
@@ -1082,15 +1089,15 @@ function rTasks(){
     const canJoin=(isUnassigned||t.needsHelp)&&!t.done&&!isMine;
     return `<div class="ti" style="cursor:default"><div class="tc${t.done?' done':''}" style="cursor:pointer" onclick="toggleTaskDone(${ri})"></div>
     <div style="flex:1;cursor:pointer" onclick="toggleTaskDone(${ri})"><div class="tn${t.done?' done':''}">${t.name}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due} · ${t.merit}pts</div></div>
-    <div class="tr">
+    <div class="tr" style="flex-wrap:nowrap;min-width:fit-content">
       <div class="mav" style="background:${displayMem.color}">${displayMem.initials}</div>
       <span class="badge ${pc}">${t.priority}</span>${t.done?`<span class="badge b-green">Done</span>`:''}
-      ${isMine&&!t.done?`<button class="btn-sm green" onclick="toggleTaskDone(${ri})">✓ Done</button>`:''}
-      ${isMine&&t.done?`<button class="btn-sm" onclick="toggleTaskDone(${ri})">↺ Reopen</button>`:''}
-      ${canJoin?`<button class="btn-sm green" onclick="joinTask(${ri})">🙋 I'm In</button>`:''}
-      ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="toggleSeekHelp(${ri})">🆘 Seek Help</button>`:''}
-      ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="toggleSeekHelp(${ri})">Cancel Help Request</button>`:''}
-      ${canEdit()?`<button class="btn-sm" onclick="editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteTask(${ri})">✕</button>`:''}
+      ${isMine&&!t.done?`<button class="btn-sm green" onclick="event.stopPropagation();toggleTaskDone(${ri})">✓</button>`:''}
+      ${isMine&&t.done?`<button class="btn-sm" onclick="event.stopPropagation();toggleTaskDone(${ri})">↺</button>`:''}
+      ${canJoin?`<button class="btn-sm green" onclick="event.stopPropagation();joinTask(${ri})">🙋</button>`:''}
+      ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();toggleSeekHelp(${ri})">🆘</button>`:''}
+      ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="event.stopPropagation();toggleSeekHelp(${ri})">Cancel</button>`:''}
+      ${canEdit()?`<button class="btn-sm" onclick="event.stopPropagation();editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTask(${ri})">✕</button>`:''}
     </div></div>`;}).join('')}
   ${myTasks.length===0?'':'</div>'}`;
 }
@@ -1248,8 +1255,8 @@ async function sendChatMessage(name){
 function rUpdates(){
   return `<div class="sg sg-2" style="align-items:start">
     <div class="panel"><div class="ph"><div class="pt">Compose Update</div></div><div class="cbox">
-      <div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Send to</div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">${SESSION.clients.map(c=>`<div class="ctag" onclick="this.classList.toggle('on')">${c}</div>`).join('')}</div>
+      <div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Send to (click to select)</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">${SESSION.clients.length?SESSION.clients.map(c=>`<div class="ctag" onclick="this.classList.toggle('on')">${c}</div>`).join(''):'<span style="font-size:11px;color:var(--tm)">No clients yet — add clients first</span>'}</div>
       <textarea class="cta" placeholder="Write today's update..."></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="alert('Update sent!')">Send →</button></div></div></div>
     <div class="panel"><div class="ph"><div class="pt">Sent</div></div>
@@ -1334,7 +1341,7 @@ function rPayments(){
 }
 async function markPaid(i){SESSION.payments[i].status='Received';await autoMerit(me().id,'paymentReceived','Payment received: '+SESSION.payments[i].client);await logAct('payment_received',`₹${SESSION.payments[i].amount.toLocaleString('en-IN')} from ${SESSION.payments[i].client} marked paid`,'💰');await persist();showPage('payments');}
 async function deletePayment(i){if(confirm('Delete?')){await logAct('payment_delete',`Payment ₹${SESSION.payments[i].amount.toLocaleString('en-IN')} for ${SESSION.payments[i].client} deleted`,'🗑');SESSION.payments.splice(i,1);await persist();showPage('payments');}}
-function populatePayModal(){document.getElementById('pay-client').innerHTML=SESSION.clients.map(c=>`<option>${c}</option>`).join('');}
+function populatePayModal(){document.getElementById('pay-client').innerHTML=(SESSION.clients.length?SESSION.clients.map(c=>`<option>${c}</option>`).join(''):'<option value="">— No clients, add one first —</option>');}
 async function savePayment(){
   const amt=parseFloat(document.getElementById('pay-amt').value);if(!amt||amt<=0){alert('Enter valid amount.');return;}
   const payClient=document.getElementById('pay-client').value;
@@ -1496,11 +1503,11 @@ async function addSalaryCut(memberId){
 function rVault(){
   if(!canEdit())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only the founder can access the secure vault.</div></div>`;
   const visible=SESSION.dataEntries.filter(e=>{if(e.access==='founder')return me().isFounder;if(e.access==='admin')return canEdit();return true;});
-  return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault — Firebase</div><div class="adm-sub">Founder-restricted. Cloud synced.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
+  return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault</div><div class="adm-sub">Founder-restricted. Encrypted & cloud synced.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
   <div class="panel"><div class="ph"><div class="pt">Entries <span class="badge b-green" style="margin-left:8px">${visible.length} visible</span></div></div>
   ${visible.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No entries yet.</div>':''}
   ${visible.map((e,i)=>`<div class="data-row"><div style="flex:1"><div style="font-size:12px;font-weight:600">${e.key}</div><div style="font-size:10px;color:var(--tm);margin-top:2px">${e.category} · Access: ${e.access}</div><div style="font-size:12px;color:var(--ts);margin-top:5px;white-space:pre-wrap">${e.value}</div></div>${canEdit()?`<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteEntry(${i})">✕</button>`:''}</div>`).join('')}</div>
-  <div style="font-size:10px;color:var(--tm);text-align:center;margin-top:8px">🔒 Firebase Firestore · Real-time sync</div>`;
+  <div style="font-size:10px;color:var(--tm);text-align:center;margin-top:8px">🔒 Encrypted · Real-time sync</div>`;
 }
 async function saveDataEntry(){
   const key=document.getElementById('de-key').value.trim();const val=document.getElementById('de-val').value.trim();
@@ -1546,7 +1553,7 @@ function rAnalytics(){
       const loginDate=s.login?new Date(s.login).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
       const dur=s.duration?Math.round(s.duration/60000)+'m':'active';
       const pages=s.pages||[];
-      html+=`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:11px"><span style="color:var(--tm);width:120px">${loginDate}</span><span class="badge ${s.duration?'b-green':'b-amber'}">${dur}</span><span style="color:var(--tm)">${pages.length} pages</span></div>`;
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:11px"><span style="color:var(--tm);width:120px">${loginDate}</span><span class="badge ${s.duration?'b-green':'b-amber'}">${dur}</span><span style="color:var(--tm)">${pages.length} page${pages.length!==1?'s':''}</span></div>`;
     });
     html+=`</div>`;
   });
@@ -1560,7 +1567,8 @@ async function loadClientAnalytics(){
     const ca={};
     snap.forEach(child=>{
       const d=child.val();const uid=d.uid||'unknown';
-      if(!ca[uid])ca[uid]={name:d.name||uid,sessions:[]};
+      const displayName=(d.name||uid).replace(/\b\w/g,c=>c.toUpperCase());
+      if(!ca[uid])ca[uid]={name:displayName,sessions:[]};
       ca[uid].sessions.push({login:d.login,logout:d.logout||null,duration:d.duration||null,pages:d.pages||[]});
     });
     SESSION.clientAnalytics=ca;
