@@ -527,6 +527,7 @@ async function boot() {
     loadClientAnalytics();
     loadCloudFiles();
     startRealtimeNotifications();
+    setupAutoClockOut();
     setInterval(checkOverdueTasks, 600000);
   });
 }
@@ -1005,8 +1006,17 @@ async function clockIn(){
   await autoMerit(me().id,'clockInOnTime','Clocked in');
   await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
   await persist();
+  setupAutoClockOut();
   showPage('attendance');
   startLiveTimer();
+}
+function setupAutoClockOut(){
+  if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){}}
+  const idx=SESSION.attendance.findIndex(a=>a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
+  if(idx===-1||!DB.firebaseOk)return;
+  const ref=rtdb.ref('workspace/workspace_data/attendance/'+idx);
+  window._autoClockOutRef=ref.onDisconnect();
+  window._autoClockOutRef.update({clockOut:firebase.database.ServerValue.TIMESTAMP,proofText:'[Auto clock-out — disconnected]'});
 }
 function startLiveTimer(){
   const t=myActiveSession();
@@ -1024,6 +1034,7 @@ async function submitClockOut(){
   const fileInput=document.getElementById('co-file');
   const active=myActiveSession();
   if(!active){alert('No active clock-in found.');return;}
+  if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){} window._autoClockOutRef=null;}
   active.clockOut=Date.now();
   await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(active.clockOut-active.clockIn)})`,'🔚');
   active.proofText=proofText;
@@ -1039,15 +1050,6 @@ async function submitClockOut(){
   document.getElementById('co-file').value='';
   showPage('attendance');
 }
-
-function autoClockOut(){
-  const active=myActiveSession();
-  if(!active||!DB.firebaseOk)return;
-  active.clockOut=Date.now();
-  active.proofText=(active.proofText?active.proofText+' | ':'')+'[Auto clock-out — browser closed]';
-  try{rtdb.ref('workspace/workspace_data/attendance').set(SESSION.attendance);}catch(e){}
-}
-window.addEventListener('beforeunload',autoClockOut);
 
 function viewProof(uid){
   const sessions=SESSION.attendance.filter(a=>a.uid===uid&&a.date===todayKey()&&a.proofText);
