@@ -1,0 +1,24 @@
+# Kreativ by 4Knotts
+
+> Kreativ by 4Knotts is a full-stack tech + creative agency based in Delhi, India, offering brand strategy, content/story, design, and digital (web + social) services. The agency builds its own tools in-house rather than relying on off-the-shelf software.
+
+Kreativ works across four pillars: **Strategy** (positioning, naming, brand architecture), **Story** (narrative, copywriting, content systems), **Design** (identity, typography, motion), and **Digital** (web development, social media, campaign launch). Kreativ also develops its own AI-powered tools in-house, including a full-stack platform (React/Vite frontend, Node/Express API) with OTP authentication, a dynamic pricing engine, a project-briefing wizard, and AI creative tooling built on the Claude API.
+
+## Services
+- Branding & Identity
+- Website / Web App Development
+- Social Media Marketing
+- Video Production
+- AI Solutions
+
+## Location
+Delhi, India. Available for remote and in-person projects.
+
+## Contact
+- Email: interact@kreativby4knotts.com
+- Instagram: https://www.instagram.com/kreativby4knotts
+- LinkedIn: https://www.linkedin.com/company/kreativ-by-4knotts
+
+## Pages
+- [Homepage](https://kreativby4knotts.com): Services, pillars, AI Lab projects, and process overview
+- [Contact](https://kreativby4knotts.com/#cta): Enquiry form and direct contact details

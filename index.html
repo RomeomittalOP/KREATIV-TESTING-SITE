@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Kreativ — Tech + Creative Agency by 4 Knotts. Premium web development, AI products, brand strategy, social media and campaign direction — built for brands that matter.">
+<meta name="description" content="Kreativ by 4Knotts is a branding, web development, and AI product studio based in Delhi, India — offering brand strategy, design, and full-stack digital services for brands that matter.">
 <meta property="og:title" content="Kreativ — Tech + Creative Agency by 4 Knotts">
 <meta property="og:description" content="Premium web development, AI products, brand strategy, social media and campaign direction — built for brands that matter.">
 <meta property="og:type" content="website">
@@ -390,6 +390,27 @@ html.light .marquee { background: #0C0C0C; color: #F5F5F5; }
 .section--light .pstep-desc { color: var(--bone-d); }
 @media (max-width: 700px){ .pstep { grid-template-columns: 50px 1fr; } .pstep-desc { display: none; } }
 
+/* ── GEO: ABOUT BLOCK ── */
+.geo-about { padding: clamp(4rem,8vh,6rem) clamp(1.2rem,4vw,3rem); max-width: 900px; margin: 0 auto; text-align: center; }
+.geo-about h2 { font-family: var(--f-disp); font-size: clamp(2rem,5vw,3.5rem); letter-spacing: 0.02em; margin-bottom: 1.2rem; color: var(--white); }
+.geo-about p { font-size: clamp(0.95rem,1.8vw,1.1rem); color: var(--bone); line-height: 1.75; }
+.section--light .geo-about p { color: var(--bone-d); }
+
+/* ── GEO: FAQ ── */
+.geo-faq { padding: clamp(4rem,8vh,6rem) clamp(1.2rem,4vw,3rem); max-width: 900px; margin: 0 auto; }
+.geo-faq h2 { font-family: var(--f-disp); font-size: clamp(2rem,5vw,3.5rem); letter-spacing: 0.02em; margin-bottom: 2rem; text-align: center; color: var(--white); }
+.faq-item { border-bottom: 1px solid rgba(245,245,245,0.1); padding: 1.4rem 0; }
+.faq-item:first-of-type { border-top: 1px solid rgba(245,245,245,0.1); }
+.faq-q { font-family: var(--f-body); font-weight: 600; font-size: 1rem; color: var(--white); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; background: none; border: none; width: 100%; text-align: left; padding: 0; }
+.faq-q::after { content: '+'; font-family: var(--f-mono); font-size: 1.3rem; color: var(--red); flex-shrink: 0; transition: transform 0.3s var(--ease); }
+.faq-q[aria-expanded="true"]::after { content: '−'; }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s var(--ease), padding 0.3s var(--ease); }
+.faq-a p { font-size: 0.92rem; color: var(--bone); line-height: 1.7; padding-top: 0.8rem; }
+.faq-a.open { max-height: 300px; }
+.section--light .faq-item { border-color: rgba(5,5,5,0.12); }
+.section--light .faq-q { color: var(--pitch); }
+.section--light .faq-a p { color: var(--bone-d); }
+
 /* ── CONTACT (terminal + social hybrid) ── */
 .contact { position: relative; min-height: 100svh; display: flex; align-items: center; overflow: hidden; padding: clamp(5rem,12vh,9rem) clamp(1.2rem,4vw,3rem); }
 #cta-canvas { position: absolute; inset: 0; z-index: 1; }
@@ -490,6 +511,147 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18267937050"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-18267937050');</script>
+<!-- GEO: Organization schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Kreativ by 4Knotts",
+  "alternateName": "Kreativ",
+  "url": "https://kreativby4knotts.com",
+  "logo": "https://kreativby4knotts.com/logo.png",
+  "email": "interact@kreativby4knotts.com",
+  "sameAs": [
+    "https://www.instagram.com/kreativby4knotts",
+    "https://www.linkedin.com/company/kreativ-by-4knotts"
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Delhi",
+    "addressCountry": "IN"
+  }
+}
+</script>
+<!-- GEO: ProfessionalService schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "Kreativ by 4Knotts",
+  "image": "https://kreativby4knotts.com/logo.png",
+  "url": "https://kreativby4knotts.com",
+  "email": "interact@kreativby4knotts.com",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Delhi",
+    "addressRegion": "Delhi",
+    "addressCountry": "IN"
+  },
+  "areaServed": [
+    { "@type": "City", "name": "Delhi" },
+    { "@type": "Country", "name": "India" }
+  ],
+  "sameAs": [
+    "https://www.instagram.com/kreativby4knotts",
+    "https://www.linkedin.com/company/kreativ-by-4knotts"
+  ],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Services",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Branding & Identity",
+          "description": "Positioning, naming, brand architecture, visual identity, typography, and motion design."
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Website / Web App Development",
+          "description": "Full-stack web development including React/Vite frontends and Node/Express APIs."
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Social Media Marketing",
+          "description": "Social media strategy, content systems, and campaign direction."
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Video Production",
+          "description": "Video content production for brand and campaign launches."
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "AI Solutions",
+          "description": "Custom AI-powered tools and creative operations, including Claude API integrations."
+        }
+      }
+    ]
+  }
+}
+</script>
+<!-- GEO: FAQPage schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What does Kreativ by 4Knotts do?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Kreativ by 4Knotts is a full-stack tech and creative agency offering brand strategy, story/copywriting, design, and digital services (web development, social media, and campaign launch), and builds its own in-house tools rather than relying on off-the-shelf software."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where is Kreativ by 4Knotts located?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Kreativ by 4Knotts is based in Delhi, India, and works with clients both remotely and in person."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Kreativ by 4Knotts build AI tools in-house?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Kreativ builds its own full-stack platform in-house (React/Vite frontend, Node/Express API), including AI-powered creative tooling built on the Claude API, rather than using third-party agency software."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What services does Kreativ by 4Knotts offer?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Kreativ offers branding and identity, website and web app development, social media marketing, video production, and AI solutions."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How can I contact Kreativ by 4Knotts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Kreativ by 4Knotts can be reached at interact@kreativby4knotts.com, or via the enquiry form on their website, Instagram, or LinkedIn."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -573,6 +735,14 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     <div class="pill b">Explore</div>
   </div>
 </header>
+
+<!-- GEO: ABOUT -->
+<section class="section" id="about-kreativ">
+  <div class="geo-about r">
+    <h2>What is Kreativ by 4Knotts?</h2>
+    <p><strong>Kreativ by 4Knotts</strong> is a full-stack tech and creative agency based in Delhi, India. We work across four pillars — Strategy, Story, Design, and Digital — and build our own tools in-house, including a full-stack web platform and AI-powered creative tooling, rather than relying on off-the-shelf agency software. We work with brands on branding &amp; identity, website and web app development, social media marketing, video production, and AI solutions.</p>
+  </div>
+</section>
 
 <!-- â•â•â• MANIFESTO â•â•â• -->
 <section class="section" id="manifesto">
@@ -751,6 +921,34 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
       <div class="pstep r"><div class="pstep-num">02</div><div class="pstep-title">Sharpen</div><div class="pstep-desc">Strategy and story define the single thing worth saying.</div></div>
       <div class="pstep r"><div class="pstep-num">03</div><div class="pstep-title">Shape</div><div class="pstep-desc">Design and identity give the signal a face people remember.</div></div>
       <div class="pstep r"><div class="pstep-num">04</div><div class="pstep-title">Broadcast</div><div class="pstep-desc">Web, content, and launch put it in front of the right room.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- GEO: FAQ -->
+<section class="section" id="faq">
+  <div class="geo-faq">
+    <div class="section-eyebrow r">Frequently asked</div>
+    <h2 class="r r-d1">FAQ</h2>
+    <div class="faq-item r">
+      <button class="faq-q" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');this.nextElementSibling.classList.toggle('open')">What does Kreativ by 4Knotts do?</button>
+      <div class="faq-a"><p>Kreativ by 4Knotts is a full-stack tech and creative agency offering brand strategy, story/copywriting, design, and digital services (web development, social media, and campaign launch), and builds its own in-house tools rather than relying on off-the-shelf software.</p></div>
+    </div>
+    <div class="faq-item r">
+      <button class="faq-q" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');this.nextElementSibling.classList.toggle('open')">Where is Kreativ by 4Knotts located?</button>
+      <div class="faq-a"><p>Kreativ by 4Knotts is based in Delhi, India, and works with clients both remotely and in person.</p></div>
+    </div>
+    <div class="faq-item r">
+      <button class="faq-q" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');this.nextElementSibling.classList.toggle('open')">Does Kreativ by 4Knotts build AI tools in-house?</button>
+      <div class="faq-a"><p>Yes. Kreativ builds its own full-stack platform in-house (React/Vite frontend, Node/Express API), including AI-powered creative tooling built on the Claude API, rather than using third-party agency software.</p></div>
+    </div>
+    <div class="faq-item r">
+      <button class="faq-q" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');this.nextElementSibling.classList.toggle('open')">What services does Kreativ by 4Knotts offer?</button>
+      <div class="faq-a"><p>Kreativ offers branding and identity, website and web app development, social media marketing, video production, and AI solutions.</p></div>
+    </div>
+    <div class="faq-item r">
+      <button class="faq-q" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');this.nextElementSibling.classList.toggle('open')">How can I contact Kreativ by 4Knotts?</button>
+      <div class="faq-a"><p>Kreativ by 4Knotts can be reached at interact@kreativby4knotts.com, or via the enquiry form on their website, Instagram, or LinkedIn.</p></div>
     </div>
   </div>
 </section>
