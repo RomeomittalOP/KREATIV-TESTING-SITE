@@ -469,6 +469,8 @@ const DB = {
       SESSION.clientMeta = val.clientMeta || SESSION.clientMeta;
       SESSION.attendanceDeductions = val.attendanceDeductions || SESSION.attendanceDeductions;
       SESSION.attendanceRequests = val.attendanceRequests || SESSION.attendanceRequests;
+      SESSION.dailyTargets = val.dailyTargets || SESSION.dailyTargets;
+      if (!SESSION.user) return;
       SESSION.user = SESSION.members.find(m => m.id === SESSION.user.id) || SESSION.user;
       buildSidebar();
       showPage(_currentPage);
@@ -852,6 +854,7 @@ function memberTotalMsToday(uid){
   return completed+(active?Date.now()-active.clockIn:0);
 }
 function getDailyEntry(uid){
+  if(!Array.isArray(SESSION.dailyTargets)) SESSION.dailyTargets=[];
   const today=todayKey();
   let e=SESSION.dailyTargets.find(e=>e.uid===uid&&e.date===today);
   if(!e){e={uid,date:today,incentiveMs:0,over5hMeritGranted:false};SESSION.dailyTargets.push(e);}
