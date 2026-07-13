@@ -1030,8 +1030,6 @@ footer { position: relative; z-index: 2; background: var(--ink); padding: clamp(
     fetch('https://ipapi.co/json/',{mode:'cors'}).then(r=>r.json()).then(d=>{
       if(d.city){
         cityCode=d.city.substring(0,3).toUpperCase();
-        const eyebrow=document.querySelector('.hero-eyebrow span');
-        if(eyebrow) eyebrow.textContent='Full-Stack Creative Agency · '+d.city+', '+d.region_code;
         tick();
       }
     }).catch(()=>{});

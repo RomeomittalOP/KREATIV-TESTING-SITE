@@ -1039,6 +1039,16 @@ async function submitClockOut(){
   document.getElementById('co-file').value='';
   showPage('attendance');
 }
+
+function autoClockOut(){
+  const active=myActiveSession();
+  if(!active||!DB.firebaseOk)return;
+  active.clockOut=Date.now();
+  active.proofText=(active.proofText?active.proofText+' | ':'')+'[Auto clock-out — browser closed]';
+  try{rtdb.ref('workspace/workspace_data/attendance').set(SESSION.attendance);}catch(e){}
+}
+window.addEventListener('beforeunload',autoClockOut);
+
 function viewProof(uid){
   const sessions=SESSION.attendance.filter(a=>a.uid===uid&&a.date===todayKey()&&a.proofText);
   if(!sessions.length)return;
