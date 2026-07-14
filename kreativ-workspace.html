@@ -815,7 +815,9 @@ const DAILY_TARGET_MS = 5 * 3600000;
 function memberTotalMsToday(uid){
   const completed=(SESSION.attendance||[]).filter(a=>a&&a.uid===uid&&a.date===todayKey()&&a.clockIn&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);
   const active=(SESSION.attendance||[]).find(a=>a&&a.uid===uid&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
-  return completed+(active?Date.now()-active.clockIn:0);
+  const entry=SESSION.dailyTargets&&SESSION.dailyTargets.find(e=>e&&e.uid===uid&&e.date===todayKey());
+  const adj=entry&&entry.adjustmentMs?entry.adjustmentMs:0;
+  return Math.max(0,completed+(active?Date.now()-active.clockIn:0)+adj);
 }
 function getDailyEntry(uid){
   if(!Array.isArray(SESSION.dailyTargets)) SESSION.dailyTargets=[];
@@ -1198,21 +1200,62 @@ function rAttendance(){
       ${a.proofText?'<span class="badge b-green">Proof ✓</span>':a.clockOut?'<span class="badge b-amber">No proof</span>':''}</div>`;
   });
   html+=`</div>`;
+  if(me().isFounder){
+    const pendingProofs=SESSION.approvals.filter(a=>a.type==='clockout_proof'&&a.status==='pending');
+    html+=`<div class="adm-banner" style="margin-top:14px"><div><div class="adm-label">⚙ Founder — Attendance Controls</div><div class="adm-sub">Approve clock-outs · adjust hours · grant incentive</div></div>${pendingProofs.length?`<span class="badge b-red">${pendingProofs.length} pending</span>`:''}</div>`;
+    if(pendingProofs.length){
+      html+=`<div class="panel" style="margin-bottom:14px;border:1px solid var(--a-br)"><div class="ph"><div class="pt">📋 Pending Clock-Out Approvals</div><span class="badge b-amber">${pendingProofs.length}</span></div>`;
+      pendingProofs.forEach(ap=>{
+        const mem=SESSION.members.find(m=>m.id===ap.uid)||{name:'Unknown',initials:'?',color:'#666'};
+        html+=`<div class="ar" style="flex-wrap:wrap;gap:10px">
+          <div class="ai" style="background:${mem.color}22">${mem.initials}</div>
+          <div class="ainfo" style="flex:1;min-width:180px">
+            <div class="at">${mem.name.split(' ')[0]} · ${fmtTime(ap.clockIn)} → ${fmtTime(ap.clockOut)} · <strong>${fmtDur(ap.duration)}</strong></div>
+            <div class="as2" style="margin-top:3px">${ap.proofText}</div>
+            ${ap.proofFileName?`<div class="as2">📎 ${ap.proofFileName}</div>`:''}
+          </div>
+          <div class="aact"><button class="b-ok" onclick="approveClockoutProof('${ap.id}')">✓ Approve</button><button class="b-no" onclick="rejectClockoutProof('${ap.id}')">✕ Reject</button></div>
+        </div>`;
+      });
+      html+=`</div>`;
+    } else {
+      html+=`<div class="panel" style="margin-bottom:14px"><div style="padding:14px 16px;font-size:12px;color:var(--tm)">No pending clock-out approvals.</div></div>`;
+    }
+    const nonFounders=SESSION.members.filter(m=>!m.isFounder);
+    const memberOpts=nonFounders.map(m=>`<option value="${m.id}">${m.name.split(' ')[0]}</option>`).join('');
+    html+=`<div class="sg sg-2" style="margin-bottom:14px">
+      <div class="panel"><div class="ph"><div class="pt">⏱ Adjust Hours</div></div><div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;color:var(--tm)">Add or subtract minutes from a member's total today</div>
+        <select class="fi" id="adj-member" style="margin:0"><option value="">Select member</option>${memberOpts}</select>
+        <div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" id="adj-mins" placeholder="+30 or -15 mins" style="margin:0;flex:1"><button class="btn-sm red" onclick="adjustAttHours()">Apply</button></div>
+      </div></div>
+      <div class="panel"><div class="ph"><div class="pt">⭐ Grant Incentive</div></div><div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;color:var(--tm)">Manually grant free/incentive hours to a member</div>
+        <select class="fi" id="inc-member" style="margin:0"><option value="">Select member</option>${memberOpts}</select>
+        <div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" id="inc-hrs" placeholder="e.g. 1.5 hours" step="0.5" min="0.5" style="margin:0;flex:1"><button class="btn-sm gold" onclick="grantManualIncentive()">Grant</button></div>
+      </div></div>
+    </div>`;
+  }
   if(adm){
-    html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Team Attendance</div><div class="adm-sub">Live status across all members</div></div></div>`;
+    html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Team Status Today</div><div class="adm-sub">Live clock-in status across all members</div></div></div>`;
     html+=`<div class="panel"><div class="ph"><div class="pt">Team Status — Today</div></div>`;
     SESSION.members.forEach(m=>{
       const mActive=(SESSION.attendance||[]).find(a=>a&&a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
       const mSessions=(SESSION.attendance||[]).filter(a=>a&&a.uid===m.id&&a.date===todayKey());
       const mDone=mSessions.filter(a=>a.clockOut);
       const mTotal=mDone.reduce((s,a)=>s+(a.clockOut-a.clockIn),0);
+      const mEntry=SESSION.dailyTargets&&SESSION.dailyTargets.find(e=>e&&e.uid===m.id&&e.date===todayKey());
       let statusBadge,statusText;
       if(mSessions.length===0){statusBadge='b-grey';statusText='Not clocked in';}
       else if(mActive){statusBadge='b-green';statusText='● Active since '+fmtTime(mActive.clockIn)+(mDone.length?' · '+fmtDur(mTotal)+' prior':'');}
       else{statusBadge='b-blue';statusText=mDone.length+' session'+(mDone.length!==1?'s':'')+' · '+fmtDur(mTotal);}
+      const pendingBadge=mSessions.some(a=>a.pendingApproval)?'<span class="badge b-amber" style="margin-left:6px">⏳ Pending</span>':'';
+      const incMs=mEntry&&mEntry.incentiveMs?mEntry.incentiveMs:0;
+      const adjMs=mEntry&&mEntry.adjustmentMs?mEntry.adjustmentMs:0;
       html+=`<div class="ar"><div class="ai" style="background:${m.color}22">${m.initials}</div>
-        <div class="ainfo"><div class="at">${m.name}</div><div class="as2">${statusText}</div></div>
-        <span class="badge ${statusBadge}">${mActive?'Active':mDone.length?'Complete':'Pending'}</span></div>`;
+        <div class="ainfo"><div class="at">${m.name}${pendingBadge}</div>
+        <div class="as2">${statusText}${adjMs?` · Adj: ${adjMs>0?'+':''}${Math.round(adjMs/60000)}m`:''}${incMs?` · Incentive: ${fmtDur(incMs)}`:''}</div></div>
+        <span class="badge ${statusBadge}">${mActive?'Active':mDone.length?'Done':'Absent'}</span></div>`;
     });
     html+=`</div>`;
   }
@@ -1281,22 +1324,78 @@ async function submitClockOut(){
   if(!active){alert('No active clock-in found.');return;}
   if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){} window._autoClockOutRef=null;}
   active.clockOut=Date.now();
-  await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(active.clockOut-active.clockIn)})`,'🔚');
   active.proofText=proofText;
-  if(fileInput.files[0]){
+  active.pendingApproval=true;
+  if(fileInput&&fileInput.files[0]){
     const f=fileInput.files[0];
     if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
     active.proofFileName=f.name;
     active.proofFileData=await fileToBase64(f);
   }
-  await persist();
-  await checkOver5hMerit(me().id);
+  // Founder clocks out → skip approval, award immediately
+  if(me().isFounder){
+    active.pendingApproval=false;
+    await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(active.clockOut-active.clockIn)})`,'🔚');
+    await persist();
+    await checkOver5hMerit(me().id);
+  } else {
+    SESSION.approvals.push({
+      id:'cop'+Date.now(),type:'clockout_proof',uid:me().id,
+      clockIn:active.clockIn,clockOut:active.clockOut,
+      duration:active.clockOut-active.clockIn,
+      proofText,proofFileName:active.proofFileName||'',proofFileData:active.proofFileData||'',
+      date:todayKey(),status:'pending',submittedAt:Date.now()
+    });
+    await logAct('clock_out',`${me().name.split(' ')[0]} clocked out — awaiting founder approval`,'🔚','shubhrat');
+    await persist();
+  }
   closeModal('mo-clockout');
   document.getElementById('co-text').value='';
-  document.getElementById('co-file').value='';
+  if(fileInput)document.getElementById('co-file').value='';
   showPage('attendance');
 }
 
+async function approveClockoutProof(id){
+  const ap=SESSION.approvals.find(a=>a.id===id);if(!ap)return;
+  ap.status='approved';ap.approvedBy=me().id;ap.approvedAt=Date.now();
+  const rec=(SESSION.attendance||[]).find(a=>a&&a.uid===ap.uid&&a.clockIn===ap.clockIn);
+  if(rec){rec.pendingApproval=false;rec.approved=true;}
+  await checkOver5hMerit(ap.uid);
+  const mem=SESSION.members.find(m=>m.id===ap.uid);
+  await logAct('clockout_approved',`${me().name.split(' ')[0]} approved clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'✅',ap.uid);
+  await persist();showPage('attendance');
+}
+async function rejectClockoutProof(id){
+  const ap=SESSION.approvals.find(a=>a.id===id);if(!ap)return;
+  ap.status='rejected';ap.rejectedBy=me().id;
+  const rec=(SESSION.attendance||[]).find(a=>a&&a.uid===ap.uid&&a.clockIn===ap.clockIn);
+  if(rec){rec.pendingApproval=false;rec.approved=false;}
+  const mem=SESSION.members.find(m=>m.id===ap.uid);
+  await logAct('clockout_rejected',`${me().name.split(' ')[0]} rejected clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'❌',ap.uid);
+  await persist();showPage('attendance');
+}
+async function adjustAttHours(){
+  const uid=document.getElementById('adj-member').value;
+  const mins=parseInt(document.getElementById('adj-mins').value)||0;
+  if(!uid||mins===0){alert('Select a member and enter non-zero minutes.');return;}
+  const entry=getDailyEntry(uid);
+  entry.adjustmentMs=(entry.adjustmentMs||0)+(mins*60000);
+  const mem=SESSION.members.find(m=>m.id===uid);
+  await logAct('att_adjust',`${me().name.split(' ')[0]} adjusted ${mem?mem.name.split(' ')[0]:'?'}\'s hours by ${mins>0?'+':''}${mins} min`,'⚙');
+  await checkOver5hMerit(uid);
+  await persist();document.getElementById('adj-mins').value='';showPage('attendance');
+}
+async function grantManualIncentive(){
+  const uid=document.getElementById('inc-member').value;
+  const hrs=parseFloat(document.getElementById('inc-hrs').value)||0;
+  if(!uid||hrs<=0){alert('Select a member and enter hours > 0.');return;}
+  const entry=getDailyEntry(uid);
+  entry.incentiveMs=(entry.incentiveMs||0)+(hrs*3600000);
+  const mem=SESSION.members.find(m=>m.id===uid);
+  await autoMerit(uid,'over5h',`Manual incentive granted by ${me().name.split(' ')[0]}`);
+  await logAct('manual_incentive',`${me().name.split(' ')[0]} granted ${hrs}h incentive to ${mem?mem.name.split(' ')[0]:'?'}`,'⭐',uid);
+  await persist();document.getElementById('inc-hrs').value='';showPage('attendance');
+}
 function viewProof(uid){
   const sessions=(SESSION.attendance||[]).filter(a=>a&&a.uid===uid&&a.date===todayKey()&&a.proofText);
   if(!sessions.length)return;
@@ -1587,7 +1686,7 @@ function rApprovals(){
   const isAdm=canEdit();
   const allPending=SESSION.approvals.filter(a=>a.status==='pending');
   const taskProofPending=allPending.filter(a=>a.type==='task_proof');
-  const pending=allPending.filter(a=>a.type!=='task_proof');
+  const pending=allPending.filter(a=>a.type!=='task_proof'&&a.type!=='clockout_proof');
   const myTaskProofs=taskProofPending.filter(a=>a.uid===me().id);
   const myPending=pending.filter(a=>a.requestedBy===me().id);
   const resolved=SESSION.approvals.filter(a=>a.status==='approved'||a.status==='rejected');
