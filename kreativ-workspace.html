@@ -602,8 +602,10 @@ async function persist() {
 }
 
 /* ═══ Activity Logger ═══ */
-async function logAct(action, detail, icon) {
+async function logAct(action, detail, icon, notifyUid=null, notifyRole=null) {
   const entry = { ts: Date.now(), uid: me() ? me().id : 'system', action, detail, icon: icon || '◌' };
+  if(notifyUid) entry.notifyUid = notifyUid;
+  if(notifyRole) entry.notifyRole = notifyRole;
   SESSION.activityLog.unshift(entry);
   if (SESSION.activityLog.length > 200) SESSION.activityLog.length = 200;
   await persist();
@@ -655,7 +657,9 @@ function startRealtimeNotifications(){
       const newEntries=log.slice(0,log.length-_lastActivityCount);
       newEntries.forEach(d=>{
         if(d.uid!==me().id && Date.now()-d.ts<300000){
-          pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
+          const hasTarget=d.notifyUid||d.notifyRole;
+          const forMe=!hasTarget||(d.notifyUid&&d.notifyUid===me().id)||(d.notifyRole==='admin'&&isAdmin());
+          if(forMe)pushNotification(d.icon||'◌', d.detail||d.action, timeAgoShort(d.ts));
         }
       });
       _lastActivityCount=log.length;
@@ -1419,47 +1423,85 @@ function rTasks(){
     const displayMem=mem||{initials:'—',color:'#444',name:'Unassigned'};
     const pc=t.priority==='Urgent'||t.priority==='High'?'b-red':t.priority==='Mid'?'b-amber':'b-blue';
     const isMine=t.assignee===me().id;
-    const canJoin=(isUnassigned||t.needsHelp)&&!t.done&&!isMine;
-    return `<div class="ti" style="cursor:default"><div class="tc${t.done?' done':''}" style="cursor:pointer" onclick="toggleTaskDone(${ri})"></div>
-    <div style="flex:1;cursor:pointer" onclick="toggleTaskDone(${ri})"><div class="tn${t.done?' done':''}">${t.isDaily?'<span class="badge b-blue" style="font-size:9px;margin-right:4px">📅 Daily</span>':''}${t.name}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due} · ${t.merit}pts</div></div>
+    const isPending=t.pendingProof&&!t.done;
+    const canJoin=(isUnassigned||t.needsHelp)&&!t.done&&!isPending&&!isMine;
+    return `<div class="ti" style="cursor:default">
+    <div class="tc${t.done?' done':''}" style="cursor:default;${isPending?'border-color:var(--a)':''}"></div>
+    <div style="flex:1"><div class="tn${t.done?' done':''}">${t.isDaily?'<span class="badge b-blue" style="font-size:9px;margin-right:4px">📅 Daily</span>':''}${t.name}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due} · ${t.merit}pts</div></div>
     <div class="tr" style="flex-wrap:nowrap;min-width:fit-content">
       <div class="mav" style="background:${displayMem.color}">${displayMem.initials}</div>
-      <span class="badge ${pc}">${t.priority}</span>${t.done?`<span class="badge b-green">Done</span>`:''}
-      ${isMine&&!t.done?`<button class="btn-sm green" onclick="event.stopPropagation();toggleTaskDone(${ri})">✓</button>`:''}
-      ${isMine&&t.done?`<button class="btn-sm" onclick="event.stopPropagation();toggleTaskDone(${ri})">↺</button>`:''}
+      <span class="badge ${pc}">${t.priority}</span>
+      ${t.done?`<span class="badge b-green">✅ Done</span>`:''}
+      ${isPending?`<span class="badge b-amber">⏳ Review</span>`:''}
+      ${isMine&&!t.done&&!isPending&&me().isFounder?`<button class="btn-sm green" onclick="event.stopPropagation();directMarkDone(${ri})">✓ Done</button>`:''}
+      ${isMine&&!t.done&&!isPending&&!me().isFounder?`<button class="btn-sm red" onclick="event.stopPropagation();openTaskProofModal(${ri})">📎 Submit Proof</button>`:''}
+      ${t.done&&canEdit()?`<button class="btn-sm" onclick="event.stopPropagation();reopenTask(${ri})">↺ Reopen</button>`:''}
       ${canJoin?`<button class="btn-sm green" onclick="event.stopPropagation();joinTask(${ri})">🙋</button>`:''}
-      ${isMine&&!t.done&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();toggleSeekHelp(${ri})">🆘</button>`:''}
+      ${isMine&&!t.done&&!isPending&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();toggleSeekHelp(${ri})">🆘</button>`:''}
       ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="event.stopPropagation();toggleSeekHelp(${ri})">Cancel</button>`:''}
       ${canEdit()?`<button class="btn-sm" onclick="event.stopPropagation();editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTask(${ri})">✕</button>`:''}
     </div></div>`;}).join('')}
   ${myTasks.length===0?'':'</div>'}`;
 }
-async function toggleTaskDone(i){
-  const t=SESSION.tasks[i]; t.done=!t.done;
-  if(t.done){
-    const today=todayKey();const isLate=t.due&&t.due!=='TBD'&&t.due<today;
-    await autoMerit(t.assignee, isLate?'taskDoneLate':'taskDoneOnTime', `Completed: "${t.name}"${isLate?' (late)':''}`);
-    await logAct('task_done', `"${t.name}" completed by ${(SESSION.members.find(m=>m.id===t.assignee)||{name:'?'}).name.split(' ')[0]}`, '☑');
-    if(t.isDaily&&t.assignee){
-      const mem=SESSION.members.find(m=>m.id===t.assignee);
-      if(mem&&!mem.isFounder){
-        const totalMs=memberTotalMsToday(t.assignee);
-        if(totalMs<DAILY_TARGET_MS){
-          const incentiveMs=DAILY_TARGET_MS-totalMs;
-          const entry=getDailyEntry(t.assignee);
-          if(!entry.incentiveMs){
-            entry.incentiveMs=incentiveMs;
-            await logAct('incentive',`${mem.name.split(' ')[0]} earned ${fmtDur(incentiveMs)} incentive time — daily task done before 5h`,'⭐');
-          }
-        }
+async function _markTaskDone(i){
+  const t=SESSION.tasks[i];
+  t.done=true; t.pendingProof=false;
+  const today=todayKey();const isLate=t.due&&t.due!=='TBD'&&t.due<today;
+  await autoMerit(t.assignee, isLate?'taskDoneLate':'taskDoneOnTime', `Completed: "${t.name}"${isLate?' (late)':''}`);
+  await logAct('task_done',`"${t.name}" completed by ${(SESSION.members.find(m=>m.id===t.assignee)||{name:'?'}).name.split(' ')[0]}`,'☑', t.assignee||null);
+  if(t.isDaily&&t.assignee){
+    const mem=SESSION.members.find(m=>m.id===t.assignee);
+    if(mem&&!mem.isFounder){
+      const totalMs=memberTotalMsToday(t.assignee);
+      if(totalMs<DAILY_TARGET_MS){
+        const incentiveMs=DAILY_TARGET_MS-totalMs;
+        const entry=getDailyEntry(t.assignee);
+        if(!entry.incentiveMs){entry.incentiveMs=incentiveMs;await logAct('incentive',`${mem.name.split(' ')[0]} earned ${fmtDur(incentiveMs)} incentive time`,'⭐');}
       }
     }
-    buildSidebar();
-  } else {
-    await logAct('task_reopen', `"${t.name}" reopened`, '↺');
-    if(t.isDaily&&t.assignee){const entry=getDailyEntry(t.assignee);entry.incentiveMs=0;}
   }
+  buildSidebar();
+}
+async function directMarkDone(i){
+  if(!me().isFounder){alert('Only founders can mark tasks done directly.');return;}
+  await _markTaskDone(i);
   await persist();showPage('tasks');
+}
+async function reopenTask(i){
+  const t=SESSION.tasks[i];
+  t.done=false; t.pendingProof=false; t.proofText=''; t.proofFileName=''; t.proofFileData='';
+  // cancel any pending approval for this task
+  SESSION.approvals=SESSION.approvals.filter(a=>!(a.type==='task_proof'&&a.taskId===t.id&&a.status==='pending'));
+  if(t.isDaily&&t.assignee){const entry=getDailyEntry(t.assignee);entry.incentiveMs=0;}
+  await logAct('task_reopen',`"${t.name}" reopened`,'↺');
+  await persist();showPage('tasks');
+}
+let _proofTaskIdx=null;
+function openTaskProofModal(ri){
+  const t=SESSION.tasks[ri];if(!t)return;
+  _proofTaskIdx=ri;
+  document.getElementById('tp-task-name').textContent=`"${t.name}"`;
+  document.getElementById('tp-proof').value='';
+  document.getElementById('tp-file').value='';
+  openModal('mo-task-proof');
+}
+async function submitTaskProof(){
+  const ri=_proofTaskIdx;
+  if(ri===null||ri===undefined)return;
+  const t=SESSION.tasks[ri];if(!t)return;
+  const proofText=document.getElementById('tp-proof').value.trim();
+  if(!proofText){alert('Please describe what you completed.');return;}
+  const fileInput=document.getElementById('tp-file');
+  let proofFileName='',proofFileData='';
+  if(fileInput&&fileInput.files[0]){
+    const f=fileInput.files[0];
+    if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
+    proofFileName=f.name; proofFileData=await fileToBase64(f);
+  }
+  t.pendingProof=true; t.proofText=proofText; t.proofFileName=proofFileName; t.proofFileData=proofFileData;
+  SESSION.approvals.push({id:'tap'+Date.now(),type:'task_proof',taskId:t.id,taskIdx:ri,taskName:t.name,uid:me().id,proofText,proofFileName,proofFileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
+  await logAct('task_proof',`${me().name.split(' ')[0]} submitted proof for "${t.name}"`,'📎',null,'admin');
+  await persist();closeModal('mo-task-proof');showPage('tasks');
 }
 async function joinTask(i){
   if(me().merit<70){alert(`Your merit score is ${me().merit}. Members below 70 cannot join projects/tasks.`);return;}
@@ -1505,7 +1547,7 @@ async function saveTask(){
   }
   const due=isDaily?todayKey():(document.getElementById('t-due').value||'TBD');
   SESSION.tasks.push({id:'t'+Date.now(),name,project:document.getElementById('t-project').value,assignee:assigneeId,priority:document.getElementById('t-priority').value,due,merit:parseInt(document.getElementById('t-merit').value)||5,notes:document.getElementById('t-notes').value,done:false,needsHelp:false,isDaily:isDaily||false});
-  await logAct('task_create',`New ${isDaily?'daily ':''}task "${name}" created${assigneeId?' → '+(SESSION.members.find(m=>m.id===assigneeId)||{name:'?'}).name.split(' ')[0]:' (unassigned)'}`,'➕');
+  await logAct('task_create',`New ${isDaily?'daily ':''}task "${name}" assigned to ${assigneeId?(SESSION.members.find(m=>m.id===assigneeId)||{name:'Unassigned'}).name.split(' ')[0]:'nobody'}`,'📋', assigneeId||null);
   await persist();closeModal('mo-task');showPage('tasks');
 }
 function rClients(){
@@ -1622,26 +1664,57 @@ function rUpdates(){
 }
 function rApprovals(){
   const isAdm=canEdit();
-  const pending=SESSION.approvals.filter(a=>a.status==='pending');
+  const allPending=SESSION.approvals.filter(a=>a.status==='pending');
+  const taskProofPending=allPending.filter(a=>a.type==='task_proof');
+  const pending=allPending.filter(a=>a.type!=='task_proof');
+  const myTaskProofs=taskProofPending.filter(a=>a.uid===me().id);
   const myPending=pending.filter(a=>a.requestedBy===me().id);
-  const approved=SESSION.approvals.filter(a=>a.status==='approved');
-  const rejected=SESSION.approvals.filter(a=>a.status==='rejected');
-  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Open to Everyone</div><div class="adm-sub">Any team member can request approval or suggest something for review</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ Request Approval</button></div>`;
+  const resolved=SESSION.approvals.filter(a=>a.status==='approved'||a.status==='rejected');
+  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Approvals</div><div class="adm-sub">Task proofs require admin sign-off · General requests open to everyone</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ General Request</button></div>`;
+  // Task proof section
+  if(isAdm&&taskProofPending.length>0){
+    html+=`<div class="panel" style="margin-bottom:14px;border-color:var(--a)"><div class="ph"><div class="pt">📎 Task Proof — Awaiting Your Review</div><span class="badge b-amber">${taskProofPending.length}</span></div>`;
+    taskProofPending.forEach(a=>{const req=SESSION.members.find(m=>m.id===a.uid);const realIdx=SESSION.approvals.indexOf(a);
+      html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2"><strong>Proof:</strong> ${a.proofText}</div><div class="as2">${req?req.name.split(' ')[0]:'—'} · ${a.date}${a.proofFileName?` · 📄 ${a.proofFileName}`:''}</div></div><div class="aact"><button class="b-ok" onclick="approveTaskProof(${realIdx})">✓ Approve</button><button class="b-no" onclick="rejectTaskProof(${realIdx})">✕ Reject</button></div></div>`;});
+    html+=`</div>`;
+  }
+  if(!isAdm&&myTaskProofs.length>0){
+    html+=`<div class="panel" style="margin-bottom:14px"><div class="ph"><div class="pt">📎 My Task Proofs</div><span class="badge b-amber">${myTaskProofs.length} waiting</span></div>`;
+    myTaskProofs.forEach(a=>{html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2">${a.proofText}</div><div class="as2">${a.date}</div></div><span class="badge b-amber">⏳ Under Review</span></div>`;});
+    html+=`</div>`;
+  }
+  // General approvals
   if(!isAdm&&myPending.length>0){
     html+=`<div class="panel" style="margin-bottom:14px"><div class="ph"><div class="pt">My Pending Requests</div><span class="badge b-amber">${myPending.length} waiting</span></div>`;
     myPending.forEach(a=>{html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">⏳</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · ${a.date}</div></div><span class="badge b-amber">Pending</span></div>`;});
     html+=`</div>`;
   }
-  html+=`<div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">${isAdm?'Awaiting Your Approval':'All Pending'}</div><span class="badge b-red">${pending.length} pending</span></div>
+  html+=`<div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">${isAdm?'General Requests':'All Pending'}</div><span class="badge b-red">${pending.length} pending</span></div>
     ${pending.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing pending.</div>':''}
     ${pending.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);const realIdx=SESSION.approvals.indexOf(a);
     return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdm?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Reject</button></div>`:`<span class="badge b-amber">Pending</span>`}</div>`;}).join('')}</div>
   <div class="panel"><div class="ph"><div class="pt">Resolved</div></div>
-    ${[...approved,...rejected].length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
-    ${approved.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Approved · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-green">Approved</span></div>`;}).join('')}
-    ${rejected.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--red-bg)">✕</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">Rejected · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-red">Rejected</span></div>`;}).join('')}
+    ${resolved.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
+    ${resolved.filter(a=>a.status==='approved').map(a=>{const req=SESSION.members.find(m=>m.id===(a.uid||a.requestedBy));const label=a.type==='task_proof'?`✅ ${a.taskName}`:a.title;return `<div class="ar"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${label}</div><div class="as2">Approved · ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-green">Approved</span></div>`;}).join('')}
+    ${resolved.filter(a=>a.status==='rejected').map(a=>{const req=SESSION.members.find(m=>m.id===(a.uid||a.requestedBy));const label=a.type==='task_proof'?`❌ ${a.taskName}`:a.title;return `<div class="ar"><div class="ai" style="background:var(--red-bg)">✕</div><div class="ainfo"><div class="at">${label}</div><div class="as2">Rejected · ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-red">Rejected</span></div>`;}).join('')}
   </div></div>`;
   return html;
+}
+async function approveTaskProof(i){
+  const a=SESSION.approvals[i];if(!a)return;
+  a.status='approved';
+  const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
+  if(taskIdx!==-1)await _markTaskDone(taskIdx);
+  await logAct('task_approved',`"${a.taskName}" approved by ${me().name.split(' ')[0]}`,'✅', a.uid);
+  await persist();showPage('approvals');
+}
+async function rejectTaskProof(i){
+  const a=SESSION.approvals[i];if(!a)return;
+  a.status='rejected';
+  const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
+  if(taskIdx!==-1){const t=SESSION.tasks[taskIdx];t.pendingProof=false;t.proofText='';t.proofFileName='';t.proofFileData='';}
+  await logAct('task_rejected',`"${a.taskName}" proof rejected — resubmit required`,'❌', a.uid);
+  await persist();showPage('approvals');
 }
 async function submitApproval(){
   const title=document.getElementById('apr-title').value.trim();
@@ -2183,6 +2256,19 @@ window.addEventListener('DOMContentLoaded',boot);
     </div>
     <div style="padding:0 20px 16px;max-height:60vh;overflow-y:auto;font-size:12px;color:var(--ts);line-height:1.7" id="sop-body"></div>
     <div class="mf"><button class="btn-sm red" onclick="dismissSOP()" style="width:100%;padding:12px">✓ I Have Read & Understood the SOP</button></div>
+  </div>
+</div>
+
+<!-- Task Proof Modal -->
+<div class="mo" id="mo-task-proof">
+  <div class="mbox">
+    <div class="mh"><div class="mt">📎 Submit Task Proof</div><button class="mc" onclick="closeModal('mo-task-proof')">✕</button></div>
+    <div class="mb">
+      <div id="tp-task-name" style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:14px"></div>
+      <div class="fr"><label class="fl">What did you complete? <span style="color:var(--red)">*required</span></label><textarea class="fi cta" style="height:90px" id="tp-proof" placeholder="Describe exactly what you did — deliverables, links, screenshots, revisions..."></textarea></div>
+      <div class="fr"><label class="fl">Attach proof file (optional — max 4MB)</label><input class="fi" type="file" id="tp-file"></div>
+    </div>
+    <div class="mf"><button class="btn-sm" onclick="closeModal('mo-task-proof')">Cancel</button><button class="btn-sm red" onclick="submitTaskProof()">Submit for Review</button></div>
   </div>
 </div>
 
