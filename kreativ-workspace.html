@@ -843,14 +843,14 @@ function showDenied(item){
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}
 function fmtDur(ms){const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);return `${h}h ${m}m`;}
-function myAttendanceToday(){return SESSION.attendance.filter(a=>a.uid===me().id&&a.date===todayKey());}
-function myActiveSession(){return SESSION.attendance.find(a=>a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);}
-function myTotalHoursToday(){return SESSION.attendance.filter(a=>a.uid===me().id&&a.date===todayKey()&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);}
+function myAttendanceToday(){return (SESSION.attendance||[]).filter(a=>a&&a.uid===me().id&&a.date===todayKey());}
+function myActiveSession(){return (SESSION.attendance||[]).find(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);}
+function myTotalHoursToday(){return (SESSION.attendance||[]).filter(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);}
 
 const DAILY_TARGET_MS = 5 * 3600000;
 function memberTotalMsToday(uid){
-  const completed=SESSION.attendance.filter(a=>a.uid===uid&&a.date===todayKey()&&a.clockIn&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);
-  const active=SESSION.attendance.find(a=>a.uid===uid&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
+  const completed=(SESSION.attendance||[]).filter(a=>a&&a.uid===uid&&a.date===todayKey()&&a.clockIn&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);
+  const active=(SESSION.attendance||[]).find(a=>a&&a.uid===uid&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
   return completed+(active?Date.now()-active.clockIn:0);
 }
 function getDailyEntry(uid){
