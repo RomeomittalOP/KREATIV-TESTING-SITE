@@ -457,7 +457,7 @@ const DB = {
       if (!val) return;
       SESSION.members = val.members || SESSION.members;
       SESSION.members.forEach(m=>{const def=DEFAULT_MEMBERS.find(d=>d.id===m.id);if(def){m.isFounder=def.isFounder||false;}if(!m.isFounder&&m.id!=='keshav')m.isAdmin=false;});
-      SESSION.tasks = val.tasks || SESSION.tasks;
+      if(val.tasks){const incoming=val.tasks;SESSION.tasks=(incoming||[]).map(inT=>{const cur=SESSION.tasks.find(t=>t.id===inT.id);return(cur&&(cur.updatedAt||0)>(inT.updatedAt||0))?cur:inT;});}
       SESSION.payments = val.payments || SESSION.payments;
       SESSION.clients = val.clients || SESSION.clients;
       SESSION.approvals = val.approvals || SESSION.approvals;
@@ -1487,7 +1487,7 @@ function rTasks(){
 }
 async function _markTaskDone(i){
   const t=SESSION.tasks[i];
-  t.done=true; t.pendingProof=false;
+  t.done=true; t.pendingProof=false; t.updatedAt=Date.now();
   const today=todayKey();const isLate=t.due&&t.due!=='TBD'&&t.due<today;
   await autoMerit(t.assignee, isLate?'taskDoneLate':'taskDoneOnTime', `Completed: "${t.name}"${isLate?' (late)':''}`);
   await logAct('task_done',`"${t.name}" completed by ${(SESSION.members.find(m=>m.id===t.assignee)||{name:'?'}).name.split(' ')[0]}`,'☑', t.assignee||null);
@@ -1511,7 +1511,7 @@ async function directMarkDone(i){
 }
 async function reopenTask(i){
   const t=SESSION.tasks[i];
-  t.done=false; t.pendingProof=false; t.proofText=''; t.proofFileName=''; t.proofFileData='';
+  t.done=false; t.pendingProof=false; t.proofText=''; t.proofFileName=''; t.proofFileData=''; t.updatedAt=Date.now();
   // cancel any pending approval for this task
   SESSION.approvals=SESSION.approvals.filter(a=>!(a.type==='task_proof'&&a.taskId===t.id&&a.status==='pending'));
   if(t.isDaily&&t.assignee){const entry=getDailyEntry(t.assignee);entry.incentiveMs=0;}
@@ -1706,15 +1706,16 @@ function rUpdates(){
 }
 function rApprovals(){
   const isAdm=canEdit();
+  const canApproveProofs=me().isFounder||me().id==='keshav';
   const allPending=SESSION.approvals.filter(a=>a.status==='pending');
   const taskProofPending=allPending.filter(a=>a.type==='task_proof');
   const pending=allPending.filter(a=>a.type!=='task_proof'&&a.type!=='clockout_proof');
   const myTaskProofs=taskProofPending.filter(a=>a.uid===me().id);
   const myPending=pending.filter(a=>a.requestedBy===me().id);
   const resolved=SESSION.approvals.filter(a=>a.status==='approved'||a.status==='rejected');
-  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Approvals</div><div class="adm-sub">Task proofs require admin sign-off · General requests open to everyone</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ General Request</button></div>`;
+  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Approvals</div><div class="adm-sub">Task proofs require Shubhrat/Keshav sign-off · General requests open to everyone</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ General Request</button></div>`;
   // Task proof section
-  if(isAdm&&taskProofPending.length>0){
+  if(canApproveProofs&&taskProofPending.length>0){
     html+=`<div class="panel" style="margin-bottom:14px;border-color:var(--a)"><div class="ph"><div class="pt">📎 Task Proof — Awaiting Your Review</div><span class="badge b-amber">${taskProofPending.length}</span></div>`;
     taskProofPending.forEach(a=>{const req=SESSION.members.find(m=>m.id===a.uid);const realIdx=SESSION.approvals.indexOf(a);
       html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2"><strong>Proof:</strong> ${a.proofText}</div><div class="as2">${req?req.name.split(' ')[0]:'—'} · ${a.date}${a.proofFileName?` · 📄 ${a.proofFileName}`:''}</div></div><div class="aact"><button class="b-ok" onclick="approveTaskProof(${realIdx})">✓ Approve</button><button class="b-no" onclick="rejectTaskProof(${realIdx})">✕ Reject</button></div></div>`;});
