@@ -1068,7 +1068,7 @@ function voiceVerify(){
     u.rate=0.92;u.volume=1;
     window.speechSynthesis.speak(u);
   }
-  window._vvTimeout=setTimeout(terminateByVoice,30000);
+  window._vvTimeout=setTimeout(terminateByVoice,90000);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR){
     try{
@@ -1346,11 +1346,22 @@ function startLiveTimer(){
   checkOver5hMerit(me().id);
   if(!me().isFounder){
     if(!window._lastVoiceCheck)window._lastVoiceCheck=t.clockIn;
-    if(elapsed>=3600000&&Date.now()-window._lastVoiceCheck>=3600000)voiceVerify();
+    if(elapsed>=3600000&&Date.now()-window._lastVoiceCheck>=3600000){
+      if(!document.hidden&&!document.getElementById('vv-banner'))voiceVerify();
+    }
   }
   window._timerInterval=setTimeout(()=>{if(document.getElementById('live-timer'))startLiveTimer();},30000);
 }
 function openClockOutModal(){openModal('mo-clockout');}
+// When user returns to this tab, run deferred voice check if overdue
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||!SESSION.user||me().isFounder)return;
+  const t=myActiveSession();
+  if(!t||document.getElementById('vv-banner'))return;
+  if(!window._lastVoiceCheck)window._lastVoiceCheck=t.clockIn;
+  const elapsed=Date.now()-t.clockIn;
+  if(elapsed>=3600000&&Date.now()-window._lastVoiceCheck>=3600000)voiceVerify();
+});
 async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
 async function submitClockOut(){
   const proofText=document.getElementById('co-text').value.trim();
