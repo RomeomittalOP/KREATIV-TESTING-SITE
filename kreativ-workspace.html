@@ -1228,6 +1228,12 @@ function rAttendance(){
         <div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" id="inc-hrs" placeholder="e.g. 1.5 hours" step="0.5" min="0.5" style="margin:0;flex:1"><button class="btn-sm gold" onclick="grantManualIncentive()">Grant</button></div>
       </div></div>
     </div>`;
+    html+=`<div class="panel" style="margin-bottom:14px"><div class="ph"><div class="pt">📝 Add Manual Session</div></div><div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:11px;color:var(--tm)">Restore lost records — enter a past clock-in/out for any member</div>
+      <select class="fi" id="man-member" style="margin:0"><option value="">Select member</option>${SESSION.members.map(m=>`<option value="${m.id}">${m.name.split(' ')[0]}</option>`).join('')}</select>
+      <div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:10px;color:var(--tm);margin-bottom:4px">Clock-in time</div><input class="fi" type="time" id="man-in" style="margin:0"></div><div style="flex:1"><div style="font-size:10px;color:var(--tm);margin-bottom:4px">Clock-out time</div><input class="fi" type="time" id="man-out" style="margin:0"></div></div>
+      <div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:10px;color:var(--tm);margin-bottom:4px">Date (leave blank = today)</div><input class="fi" type="date" id="man-date" style="margin:0"></div><button class="btn-sm red" style="align-self:flex-end" onclick="addManualSession()">+ Add</button></div>
+    </div></div>`;
   }
   if(adm){
     html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Team Status Today</div><div class="adm-sub">Live clock-in status across all members</div></div></div>`;
@@ -1366,6 +1372,29 @@ async function rejectClockoutProof(id){
   const mem=SESSION.members.find(m=>m.id===ap.uid);
   await logAct('clockout_rejected',`${me().name.split(' ')[0]} rejected clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'❌',ap.uid);
   await persist();showPage('attendance');
+}
+async function addManualSession(){
+  const uid=document.getElementById('man-member').value;
+  const inVal=document.getElementById('man-in').value;
+  const outVal=document.getElementById('man-out').value;
+  const dateVal=document.getElementById('man-date').value;
+  if(!uid||!inVal||!outVal){alert('Member, clock-in time, and clock-out time are all required.');return;}
+  const dateStr=dateVal||todayKey();
+  const [inH,inM]=inVal.split(':').map(Number);
+  const [outH,outM]=outVal.split(':').map(Number);
+  const base=new Date(dateStr+'T00:00:00');
+  const clockIn=new Date(base);clockIn.setHours(inH,inM,0,0);
+  const clockOut=new Date(base);clockOut.setHours(outH,outM,0,0);
+  if(clockOut<=clockIn){alert('Clock-out must be after clock-in.');return;}
+  const mem=SESSION.members.find(m=>m.id===uid);
+  SESSION.attendance.push({uid,date:dateStr,clockIn:clockIn.getTime(),clockOut:clockOut.getTime(),proofText:'Manual entry by '+me().name.split(' ')[0],approved:true});
+  await checkOver5hMerit(uid);
+  await logAct('manual_session',`${me().name.split(' ')[0]} added manual session for ${mem?mem.name.split(' ')[0]:'?'} (${dateStr} ${inVal}→${outVal})`,'📝',uid);
+  await persist();
+  document.getElementById('man-in').value='';
+  document.getElementById('man-out').value='';
+  document.getElementById('man-member').value='';
+  showPage('attendance');
 }
 async function adjustAttHours(){
   const uid=document.getElementById('adj-member').value;
