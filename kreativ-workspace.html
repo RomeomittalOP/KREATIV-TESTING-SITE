@@ -1328,12 +1328,9 @@ async function clockIn(){
   startLiveTimer();
 }
 function setupAutoClockOut(){
-  if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){}}
-  const idx=(SESSION.attendance||[]).findIndex(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
-  if(idx===-1||!DB.firebaseOk)return;
-  const ref=rtdb.ref('workspace/workspace_data/attendance/'+idx);
-  window._autoClockOutRef=ref.onDisconnect();
-  window._autoClockOutRef.update({clockOut:firebase.database.ServerValue.TIMESTAMP,proofText:'[Auto clock-out — disconnected]'});
+  // Intentionally disabled — Firebase onDisconnect() was triggering on screen lock/sleep
+  // because browsers drop the network heartbeat the moment the screen turns off.
+  // Hourly voice verification handles genuinely absent users instead.
 }
 function startLiveTimer(){
   const t=myActiveSession();
