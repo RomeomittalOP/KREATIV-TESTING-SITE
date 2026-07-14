@@ -790,7 +790,7 @@ const NAV = [
 function me(){return SESSION.user;}
 function isFounder(){return me()&&me().isFounder;}
 function isAdmin(){return me()&&(me().isAdmin||me().isFounder);}
-function canEdit(){return isFounder();}
+function canEdit(){return isAdmin();}
 function canAccess(item){
   if(!me())return false;
   const m=me();
@@ -847,7 +847,7 @@ function showPage(id,navEl){
   if(window._timerInterval){clearTimeout(window._timerInterval);window._timerInterval=null;}
   if(id==='attendance')startLiveTimer();
   if(id==='merit'&&me().isFounder)document.getElementById('tb-extra').innerHTML=`<button class="btn-sm gold" onclick="openRoleModal()">Manage Roles</button>`;
-  if(id==='cloudfiles'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="document.getElementById('cf-upload').click()">+ Upload File</button>`;
+  if(id==='cloudfiles'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="gdriveUpload()">+ Upload File</button>`;
 }
 function showDenied(item){
   document.getElementById('tb-title').textContent='Restricted';document.getElementById('tb-extra').innerHTML='';
@@ -1862,7 +1862,7 @@ async function addSalaryCut(memberId){
   await persist();showPage('salary');
 }
 function rVault(){
-  if(!canEdit())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only the founder can access the secure vault.</div></div>`;
+  if(!canEdit())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only founders and admins can access the secure vault.</div></div>`;
   const visible=SESSION.dataEntries.filter(e=>{if(e.access==='founder')return me().isFounder;if(e.access==='admin')return canEdit();return true;});
   return `<div class="adm-banner"><div><div class="adm-label">🔐 Secure Vault</div><div class="adm-sub">Founder-restricted. Encrypted & cloud synced.</div></div><button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button></div>
   <div class="panel"><div class="ph"><div class="pt">Entries <span class="badge b-green" style="margin-left:8px">${visible.length} visible</span></div></div>
@@ -2035,6 +2035,7 @@ async function gdriveRefresh(){
   await loadCloudFiles();showPage('cloudfiles');
 }
 async function gdriveUpload(){
+  if(!GDRIVE.apisReady){alert('Drive API is still loading. Please wait a moment and try again.');return;}
   try{
     const token=await gdriveAuth();
     const folderId=await gdriveGetFolder();
