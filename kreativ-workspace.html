@@ -699,7 +699,7 @@ async function checkMonthlyAttendanceDeduction() {
   SESSION.members.forEach(m => {
     if (m.isFounder) return;
     if (SESSION.attendanceRequests.find(r => r.uid === m.id && r.month === monthKey)) return;
-    const memberLogs = SESSION.attendance.filter(a => a.uid === m.id && a.date && a.date.startsWith(monthKey) && a.clockIn && a.clockOut);
+    const memberLogs = (SESSION.attendance||[]).filter(a => a && a.uid === m.id && a.date && a.date.startsWith(monthKey) && a.clockIn && a.clockOut);
     const totalMs = memberLogs.reduce((s, a) => s + (a.clockOut - a.clockIn), 0);
     const totalHours = Math.round(totalMs / 3600000 * 10) / 10;
     if (totalHours < 190) {
@@ -926,7 +926,7 @@ function rOverview(){
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
         ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const realIdx=SESSION.approvals.indexOf(a);const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
       <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
-        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut)})).filter(x=>x.att);
+        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:(SESSION.attendance||[]).find(a=>a&&a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut)})).filter(x=>x.att);
         if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
         return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
       </div>
@@ -999,7 +999,7 @@ function rAttendance(){
     </div>`;
   }
 
-  const myLogs=SESSION.attendance.filter(a=>a.uid===me().id);
+  const myLogs=(SESSION.attendance||[]).filter(a=>a&&a.uid===me().id);
   const thisMonth=myLogs.filter(a=>a.date.startsWith(todayKey().slice(0,7)));
   const totalMs=thisMonth.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
   const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
@@ -1068,8 +1068,8 @@ function rAttendance(){
     html+=`<div class="adm-banner"><div><div class="adm-label">⚙ Admin — Team Attendance</div><div class="adm-sub">Live status across all members</div></div></div>`;
     html+=`<div class="panel"><div class="ph"><div class="pt">Team Status — Today</div></div>`;
     SESSION.members.forEach(m=>{
-      const mActive=SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
-      const mSessions=SESSION.attendance.filter(a=>a.uid===m.id&&a.date===todayKey());
+      const mActive=(SESSION.attendance||[]).find(a=>a&&a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
+      const mSessions=(SESSION.attendance||[]).filter(a=>a&&a.uid===m.id&&a.date===todayKey());
       const mDone=mSessions.filter(a=>a.clockOut);
       const mTotal=mDone.reduce((s,a)=>s+(a.clockOut-a.clockIn),0);
       let statusBadge,statusText;
@@ -1097,7 +1097,7 @@ async function clockIn(){
 }
 function setupAutoClockOut(){
   if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){}}
-  const idx=SESSION.attendance.findIndex(a=>a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
+  const idx=(SESSION.attendance||[]).findIndex(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);
   if(idx===-1||!DB.firebaseOk)return;
   const ref=rtdb.ref('workspace/workspace_data/attendance/'+idx);
   window._autoClockOutRef=ref.onDisconnect();
@@ -1139,7 +1139,7 @@ async function submitClockOut(){
 }
 
 function viewProof(uid){
-  const sessions=SESSION.attendance.filter(a=>a.uid===uid&&a.date===todayKey()&&a.proofText);
+  const sessions=(SESSION.attendance||[]).filter(a=>a&&a.uid===uid&&a.date===todayKey()&&a.proofText);
   if(!sessions.length)return;
   const mem=SESSION.members.find(m=>m.id===uid)||{name:'Unknown'};
   const proofs=sessions.map((s,i)=>`Session ${i+1} (${fmtTime(s.clockIn)}):\n${s.proofText}${s.proofFileName?'\n📎 '+s.proofFileName:''}`).join('\n\n');
@@ -1840,7 +1840,7 @@ function rTeamManage(){
     const statusBadge=m.isFounder?'<span class="badge b-gold">Founder</span>':m.isAdmin?'<span class="badge b-pu">Admin</span>':'<span class="badge b-grey">Member</span>';
     const tasksDone=SESSION.tasks.filter(t=>t.assignee===m.id&&t.done).length;
     const tasksOpen=SESSION.tasks.filter(t=>t.assignee===m.id&&!t.done).length;
-    const todayAtt=SESSION.attendance.find(a=>a.uid===m.id&&a.date===todayKey());
+    const todayAtt=(SESSION.attendance||[]).find(a=>a&&a.uid===m.id&&a.date===todayKey());
     const isActive=todayAtt&&todayAtt.clockIn&&!todayAtt.clockOut;
     html+=`<div class="panel" style="margin-bottom:12px"><div style="padding:14px 16px;display:flex;align-items:center;gap:14px">
       <div class="mav2" style="background:${m.color};width:44px;height:44px;font-size:14px">${m.initials}</div>
