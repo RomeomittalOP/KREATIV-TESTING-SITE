@@ -530,7 +530,6 @@ async function boot() {
     showSOPIfNeeded();
     showResetNotice();
     checkOverdueTasks();
-    checkMonthlyAttendanceDeduction();
     loadClientAnalytics();
     loadCloudFiles();
     startRealtimeNotifications();
@@ -707,61 +706,7 @@ async function checkOverdueTasks() {
   if (changed) await persist();
 }
 
-async function checkMonthlyAttendanceDeduction() {
-  const now = new Date();
-  if (now.getDate() < 2) return;
-  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const monthKey = prevMonth.getFullYear() + '-' + String(prevMonth.getMonth() + 1).padStart(2, '0');
-  if (monthKey < '2026-07') return;
-  if (SESSION.attendanceDeductions[monthKey]) return;
-  let anyCreated = false;
-  SESSION.members.forEach(m => {
-    if (m.isFounder) return;
-    if (SESSION.attendanceRequests.find(r => r.uid === m.id && r.month === monthKey)) return;
-    const memberLogs = (SESSION.attendance||[]).filter(a => a && a.uid === m.id && a.date && a.date.startsWith(monthKey) && a.clockIn && a.clockOut);
-    const totalMs = memberLogs.reduce((s, a) => s + (a.clockOut - a.clockIn), 0);
-    const totalHours = Math.round(totalMs / 3600000 * 10) / 10;
-    if (totalHours < 190) {
-      const shortfall = Math.floor(190 - totalHours);
-      SESSION.attendanceRequests.push({ id: 'ar' + Date.now() + m.id, uid: m.id, month: monthKey, hoursWorked: totalHours, shortfall, deduction: shortfall * 5, reason: '', status: 'pending', createdAt: now.toISOString() });
-      anyCreated = true;
-    }
-  });
-  SESSION.attendanceDeductions[monthKey] = { processed: now.toISOString(), generated: anyCreated };
-  if (anyCreated) await persist();
-}
 function canApproveAttendance() { return me().isFounder || me().id === 'keshav'; }
-async function submitAttendanceReason(reqId) {
-  const inp = document.getElementById('att-reason-' + reqId);
-  if (!inp || !inp.value.trim()) { alert('Reason likhna zaroori hai'); return; }
-  const req = SESSION.attendanceRequests.find(r => r.id === reqId);
-  if (!req) return;
-  req.reason = inp.value.trim();
-  req.status = 'submitted';
-  await logAct('attendance_req', `${(SESSION.members.find(m=>m.id===req.uid)||{name:'?'}).name.split(' ')[0]} submitted attendance shortfall reason for ${req.month}`, '📋');
-  await persist(); showPage('attendance');
-}
-async function approveAttendanceReq(reqId) {
-  const req = SESSION.attendanceRequests.find(r => r.id === reqId);
-  if (!req) return;
-  req.status = 'approved';
-  req.approvedBy = me().id;
-  await logAct('attendance_approved', `Attendance shortfall approved for ${(SESSION.members.find(m=>m.id===req.uid)||{name:'?'}).name.split(' ')[0]} (${req.month}) — no deduction`, '✓');
-  await persist(); showPage('attendance');
-}
-async function rejectAttendanceReq(reqId) {
-  const req = SESSION.attendanceRequests.find(r => r.id === reqId);
-  if (!req) return;
-  req.status = 'rejected';
-  req.rejectedBy = me().id;
-  const mem = SESSION.members.find(m => m.id === req.uid);
-  if (mem) {
-    const oldMerit = mem.merit;
-    mem.merit = Math.max(0, mem.merit - req.deduction);
-    await logAct('merit_auto', `${mem.name.split(' ')[0]}: ${oldMerit} → ${mem.merit} (-${req.deduction}) — Attendance shortfall rejected: ${req.shortfall}h below 190h in ${req.month}`, '▼');
-  }
-  await persist(); buildSidebar(); showPage('attendance');
-}
 
 function doLogout() {
   logAct('logout', me().name + ' signed out', '⎋');
@@ -777,7 +722,7 @@ function doLogout() {
 const NAV = [
   {id:'overview',label:'Dashboard',ic:'◈',sec:'Overview',minMerit:0,depts:'all'},
   {id:'attendance',label:'Attendance',ic:'⏱',sec:'Overview',minMerit:0,depts:'all'},
-  {id:'tasks',label:'Tasks',ic:'☑',sec:'Overview',badge:()=>SESSION.tasks.filter(t=>!t.done).length,minMerit:30,depts:'all'},
+  {id:'tasks',label:'Tasks',ic:'☑',sec:'Overview',badge:()=>canEdit()?SESSION.tasks.filter(t=>!t.done).length:SESSION.tasks.filter(t=>!t.done&&t.assignee===(me()?me().id:null)).length,minMerit:30,depts:'all'},
   {id:'clients',label:'Clients',ic:'◉',sec:'Overview',minMerit:30,depts:'all'},
   {id:'updates',label:'Client Updates',ic:'✉',sec:'Operations',minMerit:30,depts:'all'},
   {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:()=>SESSION.approvals.filter(a=>a.status==='pending').length||0,minMerit:30,depts:'all'},
@@ -1239,58 +1184,11 @@ function rAttendance(){
   const thisMonth=myLogs.filter(a=>a.date.startsWith(todayKey().slice(0,7)));
   const totalMs=thisMonth.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
   const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
-  const totalHoursMTD=totalMs/3600000;
-  const hoursRemaining=Math.max(0,190-totalHoursMTD);
-  const onTrack=totalHoursMTD>=190;
   html+=`<div class="sg sg-3" style="margin-top:18px">
     <div class="sc"><div class="sl">Days This Month</div><div class="sv">${uniqueDays}</div></div>
     <div class="sc"><div class="sl">Total Hours MTD</div><div class="sv">${fmtDur(totalMs)}</div></div>
     <div class="sc"><div class="sl">Avg Hours/Day</div><div class="sv">${uniqueDays?fmtDur(totalMs/uniqueDays):'0h 0m'}</div></div>
   </div>`;
-  html+=`<div class="panel" style="margin-top:12px;border:1px solid ${onTrack?'var(--g-br)':'var(--red-br)'};background:${onTrack?'var(--g-bg)':'var(--red-bg)'}"><div style="padding:14px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:${onTrack?'var(--g)':'var(--red)'}">${onTrack?'✓ Monthly Target Met':'⚠ Monthly Target: 190 Hours'}</div><div style="font-size:11px;color:var(--tm)">${Math.round(totalHoursMTD)}h / 190h</div></div>
-    <div style="height:6px;border-radius:3px;background:${onTrack?'rgba(46,204,113,.2)':'rgba(255,30,30,.15)'};overflow:hidden"><div style="height:100%;width:${Math.min(100,totalHoursMTD/190*100)}%;background:${onTrack?'var(--g)':'var(--red)'};border-radius:3px"></div></div>
-    ${!onTrack?`<div style="margin-top:8px;font-size:11px;color:var(--red)">Shortfall penalty: <strong>-5 merit points per missing hour</strong> at month end. ${hoursRemaining>0?Math.ceil(hoursRemaining)+'h remaining to avoid deduction.':''}</div>`:''}
-  </div></div>`;
-  const myPendingAtt=SESSION.attendanceRequests.filter(r=>r.uid===me().id&&(r.status==='pending'||r.status==='submitted'));
-  myPendingAtt.forEach(r=>{
-    html+=`<div class="panel" style="margin-top:12px;border:1px solid var(--a-br);background:var(--a-bg)"><div style="padding:14px 16px">
-      <div style="font-size:12px;font-weight:700;color:var(--a);margin-bottom:6px">⚠ Attendance Shortfall — ${r.month}</div>
-      <div style="font-size:11px;color:var(--ts);margin-bottom:8px">You worked <strong>${r.hoursWorked}h</strong> out of 190h required. Shortfall: <strong>${r.shortfall}h</strong> · Potential deduction: <strong>-${r.deduction} merit pts</strong></div>
-      ${r.status==='pending'?`<div style="font-size:11px;color:var(--tm);margin-bottom:8px">Submit a reason explaining why your hours were short. This will be reviewed by the founders.</div>
-      <textarea id="att-reason-${r.id}" placeholder="Explain why your working hours were not completed..." style="width:100%;min-height:60px;background:var(--s2);border:1px solid var(--br);border-radius:6px;color:var(--ts);padding:8px;font-size:11px;resize:vertical;font-family:inherit"></textarea>
-      <button class="btn-sm" style="margin-top:8px;color:var(--b);border-color:var(--b)" onclick="submitAttendanceReason('${r.id}')">📋 Submit Application</button>`
-      :`<div style="font-size:11px;color:var(--a)">✓ Application submitted — awaiting review</div><div style="margin-top:6px;font-size:11px;color:var(--tm);background:var(--s2);padding:8px;border-radius:6px">${r.reason}</div>`}
-    </div></div>`;
-  });
-  const approvedAtt=SESSION.attendanceRequests.filter(r=>r.uid===me().id&&r.status==='approved');
-  approvedAtt.forEach(r=>{
-    html+=`<div class="panel" style="margin-top:12px;border:1px solid var(--g-br);background:var(--g-bg)"><div style="padding:14px 16px">
-      <div style="font-size:12px;font-weight:700;color:var(--g)">✓ Shortfall Approved — ${r.month}</div>
-      <div style="font-size:11px;color:var(--ts);margin-top:4px">${r.shortfall}h shortfall excused. No merit deduction applied.</div>
-    </div></div>`;
-  });
-  const rejectedAtt=SESSION.attendanceRequests.filter(r=>r.uid===me().id&&r.status==='rejected');
-  rejectedAtt.forEach(r=>{
-    html+=`<div class="panel" style="margin-top:12px;border:1px solid var(--red-br);background:var(--red-bg)"><div style="padding:14px 16px">
-      <div style="font-size:12px;font-weight:700;color:var(--red)">✕ Shortfall Rejected — ${r.month}</div>
-      <div style="font-size:11px;color:var(--ts);margin-top:4px">${r.shortfall}h shortfall · <strong>-${r.deduction} merit points</strong> deducted.</div>
-    </div></div>`;
-  });
-  if(canApproveAttendance()){
-    const pendingReview=SESSION.attendanceRequests.filter(r=>r.status==='submitted');
-    if(pendingReview.length){
-      html+=`<div class="adm-banner" style="margin-top:14px"><div><div class="adm-label">📋 Attendance Applications</div><div class="adm-sub">${pendingReview.length} pending review</div></div></div>`;
-      pendingReview.forEach(r=>{
-        const mem=SESSION.members.find(m=>m.id===r.uid);
-        html+=`<div class="panel" style="margin-top:8px"><div style="padding:14px 16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="mav" style="background:${mem?mem.color:'#666'}">${mem?mem.initials:'?'}</div><div><div style="font-size:13px;font-weight:600;color:var(--ts)">${mem?mem.name:'Unknown'}</div><div style="font-size:10px;color:var(--tm)">${r.month} · ${r.hoursWorked}h / 190h · Shortfall: ${r.shortfall}h · Penalty: -${r.deduction} pts</div></div></div>
-          <div style="font-size:11px;color:var(--ts);background:var(--s2);padding:10px;border-radius:6px;margin-bottom:10px">${r.reason}</div>
-          <div style="display:flex;gap:8px"><button class="btn-sm green" onclick="approveAttendanceReq('${r.id}')">✓ Approve (No Deduction)</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectAttendanceReq('${r.id}')">✕ Reject (Deduct -${r.deduction})</button></div>
-        </div></div>`;
-      });
-    }
-  }
   html+=`<div class="panel"><div class="ph"><div class="pt">My Attendance Log</div></div>`;
   const myRecent=[...myLogs].reverse().slice(0,20);
   if(myRecent.length===0)html+=`<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No records yet.</div>`;
@@ -1353,14 +1251,26 @@ function startLiveTimer(){
   window._timerInterval=setTimeout(()=>{if(document.getElementById('live-timer'))startLiveTimer();},30000);
 }
 function openClockOutModal(){openModal('mo-clockout');}
-// When user returns to this tab, run deferred voice check if overdue
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden||!SESSION.user||me().isFounder)return;
+  if(document.hidden){
+    // User left tab — pause the termination countdown so they don't get clocked out silently
+    if(window._vvTimeout){clearTimeout(window._vvTimeout);window._vvTimeout=null;window._vvPaused=true;}
+    return;
+  }
+  // User returned to tab
+  if(window._vvPaused&&document.getElementById('vv-banner')){
+    // Banner was waiting — restart the 90s countdown now they can see it
+    window._vvPaused=false;
+    window._vvTimeout=setTimeout(terminateByVoice,90000);
+    return;
+  }
+  window._vvPaused=false;
+  // Check if hourly verify is overdue
+  if(!SESSION.user||!me||!me()||me().isFounder)return;
   const t=myActiveSession();
   if(!t||document.getElementById('vv-banner'))return;
   if(!window._lastVoiceCheck)window._lastVoiceCheck=t.clockIn;
-  const elapsed=Date.now()-t.clockIn;
-  if(elapsed>=3600000&&Date.now()-window._lastVoiceCheck>=3600000)voiceVerify();
+  if(Date.now()-t.clockIn>=3600000&&Date.now()-window._lastVoiceCheck>=3600000)voiceVerify();
 });
 async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
 async function submitClockOut(){
@@ -1825,7 +1735,6 @@ function rMerit(){
   <div style="background:var(--s2);border-radius:7px;padding:11px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;margin-bottom:5px">Earn</div><div style="font-size:11px;color:var(--ts);line-height:1.9">+8 Major deliverable<br>+5 Task on time<br>+10 Client approval<br>+15 Project won</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;margin-bottom:5px">Lose</div><div style="font-size:11px;color:var(--ts);line-height:1.9">-10 Missed deadline<br>-5 Incomplete work<br>-8 Client complaint<br>-15 Project failure</div></div>
   <div style="background:var(--s2);border-radius:7px;padding:11px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;margin-bottom:5px">Thresholds</div><div style="font-size:11px;color:var(--ts);line-height:1.9"><span style="color:var(--g)">70–100</span> Full access<br><span style="color:var(--a)">30–69</span> View only<br><span style="color:var(--red)">0–29</span> Suspended</div></div></div></div>`;
-  html+=`<div class="panel" style="margin-top:12px;border:1px solid var(--red-br);background:var(--red-bg)"><div style="padding:14px 16px"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px">⚠ Attendance Rule</div><div style="font-size:11px;color:var(--ts);line-height:1.7">Monthly requirement: <strong>190 hours</strong><br>If not met: <strong>-5 merit points per missing hour</strong> (auto-deducted at month end)</div></div></div>`;
   return html;
 }
 async function submitMeritRequest(){
