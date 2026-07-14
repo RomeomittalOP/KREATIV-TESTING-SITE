@@ -528,6 +528,7 @@ async function boot() {
     logAct('login', me().name + ' signed in', '→');
     autoMarkLeaves();
     showSOPIfNeeded();
+    showResetNotice();
     checkOverdueTasks();
     checkMonthlyAttendanceDeduction();
     loadClientAnalytics();
@@ -560,6 +561,15 @@ async function loadSession(memberId) {
     SESSION.attendanceRequests = saved.attendanceRequests || [];
     SESSION.dailyTargets = saved.dailyTargets || [];
     SESSION.leaves = saved.leaves || [];
+    if (!saved._dataResetJul2026) {
+      SESSION.tasks=[]; SESSION.payments=[]; SESSION.clients=[]; SESSION.attendance=[];
+      SESSION.approvals=[]; SESSION.leaves=[]; SESSION.dailyTargets=[]; SESSION.activityLog=[];
+      SESSION.meritRequests=[]; SESSION.chats={}; SESSION.dataEntries=[]; SESSION.salaryPayments=[];
+      SESSION.attendanceDeductions={}; SESSION.attendanceRequests=[]; SESSION.clientMeta={}; SESSION.clientAnalytics={};
+      SESSION.members.forEach(m=>{if(!m.isFounder)m.merit=80;});
+      SESSION._dataResetJul2026=true; SESSION._meritResetJul2026=true;
+      await persist();
+    }
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
     SESSION.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
@@ -584,7 +594,7 @@ async function loadSession(memberId) {
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, attendanceRequests:SESSION.attendanceRequests, dailyTargets:SESSION.dailyTargets, leaves:SESSION.leaves, _meritResetJul2026:SESSION._meritResetJul2026||false};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, attendanceRequests:SESSION.attendanceRequests, dailyTargets:SESSION.dailyTargets, leaves:SESSION.leaves, _meritResetJul2026:SESSION._meritResetJul2026||false, _dataResetJul2026:SESSION._dataResetJul2026||false};
   if (!DB.firebaseOk) return;
   _selfWrite = true;
   try { await rtdb.ref('workspace/workspace_data').update(payload); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
@@ -1000,6 +1010,17 @@ function showSOPIfNeeded(){
 function dismissSOP(){
   localStorage.setItem('sop_seen_'+me().id+'_v2','1');
   document.getElementById('mo-sop').classList.remove('on');
+}
+function showResetNotice(){
+  if(!me())return;
+  const key='reset_seen_'+me().id+'_jul2026';
+  if(localStorage.getItem(key))return;
+  document.getElementById('reset-name').textContent=me().name.split(' ')[0];
+  setTimeout(()=>document.getElementById('mo-reset').classList.add('on'),2000);
+}
+function dismissReset(){
+  localStorage.setItem('reset_seen_'+me().id+'_jul2026','1');
+  document.getElementById('mo-reset').classList.remove('on');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2164,6 +2185,22 @@ window.addEventListener('DOMContentLoaded',boot);
     </div>
     <div style="padding:0 20px 16px;max-height:60vh;overflow-y:auto;font-size:12px;color:var(--ts);line-height:1.7" id="sop-body"></div>
     <div class="mf"><button class="btn-sm red" onclick="dismissSOP()" style="width:100%;padding:12px">✓ I Have Read & Understood the SOP</button></div>
+  </div>
+</div>
+
+<!-- Data Reset Notice -->
+<div class="mo" id="mo-reset">
+  <div class="mbox" style="max-width:420px;text-align:center">
+    <div class="mb" style="padding:32px 28px 20px">
+      <div style="font-size:2.2rem;margin-bottom:14px">🔄</div>
+      <div style="font-size:1.15rem;font-weight:700;color:var(--gold);margin-bottom:10px">Portal Reset</div>
+      <div style="font-size:0.97rem;line-height:1.6;color:var(--text)">
+        Your <strong id="reset-name"></strong>'s portal has been reset on<br>
+        <span style="color:var(--gold);font-weight:600">14th July, 2026</span>.<br><br>
+        <span style="opacity:0.7;font-size:0.88rem">Attendance, tasks, approvals & all records have been cleared. Fresh start! 🚀</span>
+      </div>
+    </div>
+    <div class="mf"><button class="btn-sm" onclick="dismissReset()">Got it</button></div>
   </div>
 </div>
 </body>
