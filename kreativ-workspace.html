@@ -456,7 +456,7 @@ const DB = {
       const val = snap.val();
       if (!val) return;
       SESSION.members = val.members || SESSION.members;
-      SESSION.members.forEach(m=>{const def=DEFAULT_MEMBERS.find(d=>d.id===m.id);if(def){if(m.isFounder===undefined||m.isFounder===null)m.isFounder=def.isFounder||false;if(m.isAdmin===undefined||m.isAdmin===null)m.isAdmin=def.isAdmin||false;}});
+      SESSION.members.forEach(m=>{const def=DEFAULT_MEMBERS.find(d=>d.id===m.id);if(def){m.isFounder=def.isFounder||false;}if(!m.isFounder&&m.id!=='keshav')m.isAdmin=false;});
       SESSION.tasks = val.tasks || SESSION.tasks;
       SESSION.payments = val.payments || SESSION.payments;
       SESSION.clients = val.clients || SESSION.clients;
@@ -1743,6 +1743,7 @@ function rApprovals(){
   return html;
 }
 async function approveTaskProof(i){
+  if(!me().isFounder&&me().id!=='keshav'){alert('Only Shubhrat or Keshav can approve task proofs.');return;}
   const a=SESSION.approvals[i];if(!a)return;
   a.status='approved';
   const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
@@ -1751,6 +1752,7 @@ async function approveTaskProof(i){
   await persist();showPage('approvals');
 }
 async function rejectTaskProof(i){
+  if(!me().isFounder&&me().id!=='keshav'){alert('Only Shubhrat or Keshav can reject task proofs.');return;}
   const a=SESSION.approvals[i];if(!a)return;
   a.status='rejected';
   const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
