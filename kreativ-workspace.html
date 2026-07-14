@@ -561,15 +561,7 @@ async function loadSession(memberId) {
     SESSION.attendanceRequests = saved.attendanceRequests || [];
     SESSION.dailyTargets = saved.dailyTargets || [];
     SESSION.leaves = saved.leaves || [];
-    if (!saved._dataResetJul2026) {
-      SESSION.tasks=[]; SESSION.payments=[]; SESSION.clients=[]; SESSION.attendance=[];
-      SESSION.approvals=[]; SESSION.leaves=[]; SESSION.dailyTargets=[]; SESSION.activityLog=[];
-      SESSION.meritRequests=[]; SESSION.chats={}; SESSION.dataEntries=[]; SESSION.salaryPayments=[];
-      SESSION.attendanceDeductions={}; SESSION.attendanceRequests=[]; SESSION.clientMeta={}; SESSION.clientAnalytics={};
-      SESSION.members.forEach(m=>{if(!m.isFounder)m.merit=80;});
-      SESSION._dataResetJul2026=true; SESSION._meritResetJul2026=true;
-      await persist();
-    }
+    // _dataResetJul2026 block permanently removed — already ran, keeping it was causing repeated data wipes on fresh sessions
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
     SESSION.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
