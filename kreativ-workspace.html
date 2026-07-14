@@ -456,6 +456,7 @@ const DB = {
       const val = snap.val();
       if (!val) return;
       SESSION.members = val.members || SESSION.members;
+      SESSION.members.forEach(m=>{const def=DEFAULT_MEMBERS.find(d=>d.id===m.id);if(def){if(m.isFounder===undefined||m.isFounder===null)m.isFounder=def.isFounder||false;if(m.isAdmin===undefined||m.isAdmin===null)m.isAdmin=def.isAdmin||false;}});
       SESSION.tasks = val.tasks || SESSION.tasks;
       SESSION.payments = val.payments || SESSION.payments;
       SESSION.clients = val.clients || SESSION.clients;
