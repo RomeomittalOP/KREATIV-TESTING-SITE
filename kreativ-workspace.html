@@ -782,10 +782,10 @@ function doLogout() {
 const NAV = [
   {id:'overview',label:'Dashboard',ic:'◈',sec:'Overview',minMerit:0,depts:'all'},
   {id:'attendance',label:'Attendance',ic:'⏱',sec:'Overview',minMerit:0,depts:'all'},
-  {id:'tasks',label:'Tasks',ic:'☑',sec:'Overview',badge:()=>canEdit()?SESSION.tasks.filter(t=>!t.done).length:SESSION.tasks.filter(t=>!t.done&&t.assignee===(me()?me().id:null)).length,minMerit:30,depts:'all'},
+  {id:'tasks',label:'Tasks',ic:'☑',sec:'Overview',badge:()=>badgeCount('tasks'),minMerit:30,depts:'all'},
   {id:'clients',label:'Clients',ic:'◉',sec:'Overview',minMerit:30,depts:'all'},
   {id:'updates',label:'Client Updates',ic:'✉',sec:'Operations',minMerit:30,depts:'all'},
-  {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:()=>{if(!me())return 0;const p=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(me().isFounder||me().id==='keshav')return p.length||0;return p.filter(a=>a.uid===me().id||a.requestedBy===me().id).length||0;},minMerit:30,depts:'all'},
+  {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:()=>badgeCount('approvals'),minMerit:30,depts:'all'},
   {id:'payments',label:'Client Payments',ic:'₹',sec:'Operations',minMerit:0,depts:['Founder']},
   {id:'merit',label:'Merit Points',ic:'◆',sec:'Team',minMerit:0,depts:'all'},
   {id:'salary',label:'Salary & Cuts',ic:'₹₹',sec:'Team',minMerit:0,depts:'all'},
@@ -859,6 +859,7 @@ function showPage(id,navEl){
   if(id==='attendance')startLiveTimer();
   if(id==='merit'&&me().isFounder)document.getElementById('tb-extra').innerHTML=`<button class="btn-sm gold" onclick="openRoleModal()">Manage Roles</button>`;
   if(id==='cloudfiles'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="gdriveUpload()">+ Upload File</button>`;
+  markSeen(id);buildSidebar();
 }
 function showDenied(item){
   document.getElementById('tb-title').textContent='Restricted';document.getElementById('tb-extra').innerHTML='';
@@ -1144,11 +1145,11 @@ function rOverview(){
     ${(canEdit()?SESSION.tasks:SESSION.tasks.filter(t=>t.assignee===me().id)).length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No tasks assigned to you.</div>':''}</div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
-        ${SESSION.approvals.filter(a=>a.status==='pending').length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>':SESSION.approvals.filter(a=>a.status==='pending').slice(0,2).map(a=>{const realIdx=SESSION.approvals.indexOf(a);const req=SESSION.members.find(m=>m.id===a.requestedBy);return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Revise</button></div>`:''}</div>`;}).join('')}</div>
+        ${(()=>{const pend=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(pend.length===0)return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>';return pend.slice(0,3).map(a=>{const realIdx=SESSION.approvals.indexOf(a);const req=SESSION.members.find(m=>m.id===(a.requestedBy||a.uid));const label=a.type==='task_proof'?('📎 '+(a.taskName||'Task proof')):(a.title||'Request');const sub=a.type==='task_proof'?(a.proofText||'').slice(0,50):(a.target||a.desc||'');return `<div class="ar"><div class="ai" style="background:var(--b-bg)">${a.type==='task_proof'?'📎':'✦'}</div><div class="ainfo"><div class="at">${label}</div><div class="as2">${sub?sub+' · ':''}by ${req?req.name.split(' ')[0]:'—'} · ${a.date||'—'}</div></div>${canEdit()?`<div class="aact"><button class="b-ok" onclick="${a.type==='task_proof'?'approveTaskProof('+realIdx+')':'actionApproval('+realIdx+",'approved')'}">Approve</button><button class="b-no" onclick="${a.type==='task_proof'?'rejectTaskProof('+realIdx+')':'actionApproval('+realIdx+",'rejected')'}">Reject</button></div>`:''}</div>`;}).join('');})()}</div>
       <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
         ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:(SESSION.attendance||[]).find(a=>a&&a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut)})).filter(x=>x.att);
         if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
-        return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
+        return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at" style="${canEdit()?'cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px':''}" ${canEdit()?`onclick="openAttDrilldown('${x.m.id}')"`:''} onmouseover="this.style.color='var(--b)'" onmouseout="this.style.color=''">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
       </div>
       <div class="panel"><div class="ph"><div class="pt">Payments Due</div><span class="pa" onclick="showPage('payments')">View all</span></div>
         ${SESSION.payments.filter(p=>p.status!=='Received').slice(0,3).map(p=>`<div class="pr"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm);margin-top:1px">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${p.status==='Overdue'?'b-red':'b-amber'}">${p.status}</span></div>`).join('')}</div>
@@ -1568,6 +1569,7 @@ function rTasks(){
       ${canJoin?`<button class="btn-sm green" onclick="event.stopPropagation();joinTask(${ri})">🙋</button>`:''}
       ${isMine&&!t.done&&!isPending&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();toggleSeekHelp(${ri})">🆘</button>`:''}
       ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="event.stopPropagation();toggleSeekHelp(${ri})">Cancel</button>`:''}
+      <button class="btn-sm" onclick="event.stopPropagation();openTaskNotes(${ri})" style="position:relative">📝${t.notes&&t.notes.length?`<span style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center">${t.notes.length}</span>`:''}</button>
       ${canEdit()?`<button class="btn-sm" onclick="event.stopPropagation();editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTask(${ri})">✕</button>`:''}
     </div></div>`;}).join('')}
   ${myTasks.length===0?'':'</div>'}`;
@@ -1726,9 +1728,9 @@ function rClients(){
     <div class="sg sg-2" style="gap:8px;margin-bottom:0"><div style="font-size:10px;color:var(--tm)">Open Tasks<span style="font-size:13px;font-weight:700;color:var(--tp);display:block;margin-top:2px">${clientTasks}</span></div><div style="font-size:10px;color:var(--tm)">Value<span style="font-size:13px;font-weight:700;color:var(--tp);display:block;margin-top:2px">₹${totalVal.toLocaleString('en-IN')}</span></div></div></div>`;}).join('')}
   ${canEdit()?`<div class="cc" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:110px;cursor:pointer" onclick="addClient()"><div style="text-align:center;color:var(--tm)"><div style="font-size:20px;margin-bottom:4px">+</div><div style="font-size:11px">Add client</div></div></div>`:''}</div>`;
 }
-async function addClient(){const name=prompt('New client name:');if(name&&name.trim()){SESSION.clients.push(name.trim());await logAct('client_add',`New client "${name.trim()}" added`,'👤');await persist();showPage('clients');}}
+async function addClient(){const name=await showPrompt('Add Client','Client name',{placeholder:'Enter client name',required:true});if(!name||!name.trim())return;SESSION.clients.push(name.trim());await logAct('client_add',`New client "${name.trim()}" added`,'👤');await persist();showPage('clients');}
 async function renameClient(oldName){
-  const newName=prompt('New client name:',oldName);
+  const newName=await showPrompt('Rename Client','New client name',{defaultValue:oldName,required:true});
   if(!newName||!newName.trim()||newName===oldName)return;
   const idx=SESSION.clients.indexOf(oldName);
   if(idx>-1)SESSION.clients[idx]=newName.trim();
@@ -1793,7 +1795,7 @@ function rClientDetail(name){
 }
 async function editClientBrief(name){
   const meta=SESSION.clientMeta[name]||{brief:'',interested:[]};
-  const newBrief=prompt('Project brief:',meta.brief);
+  const newBrief=await showPrompt('Edit Brief','Project brief',{type:'textarea',defaultValue:meta.brief,placeholder:'Describe the project...'});
   if(newBrief===null)return;
   meta.brief=newBrief;
   SESSION.clientMeta[name]=meta;
@@ -1863,7 +1865,7 @@ function rApprovals(){
   <div class="panel"><div class="ph"><div class="pt">Resolved</div></div>
     ${resolved.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
     ${resolved.filter(a=>a.status==='approved').map(a=>{const req=SESSION.members.find(m=>m.id===(a.uid||a.requestedBy));const label=a.type==='task_proof'?`✅ ${a.taskName}`:a.title;return `<div class="ar"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${label}</div><div class="as2">Approved · ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-green">Approved</span></div>`;}).join('')}
-    ${resolved.filter(a=>a.status==='rejected').map(a=>{const req=SESSION.members.find(m=>m.id===(a.uid||a.requestedBy));const label=a.type==='task_proof'?`❌ ${a.taskName}`:a.title;return `<div class="ar"><div class="ai" style="background:var(--red-bg)">✕</div><div class="ainfo"><div class="at">${label}</div><div class="as2">Rejected · ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-red">Rejected</span></div>`;}).join('')}
+    ${resolved.filter(a=>a.status==='rejected').map(a=>{const req=SESSION.members.find(m=>m.id===(a.uid||a.requestedBy));const label=a.type==='task_proof'?`❌ ${a.taskName||'Task'}`:a.title||'Request';const rejBy=a.rejectedByName?a.rejectedByName.split(' ')[0]:'Admin';const reason=a.rejectionReason||'No reason provided';return `<div class="ar"><div class="ai" style="background:var(--red-bg)">✕</div><div class="ainfo"><div class="at">${label}</div><div class="as2">Rejected by ${rejBy} · ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div><div class="as2" style="color:var(--red);font-style:italic">"${reason.slice(0,100)}"</div></div><span class="badge b-red">Rejected</span></div>`;}).join('')}
   </div></div>`;
   return html;
 }
@@ -1879,10 +1881,12 @@ async function approveTaskProof(i){
 async function rejectTaskProof(i){
   if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can reject task proofs.','error');return;}
   const a=SESSION.approvals[i];if(!a)return;
-  a.status='rejected';
+  const reason=await showPrompt('Reject Task Proof','Reason for rejection',{type:'textarea',required:true,placeholder:'Explain why this is being rejected...',confirmText:'Reject'});
+  if(!reason)return;
+  a.status='rejected';a.rejectionReason=reason;a.rejectedBy=me().id;a.rejectedByName=me().name;a.rejectedAt=Date.now();
   const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
   if(taskIdx!==-1){const t=SESSION.tasks[taskIdx];t.pendingProof=false;t.proofText='';t.proofFileName='';t.proofFileData='';}
-  await logAct('task_rejected',`"${a.taskName}" proof rejected — resubmit required`,'❌', a.uid);
+  await logAct('task_rejected',`"${a.taskName}" proof rejected — ${reason.slice(0,60)}`,'❌', a.uid);
   await persist();showPage('approvals');
 }
 async function submitApproval(){
@@ -1897,10 +1901,16 @@ async function submitApproval(){
   closeModal('mo-approval');showPage('approvals');
 }
 async function actionApproval(i,status){
-  SESSION.approvals[i].status=status;
-  const a=SESSION.approvals[i];const req=SESSION.members.find(m=>m.id===a.requestedBy);
+  const a=SESSION.approvals[i];
+  if(status==='rejected'){
+    const reason=await showPrompt('Reject Request','Reason for rejection',{type:'textarea',required:true,placeholder:'Explain why this is being rejected...',confirmText:'Reject'});
+    if(!reason)return;
+    a.rejectionReason=reason;a.rejectedBy=me().id;a.rejectedByName=me().name;a.rejectedAt=Date.now();
+  }
+  a.status=status;
+  const req=SESSION.members.find(m=>m.id===a.requestedBy);
   if(status==='approved'){await autoMerit(a.requestedBy,'clientApproval','Approval granted: '+a.title);}
-  await logAct('approval_'+status,`"${a.title}" ${status} by ${me().name.split(' ')[0]}`,(status==='approved'?'✅':'❌'));
+  await logAct('approval_'+status,`"${a.title||a.taskName||'Request'}" ${status} by ${me().name.split(' ')[0]}`,(status==='approved'?'✅':'❌'));
   await persist();showPage('approvals');
 }
 function rPayments(){
@@ -1975,6 +1985,7 @@ function rMerit(){
     <div class="mmet"><div class="mmet-c"><div class="mmet-v">${m.metrics.tasksCompleted}</div><div class="mmet-l">Tasks done</div></div><div class="mmet-c"><div class="mmet-v">${m.metrics.projectsLed}</div><div class="mmet-l">Projects led</div></div><div class="mmet-c"><div class="mmet-v">${m.metrics.clientsManaged}</div><div class="mmet-l">Clients</div></div></div>
     <div class="mst ${sc}">${st}</div>
     ${m.meritReason?`<div style="margin-top:6px;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-br);border-radius:6px;font-size:11px;color:var(--red)">⚠ ${m.meritReason}</div>`:''}
+    ${adm&&!isMe?`<div style="margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:6px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Admin Review Notes</div><textarea class="fi" rows="2" style="width:100%;font-size:11px;resize:vertical" id="mr-note-${mi}" placeholder="No review notes yet — add one">${m.meritReview||''}</textarea><button class="btn-sm" style="margin-top:4px" onclick="saveMeritReview(${mi})">Save Note</button></div>`:''}
     ${isMe&&!m.isFounder?`<div class="admin-row"><button class="btn-sm" style="color:var(--b);border-color:var(--b)" onclick="openModal('mo-meritreq')">📝 Request Points</button></div>`:''}
     ${adm&&!m.isFounder?`<div class="admin-row"><span style="font-size:10px;color:var(--tm)">Adjust:</span><input class="m-inp" type="number" value="${score}" min="0" max="100" id="mi-${mi}"><button class="btn-sm" onclick="saveMerit(${mi})">Save</button><button class="btn-sm green" onclick="quickMerit(${mi},5)">+5</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="quickMerit(${mi},-5)">-5</button></div>
     <div class="admin-row"><button class="btn-sm" onclick="editMemberPrompt('${m.id}')">✎ Edit Role/Dept</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeMemberPrompt('${m.id}')">✕ Remove Member</button></div>`:''}</div>`;
@@ -2003,7 +2014,8 @@ async function submitMeritRequest(){
 }
 async function approveMeritReq(i){
   const req=SESSION.meritRequests[i];
-  const pts=parseInt(prompt('How many points to grant?','5'));
+  const ptsStr=await showPrompt('Grant Merit Points','How many points to grant?',{inputType:'number',defaultValue:'5',required:true});
+  if(ptsStr===null)return;const pts=parseInt(ptsStr);
   if(isNaN(pts)){return;}
   const mem=SESSION.members.find(m=>m.id===req.uid);
   if(mem)mem.merit=Math.min(100,mem.merit+pts);
@@ -2015,13 +2027,9 @@ async function denyMeritReq(i){
   await persist();showPage('merit');
 }
 async function saveMerit(i){const v=parseInt(document.getElementById('mi-'+i).value);if(isNaN(v)||v<0||v>100){toast('0–100 only','error');return;}const old=SESSION.members[i].merit;SESSION.members[i].merit=v;await logAct('merit_set',`${SESSION.members[i].name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
+async function saveMeritReview(i){const text=document.getElementById('mr-note-'+i).value.trim();SESSION.members[i].meritReview=text;await persist();toast('Review note saved.','success');}
 async function quickMerit(i,d){const old=SESSION.members[i].merit;SESSION.members[i].merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${SESSION.members[i].name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${SESSION.members[i].merit})`,'⚖');await persist();buildSidebar();showPage('merit');}
-async function editMemberPrompt(id){
-  const m=SESSION.members.find(x=>x.id===id);
-  const newRole=prompt('Role:',m.role); if(newRole)m.role=newRole;
-  const newDept=prompt('Department (Creative/Design/Tech/Operations):',m.dept); if(newDept)m.dept=newDept;
-  await persist();buildSidebar();showPage('merit');
-}
+async function editMemberPrompt(id){openEditMemberModal(id);}
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
   if(!await showConfirm('Remove Member',`Remove ${m.name} from the workspace? Their existing tasks and payments will remain but show as unassigned.`,'Remove'))return;
@@ -2064,41 +2072,13 @@ function rSalary(){
 }
 async function editCut(mi,ci){
   const cur=SESSION.members[mi].salary.projectCuts[ci];
-  const np=prompt(`New % for ${SESSION.members[mi].name.split(' ')[0]} on ${cur.project}:`,cur.pct);
+  const np=await showPrompt('Edit Cut %',`New % for ${SESSION.members[mi].name.split(' ')[0]} on ${cur.project}`,{inputType:'number',defaultValue:String(cur.pct),required:true});
   if(np!==null&&!isNaN(parseInt(np))){SESSION.members[mi].salary.projectCuts[ci].pct=parseInt(np);SESSION.members[mi].salary.projectCuts[ci].cut=Math.round(cur.cut*parseInt(np)/cur.pct);await persist();showPage('salary');}
 }
-async function addCutEntry(){
-  const member=prompt('Member initials:');const mem=SESSION.members.find(m=>m.initials===member);if(!mem){toast('Not found','error');return;}
-  const project=prompt('Project name:');const pct=parseInt(prompt('Cut %:'));const cut=parseInt(prompt('Cut amount (₹):'));
-  if(project&&!isNaN(pct)&&!isNaN(cut)){mem.salary.projectCuts.push({project,pct,cut});await persist();showPage('salary');}
-}
-async function paySalary(memberId){
-  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
-  const amt=parseFloat(prompt(`Pay salary to ${mem.name.split(' ')[0]} — Amount (₹):`));
-  if(!amt||amt<=0)return;
-  const note=prompt('Note (optional):','Monthly salary')||'';
-  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type:'salary',note,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})});
-  await logAct('salary_paid',`₹${amt.toLocaleString('en-IN')} salary paid to ${mem.name.split(' ')[0]}`,'💰');
-  await persist();showPage('salary');
-}
-async function addBonus(memberId){
-  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
-  const amt=parseFloat(prompt(`Bonus for ${mem.name.split(' ')[0]} — Amount (₹):`));
-  if(!amt||amt<=0)return;
-  const note=prompt('Reason:','Performance bonus')||'';
-  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type:'bonus',note,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})});
-  await logAct('bonus_added',`₹${amt.toLocaleString('en-IN')} bonus given to ${mem.name.split(' ')[0]} — ${note}`,'🎁');
-  await persist();showPage('salary');
-}
-async function addSalaryCut(memberId){
-  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
-  const amt=parseFloat(prompt(`Deduction for ${mem.name.split(' ')[0]} — Amount (₹):`));
-  if(!amt||amt<=0)return;
-  const note=prompt('Reason:','Deduction')||'';
-  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type:'cut',note,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})});
-  await logAct('salary_cut',`₹${amt.toLocaleString('en-IN')} deducted from ${mem.name.split(' ')[0]} — ${note}`,'✂');
-  await persist();showPage('salary');
-}
+async function addCutEntry(){openCutEntryModal();}
+async function paySalary(memberId){openSalAction(memberId,'salary');}
+async function addBonus(memberId){openSalAction(memberId,'bonus');}
+async function addSalaryCut(memberId){openSalAction(memberId,'cut');}
 function rVault(){
   if(!canEdit())return `<div class="denied"><div class="di">🔐</div><div class="dt">Vault Restricted</div><div class="ds">Only founders and admins can access the secure vault.</div></div>`;
   const visible=SESSION.dataEntries.filter(e=>{if(e.access==='founder')return me().isFounder;if(e.access==='admin')return canEdit();return true;});
@@ -2322,7 +2302,7 @@ function rTeamManage(){
     html+=`<div class="panel" style="margin-bottom:12px"><div style="padding:14px 16px;display:flex;align-items:center;gap:14px">
       <div class="mav2" style="background:${m.color};width:44px;height:44px;font-size:14px">${m.initials}</div>
       <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700">${m.name}</span>${statusBadge}${isActive?'<span class="badge b-green">Online</span>':''}</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="openAttDrilldown('${m.id}')" onmouseover="this.style.color='var(--b)'" onmouseout="this.style.color=''">${m.name}</span>${statusBadge}${isActive?'<span class="badge b-green">Online</span>':''}</div>
         <div style="font-size:11px;color:var(--tm);margin-top:2px">${m.role} · ${m.dept} · ${m.email||'No email'}</div>
         <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
           <div style="display:flex;align-items:center;gap:4px"><div style="width:50px;height:3px;background:var(--br);border-radius:2px;overflow:hidden"><div style="width:${m.merit}%;height:100%;background:${fc}"></div></div><span style="font-size:10px;color:var(--tm)">${m.merit} pts</span></div>
@@ -2344,17 +2324,7 @@ function rTeamManage(){
   html+=`</div></div>`;
   return html;
 }
-async function tmEditMember(id){
-  const m=SESSION.members.find(x=>x.id===id);
-  if(!m)return;
-  const newName=prompt('Name:',m.name);if(newName&&newName.trim())m.name=newName.trim();
-  const newRole=prompt('Role:',m.role);if(newRole&&newRole.trim())m.role=newRole.trim();
-  const newDept=prompt('Department (Creative/Design/Tech/Operations):',m.dept);if(newDept&&newDept.trim())m.dept=newDept.trim();
-  const newEmail=prompt('Email:',m.email||'');if(newEmail!==null)m.email=newEmail.trim();
-  const newPhone=prompt('Phone:',m.phone||'');if(newPhone!==null)m.phone=newPhone.trim();
-  await logAct('member_edit',`${m.name} profile updated by founder`,'✎');
-  await persist();buildSidebar();showPage('team_manage');
-}
+async function tmEditMember(id){openEditMemberModal(id);}
 async function tmToggleAdmin(id){
   const m=SESSION.members.find(x=>x.id===id);
   m.isAdmin=!m.isAdmin;
@@ -2411,7 +2381,246 @@ function showConfirm(title,body,okLabel='Confirm'){
   });
 }
 function markApproved(btn){/* deprecated — use actionApproval */}
-document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');}));
+
+/* ── Prompt modal (replaces all prompt()) — returns Promise<string|null> ── */
+function showPrompt(title,label,opts={}){
+  return new Promise(resolve=>{
+    document.getElementById('mp-title').textContent=title;
+    document.getElementById('mp-label').textContent=label;
+    const inp=document.getElementById('mp-input');
+    const ta=document.getElementById('mp-textarea');
+    const useTA=opts.type==='textarea';
+    inp.style.display=useTA?'none':'block';
+    ta.style.display=useTA?'block':'none';
+    const field=useTA?ta:inp;
+    field.value=opts.defaultValue||'';
+    field.placeholder=opts.placeholder||'';
+    if(!useTA)inp.type=opts.inputType||'text';
+    document.getElementById('mp-ok').textContent=opts.confirmText||'OK';
+    document.getElementById('mp-err').textContent='';
+    window._promptResolve=v=>{closeModal('mo-prompt');resolve(v);};
+    window._promptValidate=opts.validation||null;
+    window._promptRequired=opts.required||false;
+    openModal('mo-prompt');
+    setTimeout(()=>field.focus(),100);
+  });
+}
+function submitPromptModal(){
+  const useTA=document.getElementById('mp-textarea').style.display!=='none';
+  const val=(useTA?document.getElementById('mp-textarea'):document.getElementById('mp-input')).value;
+  if(window._promptRequired&&!val.trim()){document.getElementById('mp-err').textContent='This field is required.';return;}
+  if(window._promptValidate){const err=window._promptValidate(val);if(err){document.getElementById('mp-err').textContent=err;return;}}
+  if(window._promptResolve)window._promptResolve(val);
+}
+function cancelPromptModal(){if(window._promptResolve){window._promptResolve(null);closeModal('mo-prompt');}}
+
+/* ── Salary action modal ── */
+function openSalAction(memberId,type){
+  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
+  const titles={salary:'Pay Salary',bonus:'Add Bonus',cut:'Add Deduction'};
+  const notes={salary:'Monthly salary',bonus:'Performance bonus',cut:'Deduction'};
+  document.getElementById('msa-title').textContent=titles[type]||'Salary Action';
+  document.getElementById('msa-member').textContent=mem.name+' · '+mem.role;
+  document.getElementById('msa-amt').value='';
+  document.getElementById('msa-note').value=notes[type]||'';
+  document.getElementById('msa-err').textContent='';
+  window._salActionMember=memberId;
+  window._salActionType=type;
+  openModal('mo-sal-action');
+  setTimeout(()=>document.getElementById('msa-amt').focus(),100);
+}
+async function submitSalAction(){
+  const amt=parseFloat(document.getElementById('msa-amt').value);
+  if(!amt||amt<=0){document.getElementById('msa-err').textContent='Enter a valid amount.';return;}
+  const note=document.getElementById('msa-note').value.trim()||'';
+  const memberId=window._salActionMember;
+  const type=window._salActionType;
+  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
+  const dateStr=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type,note,date:dateStr});
+  const icons={salary:'💰',bonus:'🎁',cut:'✂'};
+  const labels={salary:'salary paid to',bonus:'bonus given to',cut:'deducted from'};
+  await logAct(type==='cut'?'salary_cut':type==='bonus'?'bonus_added':'salary_paid',`₹${amt.toLocaleString('en-IN')} ${labels[type]} ${mem.name.split(' ')[0]}${note?' — '+note:''}`,(icons[type]||'💰'));
+  await persist();closeModal('mo-sal-action');showPage('salary');
+  toast(`₹${amt.toLocaleString('en-IN')} ${type} recorded for ${mem.name.split(' ')[0]}.`,'success');
+}
+
+/* ── Edit member modal ── */
+function openEditMemberModal(id){
+  const m=SESSION.members.find(x=>x.id===id);if(!m)return;
+  document.getElementById('mem-edit-id').value=id;
+  document.getElementById('mem-e-name').value=m.name;
+  document.getElementById('mem-e-role').value=m.role;
+  document.getElementById('mem-e-dept').value=m.dept;
+  document.getElementById('mem-e-email').value=m.email||'';
+  document.getElementById('mem-e-phone').value=m.phone||'';
+  openModal('mo-edit-mem');
+}
+async function submitEditMember(){
+  const id=document.getElementById('mem-edit-id').value;
+  const m=SESSION.members.find(x=>x.id===id);if(!m)return;
+  const name=document.getElementById('mem-e-name').value.trim();
+  if(name)m.name=name;
+  const role=document.getElementById('mem-e-role').value.trim();
+  if(role)m.role=role;
+  m.dept=document.getElementById('mem-e-dept').value;
+  m.email=document.getElementById('mem-e-email').value.trim();
+  m.phone=document.getElementById('mem-e-phone').value.trim();
+  await logAct('member_edit',`${m.name} profile updated by founder`,'✎');
+  await persist();closeModal('mo-edit-mem');buildSidebar();showPage(_currentPage);
+  toast(`${m.name.split(' ')[0]}'s profile updated.`,'success');
+}
+
+/* ── Add cut entry modal ── */
+function openCutEntryModal(){
+  const sel=document.getElementById('cut-member');
+  sel.innerHTML=SESSION.members.filter(m=>!m.isFounder).map(m=>`<option value="${m.id}">${m.name} (${m.initials})</option>`).join('');
+  document.getElementById('cut-project').value='';
+  document.getElementById('cut-pct').value='';
+  document.getElementById('cut-amt').value='';
+  openModal('mo-cut-add');
+}
+async function submitCutEntry(){
+  const memberId=document.getElementById('cut-member').value;
+  const mem=SESSION.members.find(m=>m.id===memberId);if(!mem){toast('Select a member.','error');return;}
+  const project=document.getElementById('cut-project').value.trim();
+  const pct=parseInt(document.getElementById('cut-pct').value);
+  const cut=parseInt(document.getElementById('cut-amt').value);
+  if(!project){toast('Enter project name.','error');return;}
+  if(isNaN(pct)||isNaN(cut)){toast('Enter valid % and amount.','error');return;}
+  mem.salary.projectCuts.push({project,pct,cut});
+  await persist();closeModal('mo-cut-add');showPage('salary');
+  toast(`Cut entry added for ${mem.name.split(' ')[0]}.`,'success');
+}
+
+/* ── Task notes system ── */
+function openTaskNotes(taskIdx){
+  const t=SESSION.tasks[taskIdx];if(!t)return;
+  window._noteTaskIdx=taskIdx;
+  if(!t.notes)t.notes=[];
+  document.getElementById('tn-title').textContent='Notes: '+t.name;
+  const isAdm=canEdit();
+  document.getElementById('tn-add-wrap').style.display=isAdm?'block':'none';
+  document.getElementById('tn-input').value='';
+  renderTaskNotes();
+  openModal('mo-task-notes');
+}
+function renderTaskNotes(){
+  const t=SESSION.tasks[window._noteTaskIdx];if(!t||!t.notes)return;
+  const list=document.getElementById('tn-list');
+  if(t.notes.length===0){list.innerHTML=emptyState('📝','No notes yet','Add the first note on this task.');return;}
+  list.innerHTML=[...t.notes].reverse().map(n=>{
+    const mem=SESSION.members.find(m=>m.id===n.authorId);
+    return `<div style="background:var(--s2);border-radius:8px;padding:10px 14px;margin-bottom:8px;animation:pgIn .18s ease both">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:600;color:var(--ts)">${mem?mem.name.split(' ')[0]:'Unknown'}</span>
+        <span style="font-size:10px;color:var(--tm)">${new Date(n.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} ${new Date(n.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      <div style="font-size:12px;color:var(--ts);line-height:1.5;white-space:pre-wrap">${n.text}</div>
+    </div>`;
+  }).join('');
+}
+async function addTaskNote(){
+  const text=document.getElementById('tn-input').value.trim();
+  if(!text){toast('Write something first.','error');return;}
+  const t=SESSION.tasks[window._noteTaskIdx];if(!t)return;
+  if(!t.notes)t.notes=[];
+  t.notes.push({text,authorId:me().id,authorName:me().name,createdAt:Date.now()});
+  t.updatedAt=Date.now();
+  document.getElementById('tn-input').value='';
+  renderTaskNotes();
+  await persist();
+  toast('Note saved.','success');
+}
+
+/* ── Attendance drilldown ── */
+function openAttDrilldown(memberId){
+  const m=SESSION.members.find(x=>x.id===memberId);if(!m)return;
+  if(!canEdit()&&memberId!==me().id)return;
+  const allLogs=(SESSION.attendance||[]).filter(a=>a&&a.uid===memberId);
+  const thisMonth=allLogs.filter(a=>a.date&&a.date.startsWith(todayKey().slice(0,7)));
+  const todayLogs=allLogs.filter(a=>a.date===todayKey());
+  const activeNow=todayLogs.find(a=>a.clockIn&&!a.clockOut);
+  const totalMsMonth=thisMonth.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
+  const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
+  const daysInMonth=new Date().getDate();
+  const attendPct=daysInMonth?Math.round(uniqueDays/daysInMonth*100):0;
+  const avgCheckIn=thisMonth.length?thisMonth.reduce((s,a)=>s+new Date(a.clockIn).getHours()*60+new Date(a.clockIn).getMinutes(),0)/thisMonth.length:0;
+  const avgH=Math.floor(avgCheckIn/60);const avgM=Math.round(avgCheckIn%60);
+  const avgSessionMs=thisMonth.filter(a=>a.clockOut).length?thisMonth.filter(a=>a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0)/thisMonth.filter(a=>a.clockOut).length:0;
+  document.getElementById('ad-title').textContent=m.name+' — Attendance';
+  let h=`<div style="padding:16px 20px;border-bottom:1px solid var(--br)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div class="mav2" style="background:${m.color};width:44px;height:44px;font-size:14px">${m.initials}</div>
+      <div><div style="font-size:14px;font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--tm)">${m.role} · ${m.dept}</div></div>
+      ${activeNow?'<span class="badge b-green" style="margin-left:auto">● Active</span>':''}
+    </div>
+    <div class="sg sg-3" style="gap:8px">
+      <div class="sc" style="padding:10px"><div class="sl">Days Present</div><div class="sv" style="font-size:16px">${uniqueDays}</div></div>
+      <div class="sc" style="padding:10px"><div class="sl">Hours MTD</div><div class="sv" style="font-size:16px">${fmtDur(totalMsMonth)}</div></div>
+      <div class="sc" style="padding:10px"><div class="sl">Attendance</div><div class="sv" style="font-size:16px;color:${attendPct>=80?'var(--g)':attendPct>=50?'var(--a)':'var(--red)'}">${attendPct}%</div></div>
+    </div>
+    <div class="sg sg-2" style="gap:8px;margin-top:8px">
+      <div class="sc" style="padding:10px"><div class="sl">Avg Check-in</div><div class="sv" style="font-size:14px">${avgH?avgH+':'+String(avgM).padStart(2,'0'):'—'}</div></div>
+      <div class="sc" style="padding:10px"><div class="sl">Avg Session</div><div class="sv" style="font-size:14px">${avgSessionMs?fmtDur(avgSessionMs):'—'}</div></div>
+    </div>
+  </div>`;
+  h+=`<div style="padding:14px 20px;border-bottom:1px solid var(--br)"><div style="font-size:12px;font-weight:600;color:var(--ts);margin-bottom:8px">Today's Sessions</div>`;
+  if(todayLogs.length===0){h+=`<div style="font-size:11px;color:var(--tm);padding:10px 0">No sessions today.</div>`;}
+  else{todayLogs.forEach(a=>{
+    const dur=a.clockOut?fmtDur(a.clockOut-a.clockIn):'Active';
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:11px">
+      <span style="color:var(--g)">●</span>
+      <span style="color:var(--ts)">${fmtTime(a.clockIn)}${a.clockOut?' → '+fmtTime(a.clockOut):''}</span>
+      <span style="color:${a.clockOut?'var(--tm)':'var(--g)'};margin-left:auto;font-weight:600">${dur}</span>
+      ${a.pendingApproval?'<span class="badge b-amber" style="font-size:9px">Pending</span>':''}
+    </div>`;
+  });}
+  h+=`</div>`;
+  h+=`<div style="padding:14px 20px"><div style="font-size:12px;font-weight:600;color:var(--ts);margin-bottom:8px">Attendance History</div>`;
+  const byDate={};allLogs.forEach(a=>{if(!byDate[a.date])byDate[a.date]=[];byDate[a.date].push(a);});
+  const dates=Object.keys(byDate).sort().reverse().slice(0,30);
+  if(dates.length===0){h+=emptyState('📅','No records','No attendance history found.');}
+  else{dates.forEach(d=>{
+    const sessions=byDate[d];
+    const totalMs2=sessions.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
+    const completed=sessions.filter(a=>a.clockOut).length;
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--br);font-size:11px">
+      <span style="color:var(--ts);font-weight:600;width:80px">${d}</span>
+      <span style="color:var(--tm)">${completed} session${completed!==1?'s':''}</span>
+      <span style="color:var(--g);margin-left:auto;font-weight:600">${fmtDur(totalMs2)}</span>
+    </div>`;
+  });}
+  h+=`</div>`;
+  if(canEdit()&&memberId!==me().id){
+    h+=`<div style="padding:14px 20px;border-top:1px solid var(--br);display:flex;gap:8px">
+      <button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="adjustAttendance('${memberId}')">⚖ Adjust Attendance</button>
+    </div>`;
+  }
+  document.getElementById('ad-body').innerHTML=h;
+  openModal('mo-att-drill');
+}
+async function adjustAttendance(memberId){
+  const reason=await showPrompt('Adjust Attendance','Reason for adjustment',{type:'textarea',required:true,placeholder:'Explain the adjustment...'});
+  if(!reason)return;
+  const mem=SESSION.members.find(m=>m.id===memberId);
+  await logAct('att_adjust',`Attendance adjusted for ${mem?mem.name.split(' ')[0]:'?'} — ${reason.slice(0,80)}`,'⚖',memberId);
+  await persist();
+  toast('Adjustment logged.','success');
+}
+
+/* ── Notification badge tracking ── */
+function getLastSeen(section){try{return parseInt(localStorage.getItem('kreativ_seen_'+me().id+'_'+section))||0;}catch(e){return 0;}}
+function markSeen(section){try{localStorage.setItem('kreativ_seen_'+me().id+'_'+section,Date.now().toString());}catch(e){}}
+function badgeCount(section){
+  const ls=getLastSeen(section);
+  if(section==='tasks')return SESSION.tasks.filter(t=>!t.done&&(t.updatedAt||0)>ls).length;
+  if(section==='approvals'){const p=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(me().isFounder||me().id==='keshav')return p.length;return p.filter(a=>a.uid===me().id||a.requestedBy===me().id).length;}
+  if(section==='payments')return SESSION.payments.filter(p=>p.status==='Overdue').length;
+  if(section==='updates')return 0;
+  return 0;
+}
+
 window.addEventListener('DOMContentLoaded',boot);
 </script>
 
@@ -2461,6 +2670,74 @@ window.addEventListener('DOMContentLoaded',boot);
   <div class="mh"><div class="mt" id="mc-title">Confirm</div></div>
   <div class="mb"><div id="mc-body" style="font-size:13px;color:var(--ts);line-height:1.6"></div></div>
   <div class="mf"><button class="btn-sm" onclick="closeModal('mo-confirm');if(window._confirmReject)window._confirmReject()">Cancel</button><button class="btn-sm red" id="mc-ok" onclick="closeModal('mo-confirm');if(window._confirmResolve)window._confirmResolve()">Confirm</button></div>
+</div></div>
+
+<!-- Prompt modal (replaces all prompt()) -->
+<div class="mo" id="mo-prompt"><div class="mbox" style="max-width:400px">
+  <div class="mh"><div class="mt" id="mp-title">Input</div><button class="mc" onclick="cancelPromptModal()">✕</button></div>
+  <div class="mb" style="padding:14px 20px">
+    <label class="fl" id="mp-label" style="margin-bottom:6px;display:block">Value</label>
+    <input class="fi" id="mp-input" style="width:100%" onkeydown="if(event.key==='Enter')submitPromptModal()">
+    <textarea class="fi" id="mp-textarea" rows="3" style="width:100%;display:none;resize:vertical"></textarea>
+    <div id="mp-err" style="font-size:11px;color:var(--red);margin-top:4px;min-height:16px"></div>
+  </div>
+  <div class="mf"><button class="btn-sm" onclick="cancelPromptModal()">Cancel</button><button class="btn-sm red" id="mp-ok" onclick="submitPromptModal()">OK</button></div>
+</div></div>
+
+<!-- Salary action modal (pay/bonus/cut) -->
+<div class="mo" id="mo-sal-action"><div class="mbox" style="max-width:400px">
+  <div class="mh"><div class="mt" id="msa-title">Salary Action</div><button class="mc" onclick="closeModal('mo-sal-action')">✕</button></div>
+  <div class="mb" style="padding:14px 20px">
+    <div id="msa-member" style="font-size:12px;color:var(--tm);margin-bottom:10px"></div>
+    <div class="fr"><label class="fl">Amount (₹) <span style="color:var(--red)">*</span></label><input class="fi" type="number" id="msa-amt" min="1" placeholder="Enter amount"></div>
+    <div class="fr"><label class="fl">Note</label><input class="fi" id="msa-note" placeholder="Optional note"></div>
+    <div id="msa-err" style="font-size:11px;color:var(--red);margin-top:4px"></div>
+  </div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-sal-action')">Cancel</button><button class="btn-sm red" id="msa-ok" onclick="submitSalAction()">Submit</button></div>
+</div></div>
+
+<!-- Edit member modal -->
+<div class="mo" id="mo-edit-mem"><div class="mbox" style="max-width:420px">
+  <div class="mh"><div class="mt">✎ Edit Member</div><button class="mc" onclick="closeModal('mo-edit-mem')">✕</button></div>
+  <div class="mb" style="padding:14px 20px">
+    <input type="hidden" id="mem-edit-id">
+    <div class="fr"><label class="fl">Name</label><input class="fi" id="mem-e-name"></div>
+    <div class="fr"><label class="fl">Role</label><input class="fi" id="mem-e-role"></div>
+    <div class="fr"><label class="fl">Department</label><select class="fi" id="mem-e-dept"><option>Creative</option><option>Design</option><option>Tech</option><option>Operations</option></select></div>
+    <div class="fr"><label class="fl">Email</label><input class="fi" type="email" id="mem-e-email"></div>
+    <div class="fr"><label class="fl">Phone</label><input class="fi" id="mem-e-phone"></div>
+  </div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-edit-mem')">Cancel</button><button class="btn-sm red" onclick="submitEditMember()">Save Changes</button></div>
+</div></div>
+
+<!-- Add cut entry modal -->
+<div class="mo" id="mo-cut-add"><div class="mbox" style="max-width:420px">
+  <div class="mh"><div class="mt">+ Add Salary Cut Entry</div><button class="mc" onclick="closeModal('mo-cut-add')">✕</button></div>
+  <div class="mb" style="padding:14px 20px">
+    <div class="fr"><label class="fl">Member</label><select class="fi" id="cut-member"></select></div>
+    <div class="fr"><label class="fl">Project Name</label><input class="fi" id="cut-project" placeholder="e.g. Kreativ Dashboard"></div>
+    <div class="fr2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fr"><label class="fl">Cut %</label><input class="fi" type="number" id="cut-pct" min="0" max="100" placeholder="%"></div>
+      <div class="fr"><label class="fl">Cut Amount (₹)</label><input class="fi" type="number" id="cut-amt" min="0" placeholder="₹"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-cut-add')">Cancel</button><button class="btn-sm red" onclick="submitCutEntry()">Add Entry</button></div>
+</div></div>
+
+<!-- Task notes panel -->
+<div class="mo" id="mo-task-notes"><div class="mbox" style="max-width:480px;max-height:80vh;display:flex;flex-direction:column">
+  <div class="mh"><div class="mt" id="tn-title">Task Notes</div><button class="mc" onclick="closeModal('mo-task-notes')">✕</button></div>
+  <div style="flex:1;overflow-y:auto;padding:14px 20px" id="tn-list"></div>
+  <div style="padding:10px 20px;border-top:1px solid var(--br)" id="tn-add-wrap">
+    <textarea class="fi" id="tn-input" rows="2" placeholder="Add a note..." style="width:100%;resize:vertical;margin-bottom:8px"></textarea>
+    <button class="btn-sm red" onclick="addTaskNote()" style="width:100%">Save Note</button>
+  </div>
+</div></div>
+
+<!-- Attendance drilldown panel -->
+<div class="mo" id="mo-att-drill"><div class="mbox" style="max-width:480px;max-height:90vh;display:flex;flex-direction:column">
+  <div class="mh"><div class="mt" id="ad-title">Attendance Log</div><button class="mc" onclick="closeModal('mo-att-drill')">✕</button></div>
+  <div style="flex:1;overflow-y:auto;padding:0" id="ad-body"></div>
 </div></div>
 
 <!-- Edit task title hidden field -->
