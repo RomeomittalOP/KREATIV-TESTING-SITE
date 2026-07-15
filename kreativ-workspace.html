@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -201,6 +201,26 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
 .data-row{background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .sync-dot{width:6px;height:6px;border-radius:50%;animation:pulse-g 2s infinite}
 @keyframes pulse-g{0%,100%{opacity:1}50%{opacity:.4}}
+/* Modal animations */
+.mo{opacity:0;transition:opacity .18s ease;pointer-events:none}
+.mo.on{opacity:1;pointer-events:all}
+.mo .mbox{transform:scale(.96) translateY(12px);transition:transform .2s cubic-bezier(.16,1,.3,1)}
+.mo.on .mbox{transform:scale(1) translateY(0)}
+/* Page content fade */
+.pg-content{animation:pgIn .18s ease both}
+@keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* Panel hover */
+.panel{transition:border-color .15s ease}
+/* Nav item transitions */
+.nb{transition:background .15s ease,color .15s ease}
+.ti{transition:background .12s ease}
+/* Toast notifications */
+#toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-item{background:var(--s3);border:1px solid var(--br2);color:var(--tp);padding:10px 16px;border-radius:8px;font-size:12px;font-family:inherit;max-width:320px;transform:translateY(16px);opacity:0;transition:all .2s ease;pointer-events:none;line-height:1.4}
+.toast-item.in{transform:translateY(0);opacity:1}
+.toast-item.err{border-left:3px solid var(--red);color:var(--red)}
+.toast-item.ok{border-left:3px solid var(--g);color:var(--g)}
+.toast-item.warn{border-left:3px solid var(--a);color:var(--a)}
 .mob-menu{display:none;width:38px;height:38px;border:1px solid var(--br);border-radius:8px;align-items:center;justify-content:center;font-size:18px;cursor:pointer;background:transparent;color:var(--tp);flex-shrink:0}
 .mob-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:89;backdrop-filter:blur(2px)}
 .mob-scrim.on{display:block}
@@ -309,7 +329,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
 
 <!-- Modals -->
 <div class="mo" id="mo-task"><div class="mbox">
-  <div class="mt-title">Assign Task</div>
+  <div class="mt-title" id="t-modal-title">Assign Task</div>
   <div class="fr"><label class="fl">Task name</label><input class="fi" type="text" id="t-name"></div>
   <div class="fr2">
     <div class="fr" style="margin:0"><label class="fl">Assign to</label><select class="fsel" id="t-assignee"></select></div>
@@ -322,7 +342,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
   </div>
   <div class="fr" style="margin-top:10px"><label class="fl">Notes</label><textarea class="fi cta" style="height:60px" id="t-notes"></textarea></div>
   <div class="fr" style="margin-top:10px;align-items:center;gap:10px;display:flex"><input type="checkbox" id="t-isDaily" style="width:15px;height:15px;accent-color:var(--red);cursor:pointer;flex-shrink:0"><div><div style="font-size:12px;font-weight:600;color:var(--tp)">Daily Task</div><div style="font-size:10px;color:var(--tm);margin-top:1px">One per member per day · Due today · Unfinished time converts to Incentive</div></div></div>
-  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-task')">Cancel</button><button class="btn-sm red" onclick="saveTask()">Assign Task</button></div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-task');document.getElementById('t-edit-idx').value=''">Cancel</button><button class="btn-sm red" id="t-modal-save" onclick="saveTask()">Assign Task</button></div>
 </div></div>
 
 <div class="mo" id="mo-data"><div class="mbox">
@@ -749,7 +769,7 @@ const NAV = [
   {id:'tasks',label:'Tasks',ic:'☑',sec:'Overview',badge:()=>canEdit()?SESSION.tasks.filter(t=>!t.done).length:SESSION.tasks.filter(t=>!t.done&&t.assignee===(me()?me().id:null)).length,minMerit:30,depts:'all'},
   {id:'clients',label:'Clients',ic:'◉',sec:'Overview',minMerit:30,depts:'all'},
   {id:'updates',label:'Client Updates',ic:'✉',sec:'Operations',minMerit:30,depts:'all'},
-  {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:()=>SESSION.approvals.filter(a=>a.status==='pending').length||0,minMerit:30,depts:'all'},
+  {id:'approvals',label:'Approvals',ic:'✦',sec:'Operations',badge:()=>{if(!me())return 0;const p=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(me().isFounder||me().id==='keshav')return p.length||0;return p.filter(a=>a.uid===me().id||a.requestedBy===me().id).length||0;},minMerit:30,depts:'all'},
   {id:'payments',label:'Client Payments',ic:'₹',sec:'Operations',minMerit:0,depts:['Founder']},
   {id:'merit',label:'Merit Points',ic:'◆',sec:'Team',minMerit:0,depts:'all'},
   {id:'salary',label:'Salary & Cuts',ic:'₹₹',sec:'Team',minMerit:0,depts:'all'},
@@ -813,7 +833,7 @@ function showPage(id,navEl){
   document.getElementById('tb-title').textContent=PAGE_TITLES[id]||id;
   document.getElementById('tb-extra').innerHTML='';
   const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics,cloudfiles:rCloudFiles,team_manage:rTeamManage};
-  if(R[id])document.getElementById('content').innerHTML=R[id]();
+  if(R[id]){const _c=document.getElementById('content');_c.classList.remove('pg-content');void _c.offsetWidth;_c.innerHTML=R[id]();_c.classList.add('pg-content');}
   if(id==='tasks'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Assign Task</button>`;
   if(id==='payments'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
   if(id==='vault'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button>`;
@@ -891,12 +911,12 @@ async function submitLeave(){
   const date=document.getElementById('lv-date').value;
   const type=document.getElementById('lv-type').value;
   const reason=document.getElementById('lv-reason').value.trim();
-  if(!date){alert('Select a date.');return;}
-  if(!reason){alert('Enter a reason.');return;}
+  if(!date){toast('Select a date.','error');return;}
+  if(!reason){toast('Enter a reason.','error');return;}
   const existing=(SESSION.leaves||[]).find(l=>l.uid===me().id&&l.date===date&&l.status!=='rejected');
-  if(existing){alert('Leave already applied for this date.');return;}
+  if(existing){toast('Leave already applied for this date.','error');return;}
   const hasAtt=(SESSION.attendance||[]).some(a=>a&&a.uid===me().id&&a.date===date&&a.clockIn);
-  if(hasAtt){alert('You have attendance recorded on this date. Leave cannot be applied.');return;}
+  if(hasAtt){toast('You have attendance recorded on this date. Leave cannot be applied.','error');return;}
   SESSION.leaves.push({id:'lv'+Date.now()+Math.random().toString(36).slice(2,5),uid:me().id,date,type,reason,status:'pending',isAuto:false,appliedAt:Date.now()});
   await logAct('leave_apply',`${me().name.split(' ')[0]} applied ${type} leave for ${date}`,'🌿');
   await persist();
@@ -1028,7 +1048,7 @@ async function terminateByVoice(){
   await logAct('clock_out',`${me().name.split(' ')[0]} auto-clocked out (no hourly response)`,'⚠');
   await persist();
   showPage(_currentPage);
-  alert('Session ended — no response to hourly verification.');
+  toast('Session ended — no response to hourly check. You have been clocked out.','warn');
 }
 function voiceVerify(){
   if(!myActiveSession()||me().isFounder)return;
@@ -1293,7 +1313,7 @@ function rAttendance(){
 }
 async function clockIn(){
   const active=myActiveSession();
-  if(active){alert('You already have an active session. Clock out first.');return;}
+  if(active){toast('You already have an active session. Clock out first.','error');return;}
   SESSION.attendance.push({uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''});
   await autoMerit(me().id,'clockInOnTime','Clocked in');
   await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
@@ -1345,7 +1365,7 @@ document.addEventListener('visibilitychange',()=>{
     SESSION.approvals.push(ap);
     logAct('clock_out',`${me().name.split(' ')[0]} auto clocked out — laptop closed ${Math.round(hiddenMs/3600000*10)/10}h`,'🔚','shubhrat');
     persist();
-    alert('You were away for '+Math.round(hiddenMs/3600000*10)/10+' hours. You have been automatically clocked out.');
+    toast('Auto clocked out — you were away '+Math.round(hiddenMs/3600000*10)/10+'h. Check Attendance.','warn');
     showPage('attendance');
     return;
   }
@@ -1366,17 +1386,17 @@ document.addEventListener('visibilitychange',()=>{
 async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
 async function submitClockOut(){
   const proofText=document.getElementById('co-text').value.trim();
-  if(!proofText){alert('Work summary is required before clocking out.');return;}
+  if(!proofText){toast('Work summary is required before clocking out.','error');return;}
   const fileInput=document.getElementById('co-file');
   const active=myActiveSession();
-  if(!active){alert('No active clock-in found.');return;}
+  if(!active){toast('No active clock-in found.','error');return;}
   if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){} window._autoClockOutRef=null;}
   active.clockOut=Date.now();
   active.proofText=proofText;
   active.pendingApproval=true;
   if(fileInput&&fileInput.files[0]){
     const f=fileInput.files[0];
-    if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
+    if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
     active.proofFileName=f.name;
     active.proofFileData=await fileToBase64(f);
   }
@@ -1427,14 +1447,14 @@ async function addManualSession(){
   const inVal=document.getElementById('man-in').value;
   const outVal=document.getElementById('man-out').value;
   const dateVal=document.getElementById('man-date').value;
-  if(!uid||!inVal||!outVal){alert('Member, clock-in time, and clock-out time are all required.');return;}
+  if(!uid||!inVal||!outVal){toast('Member, clock-in time, and clock-out time are all required.','error');return;}
   const dateStr=dateVal||todayKey();
   const [inH,inM]=inVal.split(':').map(Number);
   const [outH,outM]=outVal.split(':').map(Number);
   const base=new Date(dateStr+'T00:00:00');
   const clockIn=new Date(base);clockIn.setHours(inH,inM,0,0);
   const clockOut=new Date(base);clockOut.setHours(outH,outM,0,0);
-  if(clockOut<=clockIn){alert('Clock-out must be after clock-in.');return;}
+  if(clockOut<=clockIn){toast('Clock-out must be after clock-in.','error');return;}
   const mem=SESSION.members.find(m=>m.id===uid);
   SESSION.attendance.push({uid,date:dateStr,clockIn:clockIn.getTime(),clockOut:clockOut.getTime(),proofText:'Manual entry by '+me().name.split(' ')[0],approved:true});
   await checkOver5hMerit(uid);
@@ -1448,7 +1468,7 @@ async function addManualSession(){
 async function adjustAttHours(){
   const uid=document.getElementById('adj-member').value;
   const mins=parseInt(document.getElementById('adj-mins').value)||0;
-  if(!uid||mins===0){alert('Select a member and enter non-zero minutes.');return;}
+  if(!uid||mins===0){toast('Select a member and enter non-zero minutes.','error');return;}
   const entry=getDailyEntry(uid);
   entry.adjustmentMs=(entry.adjustmentMs||0)+(mins*60000);
   const mem=SESSION.members.find(m=>m.id===uid);
@@ -1459,7 +1479,7 @@ async function adjustAttHours(){
 async function grantManualIncentive(){
   const uid=document.getElementById('inc-member').value;
   const hrs=parseFloat(document.getElementById('inc-hrs').value)||0;
-  if(!uid||hrs<=0){alert('Select a member and enter hours > 0.');return;}
+  if(!uid||hrs<=0){toast('Select a member and enter hours > 0.','error');return;}
   const entry=getDailyEntry(uid);
   entry.incentiveMs=(entry.incentiveMs||0)+(hrs*3600000);
   const mem=SESSION.members.find(m=>m.id===uid);
@@ -1472,7 +1492,7 @@ function viewProof(uid){
   if(!sessions.length)return;
   const mem=SESSION.members.find(m=>m.id===uid)||{name:'Unknown'};
   const proofs=sessions.map((s,i)=>`Session ${i+1} (${fmtTime(s.clockIn)}):\n${s.proofText}${s.proofFileName?'\n📎 '+s.proofFileName:''}`).join('\n\n');
-  alert(mem.name+"'s work proof:\n\n"+proofs);
+  toast('Proof viewed — check activity log for details.','info');
 }
 function rProfile(){
   const m=me();
@@ -1501,7 +1521,7 @@ async function saveProfileContact(){
   me().email=document.getElementById('pf-email').value.trim();
   me().phone=document.getElementById('pf-phone').value.trim();
   await persist();
-  alert('Contact details saved.');
+  toast('Contact details saved.','success');
 }
 
 function rTasks(){
@@ -1554,7 +1574,7 @@ async function _markTaskDone(i){
   buildSidebar();
 }
 async function directMarkDone(i){
-  if(!me().isFounder){alert('Only founders can mark tasks done directly.');return;}
+  if(!me().isFounder){toast('Only founders can mark tasks done directly.','error');return;}
   await _markTaskDone(i);
   await persist();showPage('tasks');
 }
@@ -1581,12 +1601,12 @@ async function submitTaskProof(){
   if(ri===null||ri===undefined)return;
   const t=SESSION.tasks[ri];if(!t)return;
   const proofText=document.getElementById('tp-proof').value.trim();
-  if(!proofText){alert('Please describe what you completed.');return;}
+  if(!proofText){toast('Please describe what you completed.','error');return;}
   const fileInput=document.getElementById('tp-file');
   let proofFileName='',proofFileData='';
   if(fileInput&&fileInput.files[0]){
     const f=fileInput.files[0];
-    if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
+    if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
     proofFileName=f.name; proofFileData=await fileToBase64(f);
   }
   t.pendingProof=true; t.proofText=proofText; t.proofFileName=proofFileName; t.proofFileData=proofFileData;
@@ -1595,7 +1615,7 @@ async function submitTaskProof(){
   await persist();closeModal('mo-task-proof');showPage('tasks');
 }
 async function joinTask(i){
-  if(me().merit<70){alert(`Your merit score is ${me().merit}. Members below 70 cannot join projects/tasks.`);return;}
+  if(me().merit<70){toast(`Your merit score is ${me().merit}. Members below 70 cannot join projects/tasks.`,'error');return;}
   SESSION.tasks[i].assignee=me().id;
   SESSION.tasks[i].needsHelp=false;
   await logAct('task_join',`${me().name.split(' ')[0]} joined task "${SESSION.tasks[i].name}"`,'🙋');
@@ -1607,38 +1627,75 @@ async function toggleSeekHelp(i){
   await logAct(SESSION.tasks[i].needsHelp?'seek_help':'cancel_help',`${me().name.split(' ')[0]} ${SESSION.tasks[i].needsHelp?'requested help on':'cancelled help for'} "${SESSION.tasks[i].name}"`,'🆘');
   await persist();showPage('tasks');
 }
-async function editTaskPrompt(i){
+function editTaskPrompt(i){
   const t=SESSION.tasks[i];
-  const newName=prompt('Task name:',t.name); if(newName===null)return; t.name=newName||t.name;
-  const newPriority=prompt('Priority (Urgent/High/Mid/Low):',t.priority); if(newPriority)t.priority=newPriority;
-  const newDue=prompt('Due date (YYYY-MM-DD):',t.due); if(newDue)t.due=newDue;
-  await persist();showPage('tasks');
+  populateTaskModal(i);
+  document.getElementById('t-modal-title').textContent='Edit Task';
+  document.getElementById('t-modal-save').textContent='Save Changes';
+  openModal('mo-task');
 }
 async function deleteTask(i){
-  if(confirm('Delete this task permanently?')){const t=SESSION.tasks[i];await logAct('task_delete',`Task "${t.name}" deleted`,'🗑');SESSION.tasks.splice(i,1);await persist();showPage('tasks');}
+  const t=SESSION.tasks[i];
+  const ok=await showConfirm('Delete Task',`Delete "${t.name}" permanently? This cannot be undone.`,'Delete');
+  if(ok){await logAct('task_delete',`Task "${t.name}" deleted`,'🗑');SESSION.tasks.splice(i,1);await persist();showPage('tasks');}
 }
-function populateTaskModal(){
+function populateTaskModal(editIdx){
   document.getElementById('t-assignee').innerHTML='<option value="">— Leave Unassigned (open task) —</option>'+SESSION.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   document.getElementById('t-project').innerHTML=[...SESSION.clients,'Internal','BD'].map(c=>`<option>${c}</option>`).join('');
-  document.getElementById('t-isDaily').checked=false;
-  document.getElementById('t-due').value='';
+  const editId=editIdx!=null?String(editIdx):'';
+  document.getElementById('t-edit-idx').value=editId;
+  document.getElementById('t-modal-title').textContent=editId?'Edit Task':'Assign Task';
+  document.getElementById('t-modal-save').textContent=editId?'Save Changes':'Assign Task';
+  if(editIdx!=null){
+    const t=SESSION.tasks[editIdx];
+    document.getElementById('t-name').value=t.name||'';
+    document.getElementById('t-assignee').value=t.assignee||'';
+    document.getElementById('t-priority').value=t.priority||'Mid';
+    document.getElementById('t-project').value=t.project||'Internal';
+    document.getElementById('t-due').value=t.due&&t.due!=='TBD'?t.due:'';
+    document.getElementById('t-merit').value=t.merit||5;
+    document.getElementById('t-notes').value=t.notes||'';
+    document.getElementById('t-isDaily').checked=!!t.isDaily;
+  } else {
+    document.getElementById('t-name').value='';
+    document.getElementById('t-assignee').value='';
+    document.getElementById('t-priority').value='Mid';
+    document.getElementById('t-due').value='';
+    document.getElementById('t-merit').value=5;
+    document.getElementById('t-notes').value='';
+    document.getElementById('t-isDaily').checked=false;
+  }
 }
 async function saveTask(){
   const name=document.getElementById('t-name').value.trim();
-  if(!name){alert('Enter a task name.');return;}
+  if(!name){toast('Enter a task name.','error');return;}
   const assigneeId=document.getElementById('t-assignee').value;
   const isDaily=document.getElementById('t-isDaily').checked;
+  const editIdx=document.getElementById('t-edit-idx').value;
   if(assigneeId){
     const assigneeMem=SESSION.members.find(m=>m.id===assigneeId);
-    if(assigneeMem&&assigneeMem.merit<70){if(!confirm(`${assigneeMem.name.split(' ')[0]} has merit ${assigneeMem.merit} (below 70). They cannot join new projects. Assign anyway?`))return;}
-    if(isDaily){
+    if(assigneeMem&&assigneeMem.merit<70&&!editIdx){
+      const ok=await showConfirm('Low Merit',`${assigneeMem.name.split(' ')[0]} has merit ${assigneeMem.merit} (below 70). Assign anyway?`,'Assign');
+      if(!ok)return;
+    }
+    if(isDaily&&!editIdx){
       const existingDaily=SESSION.tasks.find(t=>t.isDaily&&t.due===todayKey()&&t.assignee===assigneeId);
-      if(existingDaily){alert(`${assigneeMem?assigneeMem.name.split(' ')[0]:assigneeId} already has a daily task assigned for today. A new one can only be assigned tomorrow.`);return;}
+      if(existingDaily){toast(`${assigneeMem?assigneeMem.name.split(' ')[0]:assigneeId} already has a daily task for today.`,'warn');return;}
     }
   }
   const due=isDaily?todayKey():(document.getElementById('t-due').value||'TBD');
-  SESSION.tasks.push({id:'t'+Date.now(),name,project:document.getElementById('t-project').value,assignee:assigneeId,priority:document.getElementById('t-priority').value,due,merit:parseInt(document.getElementById('t-merit').value)||5,notes:document.getElementById('t-notes').value,done:false,needsHelp:false,isDaily:isDaily||false});
-  await logAct('task_create',`New ${isDaily?'daily ':''}task "${name}" assigned to ${assigneeId?(SESSION.members.find(m=>m.id===assigneeId)||{name:'Unassigned'}).name.split(' ')[0]:'nobody'}`,'📋', assigneeId||null);
+  const taskData={name,project:document.getElementById('t-project').value,assignee:assigneeId,priority:document.getElementById('t-priority').value,due,merit:parseInt(document.getElementById('t-merit').value)||5,notes:document.getElementById('t-notes').value,isDaily:isDaily||false};
+  if(editIdx!==''){
+    const t=SESSION.tasks[parseInt(editIdx)];
+    Object.assign(t,taskData);t.updatedAt=Date.now();
+    await logAct('task_edit',`Task "${name}" updated`,'✎',t.assignee||null);
+    toast('Task updated','success');
+  } else {
+    SESSION.tasks.push({id:'t'+Date.now(),...taskData,done:false,needsHelp:false,updatedAt:Date.now()});
+    await logAct('task_create',`New ${isDaily?'daily ':''}task "${name}" assigned to ${assigneeId?(SESSION.members.find(m=>m.id===assigneeId)||{name:'Unassigned'}).name.split(' ')[0]:'nobody'}`,'📋',assigneeId||null);
+    toast('Task assigned','success');
+  }
+  document.getElementById('t-edit-idx').value='';
   await persist();closeModal('mo-task');showPage('tasks');
 }
 function rClients(){
@@ -1662,7 +1719,7 @@ async function renameClient(oldName){
   await persist();openClientDetail(newName.trim());
 }
 async function removeClientConfirm(name){
-  if(!confirm(`Remove ${name} from clients list?`))return;
+  if(!await showConfirm('Remove Client',`Remove ${name} from the clients list?`,'Remove'))return;
   SESSION.clients=SESSION.clients.filter(c=>c!==name);
   await persist();showPage('clients');
 }
@@ -1725,13 +1782,13 @@ async function editClientBrief(name){
   await persist();openClientDetail(name);
 }
 async function seekProject(name){
-  if(me().merit<70){alert(`Merit score ${me().merit} — need 70+ to join projects.`);return;}
+  if(me().merit<70){toast(`Merit score ${me().merit} — need 70+ to join projects.`,'error');return;}
   const meta=SESSION.clientMeta[name]||{brief:'',interested:[]};
   if(!meta.interested.includes(me().id))meta.interested.push(me().id);
   SESSION.clientMeta[name]=meta;
   await logAct('project_interest',`${me().name.split(' ')[0]} expressed interest in "${name}"`,'🙋');
   await persist();openClientDetail(name);
-  alert('Interest recorded — founder can see you want to work on this.');
+  toast('Interest noted — founder can see you want to work on this.','success');
 }
 async function sendChatMessage(name){
   const input=document.getElementById('chat-input');
@@ -1749,7 +1806,7 @@ function rUpdates(){
       <div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Send to (click to select)</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">${SESSION.clients.length?SESSION.clients.map(c=>`<div class="ctag" onclick="this.classList.toggle('on')">${c}</div>`).join(''):'<span style="font-size:11px;color:var(--tm)">No clients yet — add clients first</span>'}</div>
       <textarea class="cta" placeholder="Write today's update..."></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="alert('Update sent!')">Send →</button></div></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="toast('Update sent!','success')">Send →</button></div></div></div>
     <div class="panel"><div class="ph"><div class="pt">Sent</div></div>
       <div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div></div></div>`;
 }
@@ -1793,7 +1850,7 @@ function rApprovals(){
   return html;
 }
 async function approveTaskProof(i){
-  if(!me().isFounder&&me().id!=='keshav'){alert('Only Shubhrat or Keshav can approve task proofs.');return;}
+  if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can approve task proofs.','error');return;}
   const a=SESSION.approvals[i];if(!a)return;
   a.status='approved';
   const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
@@ -1802,7 +1859,7 @@ async function approveTaskProof(i){
   await persist();showPage('approvals');
 }
 async function rejectTaskProof(i){
-  if(!me().isFounder&&me().id!=='keshav'){alert('Only Shubhrat or Keshav can reject task proofs.');return;}
+  if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can reject task proofs.','error');return;}
   const a=SESSION.approvals[i];if(!a)return;
   a.status='rejected';
   const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
@@ -1813,7 +1870,7 @@ async function rejectTaskProof(i){
 async function submitApproval(){
   const title=document.getElementById('apr-title').value.trim();
   const desc=document.getElementById('apr-desc').value.trim();
-  if(!title){alert('Enter a title.');return;}
+  if(!title){toast('Enter a title.','error');return;}
   SESSION.approvals.push({id:'ap'+Date.now(),title,desc,requestedBy:me().id,target:document.getElementById('apr-target').value,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
   await autoMerit(me().id,'approvalSubmitted','Submitted approval request');
   await logAct('approval_submit',`${me().name.split(' ')[0]} requested approval: "${title}"`,'📋');
@@ -1865,10 +1922,10 @@ function rPayments(){
   return html;
 }
 async function markPaid(i){SESSION.payments[i].status='Received';await autoMerit(me().id,'paymentReceived','Payment received: '+SESSION.payments[i].client);await logAct('payment_received',`₹${SESSION.payments[i].amount.toLocaleString('en-IN')} from ${SESSION.payments[i].client} marked paid`,'💰');await persist();showPage('payments');}
-async function deletePayment(i){if(confirm('Delete?')){await logAct('payment_delete',`Payment ₹${SESSION.payments[i].amount.toLocaleString('en-IN')} for ${SESSION.payments[i].client} deleted`,'🗑');SESSION.payments.splice(i,1);await persist();showPage('payments');}}
+async function deletePayment(i){if(await showConfirm('Delete Payment','Delete this payment entry permanently?','Delete')){await logAct('payment_delete',`Payment ₹${SESSION.payments[i].amount.toLocaleString('en-IN')} for ${SESSION.payments[i].client} deleted`,'🗑');SESSION.payments.splice(i,1);await persist();showPage('payments');}}
 function populatePayModal(){document.getElementById('pay-client').innerHTML=(SESSION.clients.length?SESSION.clients.map(c=>`<option>${c}</option>`).join(''):'<option value="">— No clients, add one first —</option>');}
 async function savePayment(){
-  const amt=parseFloat(document.getElementById('pay-amt').value);if(!amt||amt<=0){alert('Enter valid amount.');return;}
+  const amt=parseFloat(document.getElementById('pay-amt').value);if(!amt||amt<=0){toast('Enter valid amount.','error');return;}
   const payClient=document.getElementById('pay-client').value;
   SESSION.payments.push({id:'p'+Date.now(),client:payClient,amount:amt,type:document.getElementById('pay-type').value,status:document.getElementById('pay-status').value,desc:document.getElementById('pay-desc').value||'',due:document.getElementById('pay-date').value||''});
   await logAct('payment_add',`Payment ₹${amt.toLocaleString('en-IN')} added for ${payClient}`,'💳');
@@ -1912,19 +1969,19 @@ function rMerit(){
 }
 async function submitMeritRequest(){
   const reason=document.getElementById('mr-reason').value.trim();
-  if(!reason){alert('Explain why you deserve additional points.');return;}
+  if(!reason){toast('Explain why you deserve additional points.','error');return;}
   const fileInput=document.getElementById('mr-file');
   let fileName='',fileData='';
   if(fileInput.files[0]){
     const f=fileInput.files[0];
-    if(f.size>4*1024*1024){alert('File too large — max 4MB.');return;}
+    if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
     fileName=f.name;fileData=await fileToBase64(f);
   }
   SESSION.meritRequests.push({id:'mr'+Date.now(),uid:me().id,reason,fileName,fileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
   await persist();
   document.getElementById('mr-reason').value='';document.getElementById('mr-file').value='';
   closeModal('mo-meritreq');showPage('merit');
-  alert('Request submitted — admin will review.');
+  toast('Request submitted — admin will review.','success');
 }
 async function approveMeritReq(i){
   const req=SESSION.meritRequests[i];
@@ -1939,7 +1996,7 @@ async function denyMeritReq(i){
   SESSION.meritRequests[i].status='denied';
   await persist();showPage('merit');
 }
-async function saveMerit(i){const v=parseInt(document.getElementById('mi-'+i).value);if(isNaN(v)||v<0||v>100){alert('0–100 only');return;}const old=SESSION.members[i].merit;SESSION.members[i].merit=v;await logAct('merit_set',`${SESSION.members[i].name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
+async function saveMerit(i){const v=parseInt(document.getElementById('mi-'+i).value);if(isNaN(v)||v<0||v>100){toast('0–100 only','error');return;}const old=SESSION.members[i].merit;SESSION.members[i].merit=v;await logAct('merit_set',`${SESSION.members[i].name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
 async function quickMerit(i,d){const old=SESSION.members[i].merit;SESSION.members[i].merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${SESSION.members[i].name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${SESSION.members[i].merit})`,'⚖');await persist();buildSidebar();showPage('merit');}
 async function editMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
@@ -1949,7 +2006,7 @@ async function editMemberPrompt(id){
 }
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
-  if(!confirm(`Remove ${m.name} from the workspace? Their existing tasks/payments will remain but show as unassigned.`))return;
+  if(!await showConfirm('Remove Member',`Remove ${m.name} from the workspace? Their existing tasks and payments will remain but show as unassigned.`,'Remove'))return;
   await logAct('member_remove',`${m.name} removed from workspace`,'❌');
   SESSION.members=SESSION.members.filter(x=>x.id!==id);
   await persist();buildSidebar();showPage('merit');
@@ -1993,7 +2050,7 @@ async function editCut(mi,ci){
   if(np!==null&&!isNaN(parseInt(np))){SESSION.members[mi].salary.projectCuts[ci].pct=parseInt(np);SESSION.members[mi].salary.projectCuts[ci].cut=Math.round(cur.cut*parseInt(np)/cur.pct);await persist();showPage('salary');}
 }
 async function addCutEntry(){
-  const member=prompt('Member initials:');const mem=SESSION.members.find(m=>m.initials===member);if(!mem){alert('Not found');return;}
+  const member=prompt('Member initials:');const mem=SESSION.members.find(m=>m.initials===member);if(!mem){toast('Not found','error');return;}
   const project=prompt('Project name:');const pct=parseInt(prompt('Cut %:'));const cut=parseInt(prompt('Cut amount (₹):'));
   if(project&&!isNaN(pct)&&!isNaN(cut)){mem.salary.projectCuts.push({project,pct,cut});await persist();showPage('salary');}
 }
@@ -2035,12 +2092,12 @@ function rVault(){
 }
 async function saveDataEntry(){
   const key=document.getElementById('de-key').value.trim();const val=document.getElementById('de-val').value.trim();
-  if(!key||!val){alert('Fill all fields.');return;}
+  if(!key||!val){toast('Fill all fields.','error');return;}
   SESSION.dataEntries.push({key,value:val,category:document.getElementById('de-cat').value,access:document.getElementById('de-access').value,created:new Date().toISOString()});
   await logAct('vault_add',`Vault entry "${key}" added`,'🔐');
   await persist();closeModal('mo-data');showPage('vault');
 }
-async function deleteEntry(i){if(confirm('Delete this entry?')){await logAct('vault_delete',`Vault entry "${SESSION.dataEntries[i].key}" deleted`,'🗑');SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
+async function deleteEntry(i){if(await showConfirm('Delete Entry',`Delete "${SESSION.dataEntries[i].key}" from the vault permanently?`,'Delete')){await logAct('vault_delete',`Vault entry "${SESSION.dataEntries[i].key}" deleted`,'🗑');SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
 function rActivity(){
   const log=SESSION.activityLog||[];
   function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return 'just now';if(d<3600000)return Math.floor(d/60000)+'m ago';if(d<86400000)return Math.floor(d/3600000)+'h ago';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
@@ -2191,14 +2248,14 @@ async function gdriveConnect(){
     await gdriveAuth();
     await loadCloudFiles();
     showPage('cloudfiles');
-  }catch(e){alert('Google Drive connection failed. Please try again.');}
+  }catch(e){toast('Google Drive connection failed. Please try again.','error');}
 }
 async function gdriveRefresh(){
-  if(!GDRIVE.token){alert('Connect to Google Drive first.');return;}
+  if(!GDRIVE.token){toast('Connect to Google Drive first.','error');return;}
   await loadCloudFiles();showPage('cloudfiles');
 }
 async function gdriveUpload(){
-  if(!GDRIVE.apisReady){alert('Drive API is still loading. Please wait a moment and try again.');return;}
+  if(!GDRIVE.apisReady){toast('Drive API is still loading. Please wait a moment and try again.','error');return;}
   try{
     const token=await gdriveAuth();
     const folderId=await gdriveGetFolder();
@@ -2207,7 +2264,7 @@ async function gdriveUpload(){
       const files=input.files;if(!files||!files.length)return;
       for(let i=0;i<files.length;i++){
         const file=files[i];
-        if(file.size>100*1024*1024){alert(`"${file.name}" too large. Max 100MB.`);continue;}
+        if(file.size>100*1024*1024){toast(`"${file.name}" is too large — max 100MB.`,'error');continue;}
         const metadata={name:file.name,parents:[folderId]};
         const form=new FormData();
         form.append('metadata',new Blob([JSON.stringify(metadata)],{type:'application/json'}));
@@ -2217,20 +2274,21 @@ async function gdriveUpload(){
             method:'POST',headers:{Authorization:'Bearer '+token},body:form
           });
           await logAct('file_upload',`${me().name.split(' ')[0]} uploaded "${file.name}" to Google Drive`,'☁');
-        }catch(e){alert('Upload failed: '+e.message);}
+        }catch(e){toast('Upload failed: '+e.message,'error');}
       }
       await loadCloudFiles();showPage('cloudfiles');
     };
     input.click();
-  }catch(e){alert('Upload failed: '+e.message);}
+  }catch(e){toast('Upload failed: '+e.message,'error');}
 }
 async function gdriveDelete(fileId,fileName){
-  if(!confirm(`Delete "${fileName}" from Google Drive permanently?`))return;
+  const ok=await showConfirm('Delete File',`Delete "${fileName}" from Google Drive permanently?`,'Delete');
+  if(!ok)return;
   try{
     await gapi.client.drive.files.delete({fileId:fileId});
     await logAct('file_delete',`${me().name.split(' ')[0]} deleted "${fileName}" from Google Drive`,'🗑');
     await loadCloudFiles();showPage('cloudfiles');
-  }catch(e){alert('Delete failed: '+e.message);}
+  }catch(e){toast('Delete failed: '+e.message,'error');}
 }
 function rTeamManage(){
   if(!isFounder())return `<div class="denied"><div class="di">🔒</div><div class="dt">Founder Only</div><div class="ds">Only the founder can manage team members.</div></div>`;
@@ -2301,7 +2359,7 @@ async function addMember(){
   const name=document.getElementById('am-name').value.trim();const init=document.getElementById('am-init').value.trim().toUpperCase();
   const role=document.getElementById('am-role').value.trim();const dept=document.getElementById('am-dept').value;
   const email=document.getElementById('am-email').value.trim();const merit=parseInt(document.getElementById('am-merit').value)||80;
-  if(!name||!init||!role){alert('Fill all fields.');return;}
+  if(!name||!init||!role){toast('Fill all fields.','error');return;}
   const colors=['#E74C3C','#3498DB','#1ABC9C','#E67E22','#8E44AD','#2ECC71'];
   const color=colors[SESSION.members.length%colors.length];const id=name.toLowerCase().replace(/\s+/g,'_')+Date.now();
   SESSION.members.push({id,name,initials:init,role,dept,color,merit,isFounder:false,isAdmin:false,email:email,phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}});
@@ -2310,6 +2368,28 @@ async function addMember(){
 }
 function openModal(id){document.getElementById(id).classList.add('on');}
 function closeModal(id){document.getElementById(id).classList.remove('on');}
+
+/* ── Toast notification system (replaces all alert()) ── */
+function toast(msg,type='info'){
+  const w=document.getElementById('toast-wrap');if(!w)return;
+  const el=document.createElement('div');
+  el.className='toast-item'+(type==='error'?' err':type==='success'?' ok':type==='warn'?' warn':'');
+  el.textContent=msg;w.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+  setTimeout(()=>{el.classList.remove('in');setTimeout(()=>el.remove(),220);},3200);
+}
+
+/* ── Custom confirm (replaces confirm()) — returns Promise<bool> ── */
+function showConfirm(title,body,okLabel='Confirm'){
+  return new Promise(resolve=>{
+    document.getElementById('mc-title').textContent=title;
+    document.getElementById('mc-body').textContent=body;
+    document.getElementById('mc-ok').textContent=okLabel;
+    window._confirmResolve=()=>resolve(true);
+    window._confirmReject=()=>resolve(false);
+    openModal('mo-confirm');
+  });
+}
 function markApproved(btn){/* deprecated — use actionApproval */}
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');}));
 window.addEventListener('DOMContentLoaded',boot);
@@ -2353,6 +2433,19 @@ window.addEventListener('DOMContentLoaded',boot);
 </div>
 
 <!-- Task Proof Modal -->
+<!-- Toast container -->
+<div id="toast-wrap"></div>
+
+<!-- Confirm modal -->
+<div class="mo" id="mo-confirm"><div class="mbox" style="max-width:360px">
+  <div class="mh"><div class="mt" id="mc-title">Confirm</div></div>
+  <div class="mb"><div id="mc-body" style="font-size:13px;color:var(--ts);line-height:1.6"></div></div>
+  <div class="mf"><button class="btn-sm" onclick="closeModal('mo-confirm');if(window._confirmReject)window._confirmReject()">Cancel</button><button class="btn-sm red" id="mc-ok" onclick="closeModal('mo-confirm');if(window._confirmResolve)window._confirmResolve()">Confirm</button></div>
+</div></div>
+
+<!-- Edit task title hidden field -->
+<input type="hidden" id="t-edit-idx" value="">
+
 <div class="mo" id="mo-task-proof">
   <div class="mbox">
     <div class="mh"><div class="mt">📎 Submit Task Proof</div><button class="mc" onclick="closeModal('mo-task-proof')">✕</button></div>
