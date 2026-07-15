@@ -78,6 +78,8 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
 .noti-bell{position:relative;cursor:pointer;font-size:18px;padding:4px 6px}
 .noti-bell .noti-dot{position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none}
 .noti-bell .noti-dot.on{display:block}
+.noti-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:8px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:14px;text-align:center;display:none;line-height:1.6;pointer-events:none}
+.noti-badge.on{display:block}
 .noti-drop{display:none;position:absolute;top:40px;right:0;width:320px;background:var(--s1);border:1px solid var(--br);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:999;max-height:360px;overflow-y:auto}
 .noti-drop.show{display:block}
 .noti-drop-head{padding:10px 14px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600}
@@ -329,7 +331,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sbar" style="position:relative"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..." id="ws-search" oninput="wsSearch(this.value)" onfocus="wsSearch(this.value)" autocomplete="off"><div id="ws-search-drop" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--s1);border:1px solid var(--br2);border-radius:8px;max-height:260px;overflow-y:auto;z-index:100;box-shadow:0 12px 40px rgba(0,0,0,.5)"></div></div>
-        <div class="noti-bell" id="noti-bell" onclick="toggleNotifications()">🔔<span class="noti-dot" id="noti-dot"></span>
+        <div class="noti-bell" id="noti-bell" onclick="toggleNotifications()">🔔<span class="noti-badge" id="noti-badge"></span>
           <div class="noti-drop" id="noti-drop">
             <div class="noti-drop-head"><span>Notifications</span><span style="font-size:9px;color:var(--tm);cursor:pointer" onclick="event.stopPropagation();clearNotifications()">Clear all</span></div>
             <div id="noti-list"><div style="padding:20px;text-align:center;font-size:11px;color:var(--tm)">No notifications yet.</div></div>
@@ -497,6 +499,18 @@ const DB = {
       SESSION.payments = val.payments || SESSION.payments;
       SESSION.clients = val.clients || SESSION.clients;
       SESSION.approvals = val.approvals || SESSION.approvals;
+      if(_sessionStart>0&&SESSION.user&&(SESSION.user.isFounder||SESSION.user.isAdmin||SESSION.user.id==='keshav')){
+        var _pend=(SESSION.approvals||[]).filter(function(a){return a&&a.status==='pending'&&a.type!=='clockout_proof';});
+        _pend.forEach(function(a){
+          if(a.id&&!_knownPendingIds.has(a.id)&&(a.createdAt||0)>_sessionStart){
+            _knownPendingIds.add(a.id);
+            var _type=a.type==='task_proof'?'task proof':a.type==='leave'?'leave request':a.type||'request';
+            var _name=(a.requestedByName||a.memberName||'Someone').split(' ')[0];
+            pushNotification('📋',_name+' submitted a '+_type+' for approval',timeAgoShort(a.createdAt||Date.now()),'approvals');
+            if(!document.getElementById('noti-drop').classList.contains('show')){toastApproval(_name,_type);}
+          }
+        });
+      }
       SESSION.attendance = val.attendance || SESSION.attendance;
       SESSION.salaryPayments = val.salaryPayments || SESSION.salaryPayments;
       SESSION.meritRequests = val.meritRequests || SESSION.meritRequests;
@@ -650,6 +664,8 @@ async function loadSession(memberId) {
     await persist();
   }
   SESSION.user = SESSION.members.find(m => m.id === memberId) || SESSION.members[0];
+  _sessionStart=Date.now();
+  (SESSION.approvals||[]).forEach(function(a){if(a&&a.id&&a.status==='pending')_knownPendingIds.add(a.id);});
 }
 
 async function persist() {
@@ -672,26 +688,51 @@ async function logAct(action, detail, icon, notifyUid=null, notifyRole=null) {
 
 /* ═══ Notification System ═══ */
 let _notifications=[];
+let _unreadCount=0;
+let _sessionStart=0;
+let _knownPendingIds=new Set();
+function _syncNotiBadge(){
+  var el=document.getElementById('noti-badge');if(!el)return;
+  if(_unreadCount>0){el.textContent=_unreadCount>9?'9+':String(_unreadCount);el.classList.add('on');}
+  else{el.textContent='';el.classList.remove('on');}
+}
 function toggleNotifications(){
-  const drop=document.getElementById('noti-drop');
+  var drop=document.getElementById('noti-drop');
   drop.classList.toggle('show');
-  if(drop.classList.contains('show')){document.getElementById('noti-dot').classList.remove('on');}
+  if(drop.classList.contains('show')){_unreadCount=0;_syncNotiBadge();}
 }
 document.addEventListener('click',function(e){
   if(!e.target.closest('.noti-bell')){document.getElementById('noti-drop').classList.remove('show');}
 });
-function pushNotification(icon,text,time){
-  _notifications.unshift({icon,text,time});
+function pushNotification(icon,text,time,navPage){
+  _notifications.unshift({icon:icon,text:text,time:time,navPage:navPage||null});
   if(_notifications.length>30)_notifications.length=30;
+  _unreadCount++;
   renderNotifications();
-  document.getElementById('noti-dot').classList.add('on');
+  _syncNotiBadge();
 }
 function renderNotifications(){
-  const list=document.getElementById('noti-list');
-  if(_notifications.length===0){list.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:var(--tm)">No notifications yet.</div>';return;}
-  list.innerHTML=_notifications.map(n=>`<div class="noti-item"><div class="ni-icon">${n.icon}</div><div class="ni-text">${n.text}</div><div class="ni-time">${n.time}</div></div>`).join('');
+  var list=document.getElementById('noti-list');
+  if(_notifications.length===0){list.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:var(--tm)">You\'re all caught up ✓</div>';return;}
+  list.innerHTML=_notifications.map(function(n){
+    var click=n.navPage?'onclick="showPage(\''+n.navPage+'\');document.getElementById(\'noti-drop\').classList.remove(\'show\')"':'';
+    var cursor=n.navPage?'cursor:pointer':'';
+    return '<div class="noti-item" style="'+cursor+'" '+click+'><div class="ni-icon">'+n.icon+'</div><div class="ni-text">'+n.text+'</div><div class="ni-time">'+n.time+'</div></div>';
+  }).join('');
 }
-function clearNotifications(){_notifications=[];renderNotifications();document.getElementById('noti-dot').classList.remove('on');}
+function clearNotifications(){_notifications=[];_unreadCount=0;renderNotifications();_syncNotiBadge();}
+function toastApproval(name,type){
+  var w=document.getElementById('toast-wrap');if(!w)return;
+  var id='nta-'+Date.now();
+  var el=document.createElement('div');
+  el.id=id;el.className='toast-item';
+  el.style.pointerEvents='auto';
+  el.style.borderLeft='3px solid var(--red)';
+  el.innerHTML='<div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:15px">📋</span><div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--tp)">'+name+' needs approval</div><div style="font-size:10px;color:var(--tm);margin-top:2px">Submitted a '+type+'</div></div><button onclick="showPage(\'approvals\');document.getElementById(\''+id+'\').remove()" style="background:var(--red);color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:10px;cursor:pointer;white-space:nowrap;font-weight:600;margin-left:6px">View →</button></div>';
+  w.appendChild(el);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('in');});});
+  setTimeout(function(){el.classList.remove('in');setTimeout(function(){el.remove();},220);},8000);
+}
 function wsSearch(q){
   const drop=document.getElementById('ws-search-drop');
   q=q.trim().toLowerCase();
