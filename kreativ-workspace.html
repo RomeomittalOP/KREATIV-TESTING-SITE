@@ -221,6 +221,19 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
 .toast-item.err{border-left:3px solid var(--red);color:var(--red)}
 .toast-item.ok{border-left:3px solid var(--g);color:var(--g)}
 .toast-item.warn{border-left:3px solid var(--a);color:var(--a)}
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  .mo{transition:none}.mo .mbox{transition:none}.pg-content{animation:none}
+  .toast-item{transition:none}.panel{transition:none}.nb{transition:none}.ti{transition:none}
+  .sb{transition:none}
+}
+/* Loading skeleton */
+.skel{background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:200% 100%;animation:skel-shine 1.2s ease infinite;border-radius:6px;min-height:18px}
+@keyframes skel-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel{animation:none}}
+.skel-block{height:48px;margin-bottom:10px}
+.skel-line{height:14px;margin-bottom:8px;width:70%}
+.skel-line.w50{width:50%}.skel-line.w90{width:90%}
 .mob-menu{display:none;width:38px;height:38px;border:1px solid var(--br);border-radius:8px;align-items:center;justify-content:center;font-size:18px;cursor:pointer;background:transparent;color:var(--tp);flex-shrink:0}
 .mob-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:89;backdrop-filter:blur(2px)}
 .mob-scrim.on{display:block}
@@ -248,6 +261,9 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
   .fr2{grid-template-columns:1fr}
   .noti-drop{right:-60px;width:calc(100vw - 20px);max-width:360px}
   body{overflow:auto;height:auto}
+  .btn-sm{min-height:44px;min-width:44px;padding:10px 16px;font-size:13px}
+  .ni{min-height:44px;padding:10px 12px;font-size:13px}
+  .mo .mbox{max-height:90vh;overflow-y:auto}
 }
 @media(max-width:400px){
   .sg-4,.sg-3,.sg-2{grid-template-columns:1fr}
@@ -822,6 +838,8 @@ function buildSidebar(){
     <div class="u-role">${m.role}${m.isFounder?' · <span style="color:var(--gold)">Founder</span>':''}</div>
     <div class="merit-strip"><div class="ms-bar"><div class="ms-fill" style="width:${score}%;background:${fc}"></div></div><span class="ms-val">${score}pts</span></div></div>`;
 }
+function skelLoad(rows=4){let h='';for(let i=0;i<rows;i++)h+=`<div class="skel skel-block"></div>`;return h;}
+function emptyState(icon,title,sub){return `<div style="text-align:center;padding:48px 16px;color:var(--ts)"><div style="font-size:36px;margin-bottom:12px">${icon}</div><div style="font-size:15px;font-weight:600;margin-bottom:6px">${title}</div><div style="font-size:12px;color:var(--t3)">${sub}</div></div>`;}
 const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Client Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage',team_manage:'Team Management'};
 function showPage(id,navEl){
   if(window._closeMobileSb)window._closeMobileSb();
@@ -2366,8 +2384,10 @@ async function addMember(){
   await logAct('member_add',`New member "${name}" added (${role}, ${dept})`,'👥');
   await persist();closeModal('mo-addmem');buildSidebar();showPage('merit');
 }
-function openModal(id){document.getElementById(id).classList.add('on');}
-function closeModal(id){document.getElementById(id).classList.remove('on');}
+function openModal(id){const el=document.getElementById(id);el.classList.add('on');window._activeModal=id;}
+function closeModal(id){const el=document.getElementById(id);el.classList.remove('on');if(window._activeModal===id)window._activeModal=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window._activeModal)closeModal(window._activeModal);});
+document.addEventListener('click',e=>{if(window._activeModal&&e.target.classList.contains('mo')&&e.target.classList.contains('on'))closeModal(window._activeModal);});
 
 /* ── Toast notification system (replaces all alert()) ── */
 function toast(msg,type='info'){
