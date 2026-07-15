@@ -908,8 +908,8 @@ function showDenied(item){
   let reason=m.merit<30&&item.minMerit>=30?'Merit score below 30 — workspace access suspended.':`Restricted to: ${Array.isArray(item.depts)?item.depts.join(', '):'certain roles'}.`;
   document.getElementById('content').innerHTML=`<div class="denied"><div class="di">🔒</div><div class="dt">Access Restricted</div><div class="ds">${reason}</div></div>`;
 }
-function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}
+function todayKey(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});}
 function fmtDur(ms){const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);return `${h}h ${m}m`;}
 function myAttendanceToday(){return (SESSION.attendance||[]).filter(a=>a&&a.uid===me().id&&a.date===todayKey());}
 function myActiveSession(){return (SESSION.attendance||[]).find(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);}
@@ -1187,10 +1187,8 @@ function rOverview(){
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
         ${(()=>{const pend=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(pend.length===0)return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>';return pend.slice(0,3).map(a=>{const realIdx=SESSION.approvals.indexOf(a);const req=SESSION.members.find(m=>m.id===(a.requestedBy||a.uid));const label=a.type==='task_proof'?('📎 '+(a.taskName||'Task proof')):(a.title||'Request');const sub=a.type==='task_proof'?(a.proofText||'').slice(0,50):(a.target||a.desc||'');return '<div class="ar"><div class="ai" style="background:var(--b-bg)">'+(a.type==='task_proof'?'📎':'✦')+'</div><div class="ainfo"><div class="at">'+label+'</div><div class="as2">'+(sub?sub+' · ':'')+'by '+(req?req.name.split(' ')[0]:'—')+' · '+(a.date||'—')+'</div></div>'+(canEdit()?'<div class="aact"><button class="b-ok" onclick="dashApprove('+realIdx+')">Approve</button><button class="b-no" onclick="dashReject('+realIdx+')">Reject</button></div>':'')+'</div>';}).join('');})()}</div>
-      <div class="panel"><div class="ph"><div class="pt">Who's Active Now</div></div>
-        ${(()=>{const activeNow=SESSION.members.filter(m=>!m.isFounder).map(m=>({m,att:(SESSION.attendance||[]).find(a=>a&&a.uid===m.id&&a.date===todayKey()&&a.clockIn&&!a.clockOut)})).filter(x=>x.att);
-        if(activeNow.length===0)return `<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">Nobody active right now.</div>`;
-        return activeNow.map(x=>`<div class="ar"><div class="ai" style="background:${x.m.color}22">${x.m.initials}</div><div class="ainfo"><div class="at" style="${canEdit()?'cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px':''}" ${canEdit()?`onclick="openAttDrilldown('${x.m.id}')"`:''} onmouseover="this.style.color='var(--b)'" onmouseout="this.style.color=''">${x.m.name}</div><div class="as2">● Active since ${fmtTime(x.att.clockIn)}</div></div><span class="badge b-green">Online</span></div>`).join('');})()}
+      <div class="panel"><div class="ph"><div class="pt">Team Status — Today</div></div>
+        ${(()=>{const all=SESSION.members.filter(function(m){return !m.isFounder;});if(all.length===0)return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No team members yet.</div>';return all.map(function(x){var att=(SESSION.attendance||[]).find(function(a){return a&&a.uid===x.id&&a.date===todayKey();});var isActive=att&&att.clockIn&&!att.clockOut;var hasDone=att&&att.clockIn&&att.clockOut;var nm=canEdit()?'cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px':'';var nc=canEdit()?'onclick="openAttDrilldown(\''+x.id+'\')"':'';var nh=canEdit()?'onmouseover="this.style.color=\'var(--b)\'" onmouseout="this.style.color=\'\'"':'';var badge=isActive?'<span class="badge b-green">● Online</span>':hasDone?'<span class="badge b-blue">Done</span>':'<span class="badge b-grey" style="opacity:.45">Absent</span>';var sub=isActive?('● Active since '+fmtTime(att.clockIn)):hasDone?'Clocked out':'Not clocked in';var dim=!isActive&&!hasDone?'opacity:.45;':'';return '<div class="ar" style="'+dim+'"><div class="ai" style="background:'+x.color+'22">'+x.initials+'</div><div class="ainfo"><div class="at" style="'+nm+'" '+nc+' '+nh+'>'+x.name+'</div><div class="as2">'+sub+'</div></div>'+badge+'</div>';}).join('');})()}
       </div>
       <div class="panel"><div class="ph"><div class="pt">Payments Due</div><span class="pa" onclick="showPage('payments')">View all</span></div>
         ${SESSION.payments.filter(p=>p.status!=='Received').slice(0,3).map(p=>`<div class="pr"><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.client}</div><div style="font-size:10px;color:var(--tm);margin-top:1px">${p.desc}</div></div><span class="pamt">₹${p.amount.toLocaleString('en-IN')}</span><span class="badge ${p.status==='Overdue'?'b-red':'b-amber'}">${p.status}</span></div>`).join('')}</div>
@@ -2551,16 +2549,15 @@ function openTaskNotes(taskIdx){
 function renderTaskNotes(){
   const t=SESSION.tasks[window._noteTaskIdx];if(!t||!t.notes)return;
   const list=document.getElementById('tn-list');
-  if(t.notes.length===0){list.innerHTML=emptyState('📝','No notes yet','Add the first note on this task.');return;}
-  list.innerHTML=[...t.notes].reverse().map(n=>{
-    const mem=SESSION.members.find(m=>m.id===n.authorId);
-    return `<div style="background:var(--s2);border-radius:8px;padding:10px 14px;margin-bottom:8px;animation:pgIn .18s ease both">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:11px;font-weight:600;color:var(--ts)">${mem?mem.name.split(' ')[0]:'Unknown'}</span>
-        <span style="font-size:10px;color:var(--tm)">${new Date(n.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} ${new Date(n.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
-      </div>
-      <div style="font-size:12px;color:var(--ts);line-height:1.5;white-space:pre-wrap">${n.text}</div>
-    </div>`;
+  const notes=(t.notes||[]).filter(function(n){return n&&typeof n==='object';});
+  if(notes.length===0){list.innerHTML=emptyState('📝','No notes yet','Add the first note on this task.');return;}
+  list.innerHTML=[...notes].reverse().map(function(n){
+    const mem=SESSION.members.find(function(m){return m.id===n.authorId;});
+    const author=mem?mem.name.split(' ')[0]:(n.authorName&&String(n.authorName)!=='undefined'?String(n.authorName).split(' ')[0]:'[unknown]');
+    const text=n.text&&String(n.text)!=='undefined'?String(n.text):'[note text missing]';
+    var ts='[timestamp unavailable]';
+    if(n.createdAt){var d=new Date(n.createdAt);if(!isNaN(d.getTime()))ts=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});}
+    return '<div style="background:var(--s2);border-radius:8px;padding:10px 14px;margin-bottom:8px;animation:pgIn .18s ease both"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;font-weight:600;color:var(--ts)">'+author+'</span><span style="font-size:10px;color:var(--tm)">'+ts+'</span></div><div style="font-size:12px;color:var(--ts);line-height:1.5;white-space:pre-wrap">'+text+'</div></div>';
   }).join('');
 }
 async function addTaskNote(){
