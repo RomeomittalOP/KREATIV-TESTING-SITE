@@ -587,6 +587,7 @@ async function boot() {
     setupAutoClockOut();
     checkAbandonedSession();
     setInterval(checkOverdueTasks, 600000);
+    setInterval(_globalHourlyCheck, 30000);
   });
 }
 
@@ -1113,6 +1114,14 @@ async function terminateByVoice(){
   await persist();
   showPage(_currentPage);
   toast('Session ended — no response to hourly check. You have been clocked out.','warn');
+}
+function _globalHourlyCheck(){
+  if(!SESSION.user||!me||!me())return;
+  if(me().isFounder)return;
+  const s=myActiveSession();
+  if(!s||document.hidden||document.getElementById('vv-banner'))return;
+  if(!window._lastVoiceCheck)window._lastVoiceCheck=s.clockIn;
+  if(Date.now()-s.clockIn>=3600000&&Date.now()-window._lastVoiceCheck>=3600000)voiceVerify();
 }
 function voiceVerify(){
   if(!myActiveSession()||me().isFounder)return;
