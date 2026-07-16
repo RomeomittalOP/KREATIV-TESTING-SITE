@@ -595,6 +595,8 @@ window.addEventListener('pagehide', () => {
   if(!SESSION.user||!me||!me())return;
   const active=myActiveSession();
   if(!active)return;
+  // sessionStorage survives page refresh but clears on tab close — used to skip clock-out on refresh
+  sessionStorage.setItem('kreativ_refresh_guard','1');
   localStorage.setItem('kreativ_abandoned',JSON.stringify({uid:me().id,clockIn:active.clockIn,closeTime:Date.now(),isFounder:me().isFounder||false}));
 });
 
@@ -602,6 +604,8 @@ async function checkAbandonedSession(){
   const raw=localStorage.getItem('kreativ_abandoned');
   if(!raw)return;
   localStorage.removeItem('kreativ_abandoned');
+  // If sessionStorage still has the flag, this is a refresh not a tab close — don't clock out
+  if(sessionStorage.getItem('kreativ_refresh_guard')){sessionStorage.removeItem('kreativ_refresh_guard');return;}
   let ab;try{ab=JSON.parse(raw);}catch(e){return;}
   if(!ab||!ab.uid||ab.uid!==me().id)return;
   const active=(SESSION.attendance||[]).find(a=>a&&a.uid===ab.uid&&a.clockIn===ab.clockIn&&!a.clockOut);
@@ -1608,7 +1612,7 @@ function rTasks(){
       ${canJoin?`<button class="btn-sm green" onclick="event.stopPropagation();joinTask(${ri})">🙋</button>`:''}
       ${isMine&&!t.done&&!isPending&&!t.needsHelp?`<button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();toggleSeekHelp(${ri})">🆘</button>`:''}
       ${isMine&&t.needsHelp?`<button class="btn-sm" onclick="event.stopPropagation();toggleSeekHelp(${ri})">Cancel</button>`:''}
-      <button class="btn-sm" onclick="event.stopPropagation();openTaskNotes(${ri})" style="position:relative">📝${t.notes&&t.notes.length?`<span style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center">${t.notes.length}</span>`:''}</button>
+      <button class="btn-sm" onclick="event.stopPropagation();openTaskNotes(${ri})" style="position:relative">📝${t.taskNotes&&t.taskNotes.length?`<span style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center">${t.taskNotes.length}</span>`:''}</button>
       ${canEdit()?`<button class="btn-sm" onclick="event.stopPropagation();editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTask(${ri})">✕</button>`:''}
     </div></div>`;}).join('')}
   ${myTasks.length===0?'':'</div>'}`;
@@ -1713,7 +1717,7 @@ function populateTaskModal(editIdx){
     document.getElementById('t-project').value=t.project||'Internal';
     document.getElementById('t-due').value=t.due&&t.due!=='TBD'?t.due:'';
     document.getElementById('t-merit').value=t.merit||5;
-    document.getElementById('t-notes').value=t.notes||'';
+    document.getElementById('t-notes').value=typeof t.notes==='string'?t.notes:'';
     document.getElementById('t-isDaily').checked=!!t.isDaily;
   } else {
     document.getElementById('t-name').value='';
@@ -1746,7 +1750,9 @@ async function saveTask(){
   const taskData={name,project:document.getElementById('t-project').value,assignee:assigneeId,priority:document.getElementById('t-priority').value,due,merit:parseInt(document.getElementById('t-merit').value)||5,notes:document.getElementById('t-notes').value,isDaily:isDaily||false};
   if(editIdx!==''){
     const t=SESSION.tasks[parseInt(editIdx)];
+    const savedTaskNotes=t.taskNotes||[];
     Object.assign(t,taskData);t.updatedAt=Date.now();
+    t.taskNotes=savedTaskNotes;
     await logAct('task_edit',`Task "${name}" updated`,'✎',t.assignee||null);
     toast('Task updated','success');
   } else {
@@ -2538,7 +2544,9 @@ async function submitCutEntry(){
 function openTaskNotes(taskIdx){
   const t=SESSION.tasks[taskIdx];if(!t)return;
   window._noteTaskIdx=taskIdx;
-  if(!t.notes)t.notes=[];
+  // migrate old data: if t.notes is an array, move it to t.taskNotes
+  if(Array.isArray(t.notes)){t.taskNotes=t.notes;t.notes='';}
+  if(!t.taskNotes)t.taskNotes=[];
   document.getElementById('tn-title').textContent='Notes: '+t.name;
   const isAdm=canEdit();
   document.getElementById('tn-add-wrap').style.display=isAdm?'block':'none';
@@ -2547,9 +2555,9 @@ function openTaskNotes(taskIdx){
   openModal('mo-task-notes');
 }
 function renderTaskNotes(){
-  const t=SESSION.tasks[window._noteTaskIdx];if(!t||!t.notes)return;
+  const t=SESSION.tasks[window._noteTaskIdx];if(!t||!t.taskNotes)return;
   const list=document.getElementById('tn-list');
-  const notes=(t.notes||[]).filter(function(n){return n&&typeof n==='object';});
+  const notes=(t.taskNotes||[]).filter(function(n){return n&&typeof n==='object';});
   if(notes.length===0){list.innerHTML=emptyState('📝','No notes yet','Add the first note on this task.');return;}
   list.innerHTML=[...notes].reverse().map(function(n){
     const mem=SESSION.members.find(function(m){return m.id===n.authorId;});
@@ -2564,8 +2572,8 @@ async function addTaskNote(){
   const text=document.getElementById('tn-input').value.trim();
   if(!text){toast('Write something first.','error');return;}
   const t=SESSION.tasks[window._noteTaskIdx];if(!t)return;
-  if(!t.notes)t.notes=[];
-  t.notes.push({text,authorId:me().id,authorName:me().name,createdAt:Date.now()});
+  if(!t.taskNotes)t.taskNotes=[];
+  t.taskNotes.push({text,authorId:me().id,authorName:me().name,createdAt:Date.now()});
   t.updatedAt=Date.now();
   document.getElementById('tn-input').value='';
   renderTaskNotes();
@@ -2655,7 +2663,7 @@ function markSeen(section){try{localStorage.setItem('kreativ_seen_'+me().id+'_'+
 function badgeCount(section){
   const ls=getLastSeen(section);
   if(section==='tasks')return SESSION.tasks.filter(t=>!t.done&&(t.updatedAt||0)>ls).length;
-  if(section==='approvals'){const p=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(me().isFounder||me().id==='keshav')return p.length;return p.filter(a=>a.uid===me().id||a.requestedBy===me().id).length;}
+  if(section==='approvals'){const ls=getLastSeen('approvals');const p=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof'&&(a.submittedAt||a.createdAt||0)>ls);if(me().isFounder||me().id==='keshav')return p.length;return p.filter(a=>a.uid===me().id||a.requestedBy===me().id).length;}
   if(section==='payments')return SESSION.payments.filter(p=>p.status==='Overdue').length;
   if(section==='updates')return 0;
   return 0;
