@@ -1111,6 +1111,7 @@ function respondVerify(){
 }
 async function terminateByVoice(){
   hideVerifyBanner();
+  if(_anyModalOpen()){window._lastVoiceCheck=Date.now();return;} // user is on a modal — they're present
   const active=myActiveSession();
   if(!active)return;
   active.clockOut=Date.now();
@@ -1136,11 +1137,13 @@ function _vvSpeak(name){
     }catch(e){}
   }
 }
+function _anyModalOpen(){return !!document.querySelector('.mo.show, .mo[style*="flex"]');}
 function _globalHourlyCheck(){
   if(!SESSION.user||!me||!me())return;
   if(me().isFounder)return;
   const s=myActiveSession();
   if(!s||document.hidden||document.getElementById('vv-banner'))return;
+  if(_anyModalOpen())return; // user is interacting — don't interrupt
   if(!window._lastVoiceCheck)window._lastVoiceCheck=s.clockIn;
   if(Date.now()-s.clockIn>=3600000&&Date.now()-window._lastVoiceCheck>=3600000)voiceVerify();
 }
