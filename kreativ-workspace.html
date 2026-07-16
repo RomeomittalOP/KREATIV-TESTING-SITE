@@ -2213,8 +2213,10 @@ function loadGapiScripts(){
   const s1=document.createElement('script');s1.id='gapi-script';
   s1.src='https://apis.google.com/js/api.js';
   s1.onload=()=>{gapi.load('client:picker',async()=>{
-    await gapi.client.init({apiKey:GDRIVE.API_KEY,discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});
-    GDRIVE.apisReady=true;console.log('Google Drive API ready');
+    try{
+      await gapi.client.init({apiKey:GDRIVE.API_KEY,discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});
+      GDRIVE.apisReady=true;console.log('Google Drive API ready');
+    }catch(e){console.warn('Google Drive API init failed (non-fatal):',e);}
   });};
   document.head.appendChild(s1);
   const s2=document.createElement('script');s2.src='https://accounts.google.com/gsi/client';
