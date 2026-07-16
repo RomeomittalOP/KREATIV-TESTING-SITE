@@ -1091,16 +1091,16 @@ function showVerifyBanner(){
   const b=document.createElement('div');
   b.id='vv-banner';
   b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--red);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-family:inherit;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.4)';
-  b.innerHTML='<div>🎤 Hourly Check — Still working? Say <strong>"Yes"</strong> or tap button</div><button onclick="respondVerify()" style="background:#fff;color:var(--red);border:none;padding:5px 14px;border-radius:4px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">✓ I\'m Here</button>';
+  b.innerHTML='<div>🎤 Hourly Check — Still working? Say <strong>"Yes"</strong> or tap &nbsp;<span id="vv-countdown" style="opacity:.75;font-weight:400;font-size:12px">5:00</span></div><button onclick="respondVerify()" style="background:#fff;color:var(--red);border:none;padding:5px 14px;border-radius:4px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">✓ I\'m Here</button>';
   document.body.prepend(b);
 }
 function hideVerifyBanner(){
   const el=document.getElementById('vv-banner');
   if(el)el.remove();
   if(window._vvRec){try{window._vvRec.stop();}catch(e){}window._vvRec=null;}
+  if(window._vvTick){clearInterval(window._vvTick);window._vvTick=null;}
 }
 function respondVerify(){
-  clearTimeout(window._vvTimeout);
   hideVerifyBanner();
   window._lastVoiceCheck=Date.now();
 }
@@ -1110,10 +1110,26 @@ async function terminateByVoice(){
   if(!active)return;
   active.clockOut=Date.now();
   active.proofText='[Auto clock-out — no response to hourly check]';
-  await logAct('clock_out',`${me().name.split(' ')[0]} auto-clocked out (no hourly response)`,'⚠');
+  await logAct('clock_out',me().name.split(' ')[0]+' auto-clocked out (no hourly response)','⚠');
   await persist();
   showPage(_currentPage);
   toast('Session ended — no response to hourly check. You have been clocked out.','warn');
+}
+function _vvSpeak(name){
+  if(window.speechSynthesis){
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance('Hey '+name+', are you still working? Please say yes or tap I\'m Here.');
+    u.rate=0.92;u.volume=1;window.speechSynthesis.speak(u);
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    try{
+      if(window._vvRec){try{window._vvRec.stop();}catch(e){}}
+      const rec=new SR();rec.lang='en-IN';rec.interimResults=false;
+      rec.onresult=function(e){var t=(e.results[0][0].transcript||'').toLowerCase();if(t.includes('yes')||t.includes('here')||t.includes('haan')||t.includes('ha')||t.includes('present')||t.includes('yep'))respondVerify();};
+      rec.onerror=function(){};rec.start();window._vvRec=rec;
+    }catch(e){}
+  }
 }
 function _globalHourlyCheck(){
   if(!SESSION.user||!me||!me())return;
@@ -1125,26 +1141,18 @@ function _globalHourlyCheck(){
 }
 function voiceVerify(){
   if(!myActiveSession()||me().isFounder)return;
+  if(window._vvTick)return; // already running
   showVerifyBanner();
-  const m=me();
-  if(window.speechSynthesis){
-    const u=new SpeechSynthesisUtterance(`Hey ${m.name.split(' ')[0]}, are you still working? Please say yes or tap I'm Here.`);
-    u.rate=0.92;u.volume=1;
-    window.speechSynthesis.speak(u);
-  }
-  window._vvTimeout=setTimeout(terminateByVoice,90000);
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(SR){
-    try{
-      const rec=new SR();rec.lang='en-IN';rec.interimResults=false;
-      rec.onresult=e=>{
-        const t=(e.results[0][0].transcript||'').toLowerCase();
-        if(t.includes('yes')||t.includes('here')||t.includes('haan')||t.includes('ha')||t.includes('present')||t.includes('yep'))respondVerify();
-      };
-      rec.onerror=()=>{};
-      rec.start();window._vvRec=rec;
-    }catch(e){}
-  }
+  const name=me().name.split(' ')[0];
+  var remaining=300;
+  _vvSpeak(name);
+  window._vvTick=setInterval(function(){
+    remaining--;
+    var cd=document.getElementById('vv-countdown');
+    if(cd){var mm=Math.floor(remaining/60);var ss=remaining%60;cd.textContent=mm+':'+(ss<10?'0':'')+ss;}
+    if(remaining%30===0&&remaining>0)_vvSpeak(name);
+    if(remaining<=0){clearInterval(window._vvTick);window._vvTick=null;terminateByVoice();}
+  },1000);
 }
 
 /* ═══════════════════════════════════════════════════════
