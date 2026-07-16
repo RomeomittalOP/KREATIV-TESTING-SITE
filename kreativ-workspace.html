@@ -511,7 +511,12 @@ const DB = {
           }
         });
       }
+      // Preserve any in-memory active session not yet saved to Firebase (network delay / write failure)
+      var _memActive=SESSION.user?(SESSION.attendance||[]).find(function(a){return a&&a.uid===SESSION.user.id&&!a.clockOut;}):null;
       SESSION.attendance = val.attendance || SESSION.attendance;
+      if(_memActive&&!(SESSION.attendance||[]).some(function(a){return a&&a.uid===_memActive.uid&&a.clockIn===_memActive.clockIn;})){
+        SESSION.attendance.push(_memActive);
+      }
       SESSION.salaryPayments = val.salaryPayments || SESSION.salaryPayments;
       SESSION.meritRequests = val.meritRequests || SESSION.meritRequests;
       SESSION.activityLog = val.activityLog || SESSION.activityLog;
@@ -1426,7 +1431,7 @@ function openClockOutModal(){openModal('mo-clockout');}
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
     window._hiddenAt=Date.now();
-    if(window._vvTimeout){clearTimeout(window._vvTimeout);window._vvTimeout=null;window._vvPaused=true;}
+    if(window._vvTick){clearInterval(window._vvTick);window._vvTick=null;window._vvPaused=true;}
     return;
   }
   // User returned — check how long they were gone
@@ -1451,7 +1456,17 @@ document.addEventListener('visibilitychange',()=>{
   // Check if hourly verify is overdue
   if(window._vvPaused&&document.getElementById('vv-banner')){
     window._vvPaused=false;
-    window._vvTimeout=setTimeout(terminateByVoice,90000);
+    // Resume the countdown from the current countdown display value
+    var _cdEl=document.getElementById('vv-countdown');
+    var _remaining=_cdEl?parseInt((_cdEl.textContent||'5:00').replace(':',''))||300:300;
+    var _name=me()?me().name.split(' ')[0]:'';
+    window._vvTick=setInterval(function(){
+      _remaining--;
+      var cd=document.getElementById('vv-countdown');
+      if(cd){var mm=Math.floor(_remaining/60);var ss=_remaining%60;cd.textContent=mm+':'+(ss<10?'0':'')+ss;}
+      if(_remaining%30===0&&_remaining>0)_vvSpeak(_name);
+      if(_remaining<=0){clearInterval(window._vvTick);window._vvTick=null;terminateByVoice();}
+    },1000);
     return;
   }
   window._vvPaused=false;
