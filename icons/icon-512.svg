@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#050505"/>
+  <!-- Kreativ K — geometric bold letterform -->
+  <!-- Vertical bar -->
+  <rect x="112" y="80" width="76" height="352" fill="#F5F5F5"/>
+  <!-- Upper diagonal arm -->
+  <polygon points="188,256 188,192 380,80 440,80 248,256" fill="#F5F5F5"/>
+  <!-- Lower diagonal arm -->
+  <polygon points="188,256 248,256 440,432 380,432 188,320" fill="#F5F5F5"/>
+  <!-- Red accent dot -->
+  <circle cx="416" cy="96" r="28" fill="#FF1E1E"/>
+</svg>
