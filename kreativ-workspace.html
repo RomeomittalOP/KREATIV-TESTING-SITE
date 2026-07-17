@@ -591,8 +591,7 @@ async function boot() {
     startRealtimeNotifications();
     setupAutoClockOut();
     checkAbandonedSession();
-    setInterval(checkOverdueTasks, 600000);
-    setInterval(_globalHourlyCheck, 30000);
+    if(!window._intervalsStarted){window._intervalsStarted=true;setInterval(checkOverdueTasks,600000);setInterval(_globalHourlyCheck,30000);}
   });
 }
 
@@ -637,6 +636,7 @@ async function loadSession(memberId) {
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
     if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
+    SESSION.tasks.forEach(t=>{if(Array.isArray(t.notes)&&!t.taskNotes){t.taskNotes=t.notes;delete t.notes;}});
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
     SESSION.clients = saved.clients || DEFAULT_CLIENTS;
     SESSION.dataEntries = saved.dataEntries || [];
@@ -652,6 +652,7 @@ async function loadSession(memberId) {
     SESSION.attendanceRequests = saved.attendanceRequests || [];
     SESSION.dailyTargets = saved.dailyTargets || [];
     SESSION.leaves = saved.leaves || [];
+    SESSION.clientUpdates = saved.clientUpdates || [];
     // _dataResetJul2026 block permanently removed — already ran, keeping it was causing repeated data wipes on fresh sessions
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
@@ -821,6 +822,7 @@ function canApproveAttendance() { return me().isFounder || me().id === 'keshav';
 
 function doLogout() {
   logAct('logout', me().name + ' signed out', '⎋');
+  try{rtdb.ref('workspace/workspace_data').off();}catch(e){}
   auth.signOut().then(() => {
     SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}, attendanceRequests:[], dailyTargets:[], leaves:[]};
     window.location.href = '/kreativ-login';
@@ -907,6 +909,7 @@ function showPage(id,navEl){
   if(id==='payments'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
   if(id==='vault'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-data')">+ Add Entry</button>`;
   if(window._timerInterval){clearTimeout(window._timerInterval);window._timerInterval=null;}
+  if(window._vvTick&&id!=='attendance'){clearInterval(window._vvTick);window._vvTick=null;hideVerifyBanner();}
   if(id==='attendance')startLiveTimer();
   if(id==='merit'&&me().isFounder)document.getElementById('tb-extra').innerHTML=`<button class="btn-sm gold" onclick="openRoleModal()">Manage Roles</button>`;
   if(id==='cloudfiles'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="gdriveUpload()">+ Upload File</button>`;
@@ -1137,7 +1140,7 @@ function _vvSpeak(name){
     }catch(e){}
   }
 }
-function _anyModalOpen(){return !!document.querySelector('.mo.show, .mo[style*="flex"]');}
+function _anyModalOpen(){return !!document.querySelector('.mo.on');}
 function _globalHourlyCheck(){
   if(!SESSION.user||!me||!me())return;
   if(me().isFounder)return;
@@ -1211,11 +1214,11 @@ function rOverview(){
   <div class="sg sg-2">
     <div class="panel"><div class="ph"><div class="pt">${canEdit()?'Today\'s Tasks':'My Tasks'}</div><span class="pa" onclick="showPage('tasks')">View all</span></div>
     ${(canEdit()?SESSION.tasks:SESSION.tasks.filter(t=>t.assignee===me().id)).slice(0,5).map(t=>{const mem=SESSION.members.find(m=>m.id===t.assignee)||{initials:'?',color:'#666'};const pc=t.priority==='Urgent'||t.priority==='High'?'b-red':t.priority==='Mid'?'b-amber':'b-blue';
-    return `<div class="ti" onclick="this.querySelector('.tc').classList.toggle('done');this.querySelector('.tn').classList.toggle('done')"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}
+    return `<div class="ti" onclick="showPage('tasks')" style="cursor:pointer"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}
     ${(canEdit()?SESSION.tasks:SESSION.tasks.filter(t=>t.assignee===me().id)).length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No tasks assigned to you.</div>':''}</div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
-        ${(()=>{const pend=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(pend.length===0)return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>';return pend.slice(0,3).map(a=>{const realIdx=SESSION.approvals.indexOf(a);const req=SESSION.members.find(m=>m.id===(a.requestedBy||a.uid));const label=a.type==='task_proof'?('📎 '+(a.taskName||'Task proof')):(a.title||'Request');const sub=a.type==='task_proof'?(a.proofText||'').slice(0,50):(a.target||a.desc||'');return '<div class="ar"><div class="ai" style="background:var(--b-bg)">'+(a.type==='task_proof'?'📎':'✦')+'</div><div class="ainfo"><div class="at">'+label+'</div><div class="as2">'+(sub?sub+' · ':'')+'by '+(req?req.name.split(' ')[0]:'—')+' · '+(a.date||'—')+'</div></div>'+(canEdit()?'<div class="aact"><button class="b-ok" onclick="dashApprove('+realIdx+')">Approve</button><button class="b-no" onclick="dashReject('+realIdx+')">Reject</button></div>':'')+'</div>';}).join('');})()}</div>
+        ${(()=>{const pend=SESSION.approvals.filter(a=>a.status==='pending'&&a.type!=='clockout_proof');if(pend.length===0)return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No pending approvals.</div>';return pend.slice(0,3).map(a=>{const req=SESSION.members.find(m=>m.id===(a.requestedBy||a.uid));const label=a.type==='task_proof'?('📎 '+(a.taskName||'Task proof')):(a.title||'Request');const sub=a.type==='task_proof'?(a.proofText||'').slice(0,50):(a.target||a.desc||'');return '<div class="ar"><div class="ai" style="background:var(--b-bg)">'+(a.type==='task_proof'?'📎':'✦')+'</div><div class="ainfo"><div class="at">'+label+'</div><div class="as2">'+(sub?sub+' · ':'')+'by '+(req?req.name.split(' ')[0]:'—')+' · '+(a.date||'—')+'</div></div>'+(canEdit()?'<div class="aact"><button class="b-ok" onclick="dashApprove(\''+a.id+'\')">Approve</button><button class="b-no" onclick="dashReject(\''+a.id+'\')">Reject</button></div>':'')+'</div>';}).join('');})()}</div>
       <div class="panel"><div class="ph"><div class="pt">Team Status — Today</div></div>
         ${(()=>{const all=SESSION.members.filter(function(m){return !m.isFounder;});if(all.length===0)return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No team members yet.</div>';return all.map(function(x){var att=(SESSION.attendance||[]).find(function(a){return a&&a.uid===x.id&&a.date===todayKey();});var isActive=att&&att.clockIn&&!att.clockOut;var hasDone=att&&att.clockIn&&att.clockOut;var nm=canEdit()?'cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px':'';var nc=canEdit()?'onclick="openAttDrilldown(\''+x.id+'\')"':'';var nh=canEdit()?'onmouseover="this.style.color=\'var(--b)\'" onmouseout="this.style.color=\'\'"':'';var badge=isActive?'<span class="badge b-green">● Online</span>':hasDone?'<span class="badge b-blue">Done</span>':'<span class="badge b-grey" style="opacity:.45">Absent</span>';var sub=isActive?('● Active since '+fmtTime(att.clockIn)):hasDone?'Clocked out':'Not clocked in';var dim=!isActive&&!hasDone?'opacity:.45;':'';return '<div class="ar" style="'+dim+'"><div class="ai" style="background:'+x.color+'22">'+x.initials+'</div><div class="ainfo"><div class="at" style="'+nm+'" '+nc+' '+nh+'>'+x.name+'</div><div class="as2">'+sub+'</div></div>'+badge+'</div>';}).join('');})()}
       </div>
@@ -1235,7 +1238,7 @@ function rAttendance(){
   const adm=isAdmin();
   let html='';
   if(active){
-    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div><span class="badge b-green">● Active</span></div>
+    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Kolkata'})}</div><span class="badge b-green">● Active</span></div>
     <div style="padding:24px">
       <div class="sg sg-3" style="margin-bottom:18px">
         <div class="sc"><div class="sl">Current Session</div><div class="sv" style="font-size:20px">${fmtTime(active.clockIn)}</div></div>
@@ -1245,7 +1248,7 @@ function rAttendance(){
       <button class="btn-sm red" style="font-size:14px;padding:11px 28px;width:100%" onclick="openClockOutModal()">■ Clock Out & Submit Work Proof</button>
     </div></div>`;
   } else {
-    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div>${completedToday.length?'<span class="badge b-blue">'+completedToday.length+' session'+(completedToday.length!==1?'s':'')+'</span>':''}</div>
+    html+=`<div class="panel"><div class="ph"><div class="pt">Today — ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Kolkata'})}</div>${completedToday.length?'<span class="badge b-blue">'+completedToday.length+' session'+(completedToday.length!==1?'s':'')+'</span>':''}</div>
     <div style="padding:30px;text-align:center">
       ${completedToday.length?`<div style="font-size:20px;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:var(--g);margin-bottom:6px">${fmtDur(totalToday)}</div><div style="font-size:11px;color:var(--tm);margin-bottom:16px">Total worked today across ${completedToday.length} session${completedToday.length!==1?'s':''}</div>`:`<div style="font-size:13px;color:var(--ts);margin-bottom:16px">You haven't clocked in yet.</div>`}
       <button class="btn-sm red" style="font-size:14px;padding:11px 28px" onclick="clockIn()">▶ ${completedToday.length?'Clock In Again':'Clock In'}</button>
@@ -1401,12 +1404,14 @@ function rAttendance(){
 async function clockIn(){
   const active=myActiveSession();
   if(active){toast('You already have an active session. Clock out first.','error');return;}
-  SESSION.attendance.push({uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''});
-  await autoMerit(me().id,'clockInOnTime','Clocked in');
-  await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
-  await persist();
-  setupAutoClockOut();
-  showPage('attendance');
+  try{
+    SESSION.attendance.push({uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''});
+    await autoMerit(me().id,'clockInOnTime','Clocked in');
+    await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
+    await persist();
+    setupAutoClockOut();
+    showPage('attendance');
+  }catch(e){console.error('clockIn failed',e);toast('Clock-in failed — check your connection and try again.','error');}
   startLiveTimer();
 }
 function setupAutoClockOut(){
@@ -1430,7 +1435,8 @@ function startLiveTimer(){
   }
   window._timerInterval=setTimeout(()=>{if(document.getElementById('live-timer'))startLiveTimer();},30000);
 }
-function openClockOutModal(){openModal('mo-clockout');}
+function openClockOutModal(){document.getElementById('co-text').value='';const cf=document.getElementById('co-file');if(cf)cf.value='';openModal('mo-clockout');}
+function openApprovalModal(){document.getElementById('apr-title').value='';document.getElementById('apr-desc').value='';openModal('mo-approval');}
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
     window._hiddenAt=Date.now();
@@ -1450,8 +1456,7 @@ document.addEventListener('visibilitychange',()=>{
     t.pendingApproval=true;
     const ap={id:'cop'+Date.now(),type:'clockout_proof',uid:me().id,clockIn:t.clockIn,clockOut:t.clockOut,duration:t.clockOut-t.clockIn,proofText:t.proofText,proofFileName:'',proofFileData:'',date:todayKey(),status:'pending',submittedAt:Date.now(),autoGenerated:true};
     SESSION.approvals.push(ap);
-    logAct('clock_out',`${me().name.split(' ')[0]} auto clocked out — laptop closed ${Math.round(hiddenMs/3600000*10)/10}h`,'🔚','shubhrat');
-    persist();
+    logAct('clock_out',`${me().name.split(' ')[0]} auto clocked out — laptop closed ${Math.round(hiddenMs/3600000*10)/10}h`,'🔚','shubhrat').then(()=>persist()).catch(()=>persist());
     toast('Auto clocked out — you were away '+Math.round(hiddenMs/3600000*10)/10+'h. Check Attendance.','warn');
     showPage('attendance');
     return;
@@ -1488,36 +1493,37 @@ async function submitClockOut(){
   const active=myActiveSession();
   if(!active){toast('No active clock-in found.','error');return;}
   if(window._autoClockOutRef){try{window._autoClockOutRef.cancel();}catch(e){} window._autoClockOutRef=null;}
-  active.clockOut=Date.now();
-  active.proofText=proofText;
-  active.pendingApproval=true;
-  if(fileInput&&fileInput.files[0]){
-    const f=fileInput.files[0];
-    if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
-    active.proofFileName=f.name;
-    active.proofFileData=await fileToBase64(f);
-  }
-  // Founder clocks out → skip approval, award immediately
-  if(me().isFounder){
-    active.pendingApproval=false;
-    await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(active.clockOut-active.clockIn)})`,'🔚');
-    await persist();
-    await checkOver5hMerit(me().id);
-  } else {
-    SESSION.approvals.push({
-      id:'cop'+Date.now(),type:'clockout_proof',uid:me().id,
-      clockIn:active.clockIn,clockOut:active.clockOut,
-      duration:active.clockOut-active.clockIn,
-      proofText,proofFileName:active.proofFileName||'',proofFileData:active.proofFileData||'',
-      date:todayKey(),status:'pending',submittedAt:Date.now()
-    });
-    await logAct('clock_out',`${me().name.split(' ')[0]} clocked out — awaiting founder approval`,'🔚','shubhrat');
-    await persist();
-  }
-  closeModal('mo-clockout');
-  document.getElementById('co-text').value='';
-  if(fileInput)document.getElementById('co-file').value='';
-  showPage('attendance');
+  try{
+    active.clockOut=Date.now();
+    active.proofText=proofText;
+    active.pendingApproval=true;
+    if(fileInput&&fileInput.files[0]){
+      const f=fileInput.files[0];
+      if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
+      active.proofFileName=f.name;
+      active.proofFileData=await fileToBase64(f);
+    }
+    if(me().isFounder){
+      active.pendingApproval=false;
+      await logAct('clock_out',`${me().name.split(' ')[0]} clocked out (${fmtDur(active.clockOut-active.clockIn)})`,'🔚');
+      await persist();
+      await checkOver5hMerit(me().id);
+    } else {
+      SESSION.approvals.push({
+        id:'cop'+Date.now(),type:'clockout_proof',uid:me().id,
+        clockIn:active.clockIn,clockOut:active.clockOut,
+        duration:active.clockOut-active.clockIn,
+        proofText,proofFileName:active.proofFileName||'',proofFileData:active.proofFileData||'',
+        date:todayKey(),status:'pending',submittedAt:Date.now()
+      });
+      await logAct('clock_out',`${me().name.split(' ')[0]} clocked out — awaiting founder approval`,'🔚','shubhrat');
+      await persist();
+    }
+    closeModal('mo-clockout');
+    document.getElementById('co-text').value='';
+    if(fileInput)document.getElementById('co-file').value='';
+    showPage('attendance');
+  }catch(e){console.error('submitClockOut failed',e);toast('Clock-out failed — check your connection and try again.','error');}
 }
 
 async function approveClockoutProof(id){
@@ -1650,7 +1656,7 @@ function rTasks(){
       <button class="btn-sm" onclick="event.stopPropagation();openTaskNotes(${ri})" style="position:relative">📝${t.taskNotes&&t.taskNotes.length?`<span style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center">${t.taskNotes.length}</span>`:''}</button>
       ${canEdit()?`<button class="btn-sm" onclick="event.stopPropagation();editTaskPrompt(${ri})">✎</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTask(${ri})">✕</button>`:''}
     </div></div>`;}).join('')}
-  ${myTasks.length===0?'':'</div>'}`;
+  </div>`;
 }
 async function _markTaskDone(i){
   const t=SESSION.tasks[i];
@@ -1688,16 +1694,17 @@ async function reopenTask(i){
 let _proofTaskIdx=null;
 function openTaskProofModal(ri){
   const t=SESSION.tasks[ri];if(!t)return;
-  _proofTaskIdx=ri;
+  _proofTaskIdx=t.id; // store ID not index — safe against realtime sync reordering
   document.getElementById('tp-task-name').textContent=`"${t.name}"`;
   document.getElementById('tp-proof').value='';
   document.getElementById('tp-file').value='';
   openModal('mo-task-proof');
 }
 async function submitTaskProof(){
-  const ri=_proofTaskIdx;
-  if(ri===null||ri===undefined)return;
-  const t=SESSION.tasks[ri];if(!t)return;
+  const tid=_proofTaskIdx;
+  if(!tid)return;
+  const t=SESSION.tasks.find(x=>x.id===tid);if(!t)return;
+  const ri=SESSION.tasks.indexOf(t);
   const proofText=document.getElementById('tp-proof').value.trim();
   if(!proofText){toast('Please describe what you completed.','error');return;}
   const fileInput=document.getElementById('tp-file');
@@ -1708,7 +1715,7 @@ async function submitTaskProof(){
     proofFileName=f.name; proofFileData=await fileToBase64(f);
   }
   t.pendingProof=true; t.proofText=proofText; t.proofFileName=proofFileName; t.proofFileData=proofFileData;
-  SESSION.approvals.push({id:'tap'+Date.now(),type:'task_proof',taskId:t.id,taskIdx:ri,taskName:t.name,uid:me().id,proofText,proofFileName,proofFileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
+  SESSION.approvals.push({id:'tap'+Date.now(),type:'task_proof',taskId:t.id,taskIdx:ri,taskName:t.name,uid:me().id,proofText,proofFileName,proofFileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
   await logAct('task_proof',`${me().name.split(' ')[0]} submitted proof for "${t.name}"`,'📎',null,'admin');
   await persist();closeModal('mo-task-proof');showPage('tasks');
 }
@@ -1783,20 +1790,22 @@ async function saveTask(){
   }
   const due=isDaily?todayKey():(document.getElementById('t-due').value||'TBD');
   const taskData={name,project:document.getElementById('t-project').value,assignee:assigneeId,priority:document.getElementById('t-priority').value,due,merit:parseInt(document.getElementById('t-merit').value)||5,notes:document.getElementById('t-notes').value,isDaily:isDaily||false};
-  if(editIdx!==''){
-    const t=SESSION.tasks[parseInt(editIdx)];
-    const savedTaskNotes=t.taskNotes||[];
-    Object.assign(t,taskData);t.updatedAt=Date.now();
-    t.taskNotes=savedTaskNotes;
-    await logAct('task_edit',`Task "${name}" updated`,'✎',t.assignee||null);
-    toast('Task updated','success');
-  } else {
-    SESSION.tasks.push({id:'t'+Date.now(),...taskData,done:false,needsHelp:false,updatedAt:Date.now()});
-    await logAct('task_create',`New ${isDaily?'daily ':''}task "${name}" assigned to ${assigneeId?(SESSION.members.find(m=>m.id===assigneeId)||{name:'Unassigned'}).name.split(' ')[0]:'nobody'}`,'📋',assigneeId||null);
-    toast('Task assigned','success');
-  }
-  document.getElementById('t-edit-idx').value='';
-  await persist();closeModal('mo-task');showPage('tasks');
+  try{
+    if(editIdx!==''){
+      const t=SESSION.tasks[parseInt(editIdx)];
+      const savedTaskNotes=t.taskNotes||[];
+      Object.assign(t,taskData);t.updatedAt=Date.now();
+      t.taskNotes=savedTaskNotes;
+      await logAct('task_edit',`Task "${name}" updated`,'✎',t.assignee||null);
+      toast('Task updated','success');
+    } else {
+      SESSION.tasks.push({id:'t'+Date.now(),...taskData,done:false,needsHelp:false,updatedAt:Date.now()});
+      await logAct('task_create',`New ${isDaily?'daily ':''}task "${name}" assigned to ${assigneeId?(SESSION.members.find(m=>m.id===assigneeId)||{name:'Unassigned'}).name.split(' ')[0]:'nobody'}`,'📋',assigneeId||null);
+      toast('Task assigned','success');
+    }
+    document.getElementById('t-edit-idx').value='';
+    await persist();closeModal('mo-task');showPage('tasks');
+  }catch(e){console.error('saveTask failed',e);toast('Failed to save task — check your connection.','error');}
 }
 function rClients(){
   return `<div class="sg sg-3">${SESSION.clients.map(c=>{
@@ -1901,14 +1910,29 @@ async function sendChatMessage(name){
   setTimeout(()=>{const sc=document.getElementById('chat-scroll');if(sc)sc.scrollTop=sc.scrollHeight;},50);
 }
 function rUpdates(){
+  const updates=(SESSION.clientUpdates||[]).slice().reverse();
   return `<div class="sg sg-2" style="align-items:start">
     <div class="panel"><div class="ph"><div class="pt">Compose Update</div></div><div class="cbox">
       <div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Send to (click to select)</div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">${SESSION.clients.length?SESSION.clients.map(c=>`<div class="ctag" onclick="this.classList.toggle('on')">${c}</div>`).join(''):'<span style="font-size:11px;color:var(--tm)">No clients yet — add clients first</span>'}</div>
-      <textarea class="cta" placeholder="Write today's update..."></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><span style="font-size:10px;color:var(--tm)">📎 Attach</span><button class="btn-sm red" onclick="toast('Update sent!','success')">Send →</button></div></div></div>
-    <div class="panel"><div class="ph"><div class="pt">Sent</div></div>
-      <div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div></div></div>`;
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px" id="upd-clients">${SESSION.clients.length?SESSION.clients.map(c=>`<div class="ctag" onclick="this.classList.toggle('on')">${c}</div>`).join(''):'<span style="font-size:11px;color:var(--tm)">No clients yet — add clients first</span>'}</div>
+      <textarea class="cta" id="upd-text" placeholder="Write today's update..."></textarea>
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:10px"><button class="btn-sm red" onclick="sendClientUpdate()">Send →</button></div></div></div>
+    <div class="panel"><div class="ph"><div class="pt">Sent</div><span class="badge b-green">${updates.length}</span></div>
+      ${updates.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div>':updates.map(u=>`<div class="pr" style="flex-direction:column;align-items:flex-start;gap:4px"><div style="display:flex;width:100%;align-items:center;justify-content:space-between"><span style="font-size:11px;font-weight:600;color:var(--ts)">${u.clients.join(', ')}</span><span style="font-size:10px;color:var(--tm)">${new Date(u.sentAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})}</span></div><div style="font-size:12px;color:var(--ts);white-space:pre-wrap;margin-top:2px">${u.text}</div><div style="font-size:10px;color:var(--tm)">by ${u.sentByName.split(' ')[0]}</div></div>`).join('')}</div></div>`;
+}
+async function sendClientUpdate(){
+  const text=document.getElementById('upd-text').value.trim();
+  if(!text){toast('Write an update first.','error');return;}
+  const selected=[...document.querySelectorAll('#upd-clients .ctag.on')].map(el=>el.textContent);
+  if(!selected.length){toast('Select at least one client.','error');return;}
+  try{
+    if(!SESSION.clientUpdates)SESSION.clientUpdates=[];
+    SESSION.clientUpdates.push({id:'upd'+Date.now(),clients:selected,text,sentBy:me().id,sentByName:me().name,sentAt:Date.now()});
+    await logAct('client_update',`Update sent to ${selected.join(', ')}: "${text.slice(0,60)}${text.length>60?'…':''}"`, '📢');
+    await persist();
+    toast('Update sent!','success');
+    showPage('updates');
+  }catch(e){console.error('sendClientUpdate failed',e);toast('Failed to send update — check your connection.','error');}
 }
 function rApprovals(){
   const isAdm=canEdit();
@@ -1919,12 +1943,12 @@ function rApprovals(){
   const myTaskProofs=taskProofPending.filter(a=>a.uid===me().id);
   const myPending=pending.filter(a=>a.requestedBy===me().id);
   const resolved=SESSION.approvals.filter(a=>a.status==='approved'||a.status==='rejected');
-  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Approvals</div><div class="adm-sub">Task proofs require Shubhrat/Keshav sign-off · General requests open to everyone</div></div><button class="btn-sm red" onclick="openModal('mo-approval')">+ General Request</button></div>`;
+  let html=`<div class="adm-banner"><div><div class="adm-label">💬 Approvals</div><div class="adm-sub">Task proofs require Shubhrat/Keshav sign-off · General requests open to everyone</div></div><button class="btn-sm red" onclick="openApprovalModal()">+ General Request</button></div>`;
   // Task proof section
   if(canApproveProofs&&taskProofPending.length>0){
     html+=`<div class="panel" style="margin-bottom:14px;border-color:var(--a)"><div class="ph"><div class="pt">📎 Task Proof — Awaiting Your Review</div><span class="badge b-amber">${taskProofPending.length}</span></div>`;
-    taskProofPending.forEach(a=>{const req=SESSION.members.find(m=>m.id===a.uid);const realIdx=SESSION.approvals.indexOf(a);
-      html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2"><strong>Proof:</strong> ${a.proofText}</div><div class="as2">${req?req.name.split(' ')[0]:'—'} · ${a.date}${a.proofFileName?` · 📄 ${a.proofFileName}`:''}</div></div><div class="aact"><button class="b-ok" onclick="approveTaskProof(${realIdx})">✓ Approve</button><button class="b-no" onclick="rejectTaskProof(${realIdx})">✕ Reject</button></div></div>`;});
+    taskProofPending.forEach(a=>{const req=SESSION.members.find(m=>m.id===a.uid);
+      html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2"><strong>Proof:</strong> ${a.proofText}</div><div class="as2">${req?req.name.split(' ')[0]:'—'} · ${a.date}${a.proofFileName?` · 📄 ${a.proofFileName}`:''}</div></div><div class="aact"><button class="b-ok" onclick="approveTaskProof('${a.id}')">✓ Approve</button><button class="b-no" onclick="rejectTaskProof('${a.id}')">✕ Reject</button></div></div>`;});
     html+=`</div>`;
   }
   if(!isAdm&&myTaskProofs.length>0){
@@ -1940,8 +1964,8 @@ function rApprovals(){
   }
   html+=`<div class="sg sg-2"><div class="panel"><div class="ph"><div class="pt">${isAdm?'General Requests':'All Pending'}</div><span class="badge b-red">${pending.length} pending</span></div>
     ${pending.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing pending.</div>':''}
-    ${pending.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);const realIdx=SESSION.approvals.indexOf(a);
-    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdm?`<div class="aact"><button class="b-ok" onclick="actionApproval(${realIdx},'approved')">Approve</button><button class="b-no" onclick="actionApproval(${realIdx},'rejected')">Reject</button></div>`:`<span class="badge b-amber">Pending</span>`}</div>`;}).join('')}</div>
+    ${pending.map(a=>{const req=SESSION.members.find(m=>m.id===a.requestedBy);
+    return `<div class="ar"><div class="ai" style="background:var(--b-bg)">✦</div><div class="ainfo"><div class="at">${a.title}</div><div class="as2">${a.desc}</div><div class="as2">${a.target} · by ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div>${isAdm?`<div class="aact"><button class="b-ok" onclick="actionApproval('${a.id}','approved')">Approve</button><button class="b-no" onclick="actionApproval('${a.id}','rejected')">Reject</button></div>`:`<span class="badge b-amber">Pending</span>`}</div>`;}).join('')}</div>
   <div class="panel"><div class="ph"><div class="pt">Resolved</div></div>
     ${resolved.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">Nothing resolved yet.</div>':''}
     ${resolved.filter(a=>a.status==='approved').map(a=>{const req=SESSION.members.find(m=>m.id===(a.uid||a.requestedBy));const label=a.type==='task_proof'?`✅ ${a.taskName}`:a.title;return `<div class="ar"><div class="ai" style="background:var(--g-bg)">✓</div><div class="ainfo"><div class="at">${label}</div><div class="as2">Approved · ${req?req.name.split(' ')[0]:'—'} · ${a.date}</div></div><span class="badge b-green">Approved</span></div>`;}).join('')}
@@ -1949,20 +1973,20 @@ function rApprovals(){
   </div></div>`;
   return html;
 }
-function dashApprove(i){const a=SESSION.approvals[i];if(!a)return;if(a.type==='task_proof')approveTaskProof(i);else actionApproval(i,'approved');}
-function dashReject(i){const a=SESSION.approvals[i];if(!a)return;if(a.type==='task_proof')rejectTaskProof(i);else actionApproval(i,'rejected');}
-async function approveTaskProof(i){
+function dashApprove(id){const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;if(a.type==='task_proof')approveTaskProof(id);else actionApproval(id,'approved');}
+function dashReject(id){const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;if(a.type==='task_proof')rejectTaskProof(id);else actionApproval(id,'rejected');}
+async function approveTaskProof(id){
   if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can approve task proofs.','error');return;}
-  const a=SESSION.approvals[i];if(!a)return;
+  const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;
   a.status='approved';
   const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
   if(taskIdx!==-1)await _markTaskDone(taskIdx);
   await logAct('task_approved',`"${a.taskName}" approved by ${me().name.split(' ')[0]}`,'✅', a.uid);
   await persist();showPage('approvals');
 }
-async function rejectTaskProof(i){
+async function rejectTaskProof(id){
   if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can reject task proofs.','error');return;}
-  const a=SESSION.approvals[i];if(!a)return;
+  const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;
   const reason=await showPrompt('Reject Task Proof','Reason for rejection',{type:'textarea',required:true,placeholder:'Explain why this is being rejected...',confirmText:'Reject'});
   if(!reason)return;
   a.status='rejected';a.rejectionReason=reason;a.rejectedBy=me().id;a.rejectedByName=me().name;a.rejectedAt=Date.now();
@@ -1975,15 +1999,15 @@ async function submitApproval(){
   const title=document.getElementById('apr-title').value.trim();
   const desc=document.getElementById('apr-desc').value.trim();
   if(!title){toast('Enter a title.','error');return;}
-  SESSION.approvals.push({id:'ap'+Date.now(),title,desc,requestedBy:me().id,target:document.getElementById('apr-target').value,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
+  SESSION.approvals.push({id:'ap'+Date.now(),title,desc,requestedBy:me().id,requestedByName:me().name,target:document.getElementById('apr-target').value,status:'pending',createdAt:Date.now(),submittedAt:Date.now(),date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
   await autoMerit(me().id,'approvalSubmitted','Submitted approval request');
   await logAct('approval_submit',`${me().name.split(' ')[0]} requested approval: "${title}"`,'📋');
   await persist();
   document.getElementById('apr-title').value='';document.getElementById('apr-desc').value='';
   closeModal('mo-approval');showPage('approvals');
 }
-async function actionApproval(i,status){
-  const a=SESSION.approvals[i];
+async function actionApproval(id,status){
+  const a=SESSION.approvals.find(x=>x.id===id);
   if(status==='rejected'){
     const reason=await showPrompt('Reject Request','Reason for rejection',{type:'textarea',required:true,placeholder:'Explain why this is being rejected...',confirmText:'Reject'});
     if(!reason)return;
@@ -2067,9 +2091,9 @@ function rMerit(){
     <div class="mmet"><div class="mmet-c"><div class="mmet-v">${m.metrics.tasksCompleted}</div><div class="mmet-l">Tasks done</div></div><div class="mmet-c"><div class="mmet-v">${m.metrics.projectsLed}</div><div class="mmet-l">Projects led</div></div><div class="mmet-c"><div class="mmet-v">${m.metrics.clientsManaged}</div><div class="mmet-l">Clients</div></div></div>
     <div class="mst ${sc}">${st}</div>
     ${m.meritReason?`<div style="margin-top:6px;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-br);border-radius:6px;font-size:11px;color:var(--red)">⚠ ${m.meritReason}</div>`:''}
-    ${adm&&!isMe?`<div style="margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:6px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Admin Review Notes</div><textarea class="fi" rows="2" style="width:100%;font-size:11px;resize:vertical" id="mr-note-${mi}" placeholder="No review notes yet — add one">${m.meritReview||''}</textarea><button class="btn-sm" style="margin-top:4px" onclick="saveMeritReview(${mi})">Save Note</button></div>`:''}
+    ${adm&&!isMe?`<div style="margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:6px"><div style="font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Admin Review Notes</div><textarea class="fi" rows="2" style="width:100%;font-size:11px;resize:vertical" id="mr-note-${m.id}" placeholder="No review notes yet — add one">${m.meritReview||''}</textarea><button class="btn-sm" style="margin-top:4px" onclick="saveMeritReview('${m.id}')">Save Note</button></div>`:''}
     ${isMe&&!m.isFounder?`<div class="admin-row"><button class="btn-sm" style="color:var(--b);border-color:var(--b)" onclick="openModal('mo-meritreq')">📝 Request Points</button></div>`:''}
-    ${adm&&!m.isFounder?`<div class="admin-row"><span style="font-size:10px;color:var(--tm)">Adjust:</span><input class="m-inp" type="number" value="${score}" min="0" max="100" id="mi-${mi}"><button class="btn-sm" onclick="saveMerit(${mi})">Save</button><button class="btn-sm green" onclick="quickMerit(${mi},5)">+5</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="quickMerit(${mi},-5)">-5</button></div>
+    ${adm&&!m.isFounder?`<div class="admin-row"><span style="font-size:10px;color:var(--tm)">Adjust:</span><input class="m-inp" type="number" value="${score}" min="0" max="100" id="mi-${m.id}"><button class="btn-sm" onclick="saveMerit('${m.id}')">Save</button><button class="btn-sm green" onclick="quickMerit('${m.id}',5)">+5</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="quickMerit('${m.id}',-5)">-5</button></div>
     <div class="admin-row"><button class="btn-sm" onclick="editMemberPrompt('${m.id}')">✎ Edit Role/Dept</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeMemberPrompt('${m.id}')">✕ Remove Member</button></div>`:''}</div>`;
   });
   html+=`</div><div class="panel" style="margin-top:18px"><div class="ph"><div class="pt">Merit Rules</div></div><div style="padding:14px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
@@ -2098,7 +2122,7 @@ async function approveMeritReq(i){
   const req=SESSION.meritRequests[i];
   const ptsStr=await showPrompt('Grant Merit Points','How many points to grant?',{inputType:'number',defaultValue:'5',required:true});
   if(ptsStr===null)return;const pts=parseInt(ptsStr);
-  if(isNaN(pts)){return;}
+  if(isNaN(pts)||pts<=0){toast('Enter a valid points number.','error');return;}
   const mem=SESSION.members.find(m=>m.id===req.uid);
   if(mem)mem.merit=Math.min(100,mem.merit+pts);
   req.status='approved';
@@ -2108,9 +2132,9 @@ async function denyMeritReq(i){
   SESSION.meritRequests[i].status='denied';
   await persist();showPage('merit');
 }
-async function saveMerit(i){const v=parseInt(document.getElementById('mi-'+i).value);if(isNaN(v)||v<0||v>100){toast('0–100 only','error');return;}const old=SESSION.members[i].merit;SESSION.members[i].merit=v;await logAct('merit_set',`${SESSION.members[i].name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
-async function saveMeritReview(i){const text=document.getElementById('mr-note-'+i).value.trim();SESSION.members[i].meritReview=text;await persist();toast('Review note saved.','success');}
-async function quickMerit(i,d){const old=SESSION.members[i].merit;SESSION.members[i].merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${SESSION.members[i].name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${SESSION.members[i].merit})`,'⚖');await persist();buildSidebar();showPage('merit');}
+async function saveMerit(id){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const v=parseInt(document.getElementById('mi-'+id).value);if(isNaN(v)||v<0||v>100){toast('0–100 only','error');return;}const old=mem.merit;mem.merit=v;await logAct('merit_set',`${mem.name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
+async function saveMeritReview(id){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const text=document.getElementById('mr-note-'+id).value.trim();mem.meritReview=text;await persist();toast('Review note saved.','success');}
+async function quickMerit(id,d){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const old=mem.merit;mem.merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${mem.name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${mem.merit})`,'⚖');await persist();buildSidebar();showPage('merit');}
 async function editMemberPrompt(id){openEditMemberModal(id);}
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
@@ -2173,14 +2197,16 @@ function rVault(){
 async function saveDataEntry(){
   const key=document.getElementById('de-key').value.trim();const val=document.getElementById('de-val').value.trim();
   if(!key||!val){toast('Fill all fields.','error');return;}
-  SESSION.dataEntries.push({key,value:val,category:document.getElementById('de-cat').value,access:document.getElementById('de-access').value,created:new Date().toISOString()});
-  await logAct('vault_add',`Vault entry "${key}" added`,'🔐');
-  await persist();closeModal('mo-data');showPage('vault');
+  try{
+    SESSION.dataEntries.push({key,value:val,category:document.getElementById('de-cat').value,access:document.getElementById('de-access').value,created:new Date().toISOString()});
+    await logAct('vault_add',`Vault entry "${key}" added`,'🔐');
+    await persist();closeModal('mo-data');showPage('vault');
+  }catch(e){console.error('saveDataEntry failed',e);toast('Failed to save entry — check your connection.','error');}
 }
 async function deleteEntry(i){if(await showConfirm('Delete Entry',`Delete "${SESSION.dataEntries[i].key}" from the vault permanently?`,'Delete')){await logAct('vault_delete',`Vault entry "${SESSION.dataEntries[i].key}" deleted`,'🗑');SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
 function rActivity(){
   const log=SESSION.activityLog||[];
-  function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return 'just now';if(d<3600000)return Math.floor(d/60000)+'m ago';if(d<86400000)return Math.floor(d/3600000)+'h ago';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+  function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return 'just now';if(d<3600000)return Math.floor(d/60000)+'m ago';if(d<86400000)return Math.floor(d/3600000)+'h ago';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'});}
   let html=`<div class="panel"><div class="ph"><div class="pt">Team Activity Feed</div><span class="badge b-green">${log.length} events</span></div>
   ${log.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No activity yet. Actions will auto-log here.</div>':''}
   ${log.slice(0,50).map(l=>{const mem=SESSION.members.find(m=>m.id===l.uid);return `<div class="acti"><div style="font-size:14px;width:20px;text-align:center">${l.icon||'◌'}</div><div style="flex:1"><div class="atxt">${l.detail||l.action}</div><div class="atime">${mem?mem.name.split(' ')[0]:'System'} · ${timeAgo(l.ts)}</div></div></div>`;}).join('')}</div>`;
@@ -2432,13 +2458,21 @@ async function addMember(){
   const role=document.getElementById('am-role').value.trim();const dept=document.getElementById('am-dept').value;
   const email=document.getElementById('am-email').value.trim();const merit=parseInt(document.getElementById('am-merit').value)||80;
   if(!name||!init||!role){toast('Fill all fields.','error');return;}
-  const colors=['#E74C3C','#3498DB','#1ABC9C','#E67E22','#8E44AD','#2ECC71'];
-  const color=colors[SESSION.members.length%colors.length];const id=name.toLowerCase().replace(/\s+/g,'_')+Date.now();
-  SESSION.members.push({id,name,initials:init,role,dept,color,merit,isFounder:false,isAdmin:false,email:email,phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}});
-  await logAct('member_add',`New member "${name}" added (${role}, ${dept})`,'👥');
-  await persist();closeModal('mo-addmem');buildSidebar();showPage('merit');
+  try{
+    const colors=['#E74C3C','#3498DB','#1ABC9C','#E67E22','#8E44AD','#2ECC71'];
+    const color=colors[SESSION.members.length%colors.length];const id=name.toLowerCase().replace(/\s+/g,'_')+Date.now();
+    SESSION.members.push({id,name,initials:init,role,dept,color,merit,isFounder:false,isAdmin:false,email:email,phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}});
+    await logAct('member_add',`New member "${name}" added (${role}, ${dept})`,'👥');
+    await persist();closeModal('mo-addmem');buildSidebar();showPage('merit');
+  }catch(e){console.error('addMember failed',e);toast('Failed to add member — check your connection.','error');}
 }
-function openModal(id){const el=document.getElementById(id);el.classList.add('on');window._activeModal=id;}
+function openModal(id){
+  const el=document.getElementById(id);el.classList.add('on');window._activeModal=id;
+  const clr=(sid,val='')=>{const e=document.getElementById(sid);if(e)e.value=val;};
+  if(id==='mo-data'){clr('de-key');clr('de-val');}
+  if(id==='mo-addmem'){['am-name','am-init','am-role','am-email','am-phone'].forEach(s=>clr(s));}
+  if(id==='mo-meritreq'){clr('mr-reason');const f=document.getElementById('mr-file');if(f)f.value='';}
+}
 function closeModal(id){const el=document.getElementById(id);el.classList.remove('on');if(window._activeModal===id)window._activeModal=null;}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window._activeModal)closeModal(window._activeModal);});
 document.addEventListener('click',e=>{if(window._activeModal&&e.target.classList.contains('mo')&&e.target.classList.contains('on'))closeModal(window._activeModal);});
@@ -2520,7 +2554,7 @@ async function submitSalAction(){
   const memberId=window._salActionMember;
   const type=window._salActionType;
   const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
-  const dateStr=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const dateStr=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'});
   SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type,note,date:dateStr});
   const icons={salary:'💰',bonus:'🎁',cut:'✂'};
   const labels={salary:'salary paid to',bonus:'bonus given to',cut:'deducted from'};
@@ -2609,6 +2643,7 @@ async function addTaskNote(){
   const text=document.getElementById('tn-input').value.trim();
   if(!text){toast('Write something first.','error');return;}
   const t=SESSION.tasks[window._noteTaskIdx];if(!t)return;
+  try{
   if(!t.taskNotes)t.taskNotes=[];
   t.taskNotes.push({text,authorId:me().id,authorName:me().name,createdAt:Date.now()});
   t.updatedAt=Date.now();
@@ -2616,6 +2651,7 @@ async function addTaskNote(){
   renderTaskNotes();
   await persist();
   toast('Note saved.','success');
+  }catch(e){console.error('addTaskNote failed',e);toast('Failed to save note — check your connection.','error');}
 }
 
 /* ── Attendance drilldown ── */
@@ -2630,7 +2666,7 @@ function openAttDrilldown(memberId){
   const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
   const daysInMonth=new Date().getDate();
   const attendPct=daysInMonth?Math.round(uniqueDays/daysInMonth*100):0;
-  const avgCheckIn=thisMonth.length?thisMonth.reduce((s,a)=>s+new Date(a.clockIn).getHours()*60+new Date(a.clockIn).getMinutes(),0)/thisMonth.length:0;
+  const avgCheckIn=thisMonth.length?thisMonth.reduce((s,a)=>{const p=new Date(a.clockIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'}).split(':');return s+(+p[0])*60+(+p[1]);},0)/thisMonth.length:0;
   const avgH=Math.floor(avgCheckIn/60);const avgM=Math.round(avgCheckIn%60);
   const avgSessionMs=thisMonth.filter(a=>a.clockOut).length?thisMonth.filter(a=>a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0)/thisMonth.filter(a=>a.clockOut).length:0;
   document.getElementById('ad-title').textContent=m.name+' — Attendance';
