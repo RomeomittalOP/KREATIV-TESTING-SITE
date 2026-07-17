@@ -641,6 +641,7 @@ async function loadSession(memberId) {
     SESSION.members = saved.members || DEFAULT_MEMBERS;
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
     if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
+    if (!saved._keshavEmergencyLeave20260717) { if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-17')){SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'approved',isAuto:false,appliedAt:Date.now(),approvedAt:Date.now(),approvedBy:'shubhrat'});} SESSION._keshavEmergencyLeave20260717=true; }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
     SESSION.tasks.forEach(t=>{if(Array.isArray(t.notes)&&!t.taskNotes){t.taskNotes=t.notes;delete t.notes;}});
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
@@ -1299,7 +1300,7 @@ function rAttendance(){
 
   if(!me().isFounder){
     const myLeaves=(SESSION.leaves||[]).filter(l=>l.uid===me().id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
-    const leaveTypeLabel={sick:'🤒 Sick',casual:'☀️ Casual',planned:'📅 Planned',auto:'⚠ Auto-Absent'};
+    const leaveTypeLabel={sick:'🤒 Sick',casual:'☀️ Casual',planned:'📅 Planned',emergency:'🚨 Emergency',auto:'⚠ Auto-Absent'};
     const leaveStatusBadge={pending:'b-amber',approved:'b-green',rejected:'b-red',auto:'b-grey'};
     html+=`<div class="panel" style="margin-top:12px">
       <div class="ph"><div class="pt">🌿 My Leaves</div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="openLeaveModal()">+ Apply Leave</button></div>
@@ -2762,6 +2763,7 @@ window.addEventListener('DOMContentLoaded',boot);
           <option value="sick">🤒 Sick Leave</option>
           <option value="casual">☀️ Casual Leave</option>
           <option value="planned">📅 Planned Leave</option>
+          <option value="emergency">🚨 Emergency Leave</option>
         </select>
       </div>
       <div class="fr"><label class="fl">Reason</label><textarea class="fi cta" style="height:70px" id="lv-reason" placeholder="Brief reason for leave..."></textarea></div>
