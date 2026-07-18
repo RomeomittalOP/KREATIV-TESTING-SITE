@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="/logo.png">
+<link rel="icon" type="image/jpeg" href="/icons/kreativ-logo.jpg">
+<link rel="shortcut icon" type="image/jpeg" href="/icons/kreativ-logo.jpg">
 <title>Kreativ Workspace — 4 Knotts</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#050505">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Kreativ">
-<link rel="apple-touch-icon" href="/icons/icon-maskable-512.svg">
+<link rel="apple-touch-icon" href="/icons/kreativ-logo.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -642,6 +643,7 @@ async function loadSession(memberId) {
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
     if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
     if (!saved._keshavEmergencyLeave20260717) { if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-17')){SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'approved',isAuto:false,appliedAt:Date.now(),approvedAt:Date.now(),approvedBy:'shubhrat'});} SESSION._keshavEmergencyLeave20260717=true; }
+    if (!saved._keshavLeavePending20260718) { const l17=(SESSION.leaves||[]).find(l=>l.uid==='keshav'&&l.date==='2026-07-17');if(l17&&l17.status==='approved'){l17.status='pending';delete l17.approvedAt;delete l17.approvedBy;} else if(!l17){SESSION.leaves.push({id:'lva'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-18')){SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} SESSION._keshavLeavePending20260718=true; }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
     SESSION.tasks.forEach(t=>{if(Array.isArray(t.notes)&&!t.taskNotes){t.taskNotes=t.notes;delete t.notes;}});
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
@@ -1030,38 +1032,51 @@ function openLeaveModal(){
    SOP Popup
    ═══════════════════════════════════════════════════════ */
 const SOP_CONTENT={
-  Creative:`<p style="margin-bottom:10px">As part of the <strong>Creative</strong> team at 4 Knotts Kreativ, you are expected to uphold the following standards:</p>
+  keshav:`<p style="margin-bottom:10px">Hey Keshav — as <strong>Creative Lead</strong> at Kreativ by 4 Knotts, here's your SOP:</p>
 <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px">
-<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Clock in and out via Workspace.</li>
-<li>☑ <strong>Daily Task:</strong> Complete your assigned daily task before your work hours end.</li>
-<li>🎨 <strong>Deliverables:</strong> All creative assets must be submitted in the correct format (PNG/SVG/AI) by the deadline specified in the task.</li>
-<li>🔁 <strong>Revisions:</strong> Maximum 2 revision rounds per deliverable unless client escalates.</li>
-<li>💬 <strong>Communication:</strong> Respond to client feedback within 4 hours during working hours.</li>
-<li>📊 <strong>Merit:</strong> You start with 80 pts. Completing tasks on time = +5, late = +2. Falling below 30 suspends workspace access.</li>
-<li>🌿 <strong>Leave:</strong> Apply leave in advance via the Attendance page. Unannounced absences are auto-marked.</li>
-<li>🚫 <strong>Zero tolerance:</strong> No plagiarism, no sharing client assets externally.</li>
+<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Clock in and out every session — no exceptions.</li>
+<li>🎯 <strong>Creative Direction:</strong> You own the creative output of the team. Every deliverable that goes to a client passes through you before submission.</li>
+<li>👥 <strong>Team Management:</strong> Brief Chaitanya and Manik at the start of each project. Check their progress daily and flag blockers to Shubhrat early.</li>
+<li>📞 <strong>Client Calls:</strong> You are the creative voice on client calls. Prepare talking points in advance and share a summary in the client chat after every call.</li>
+<li>🔁 <strong>Revisions:</strong> Max 2 revision rounds per deliverable. Anything beyond that requires founder approval before proceeding.</li>
+<li>📊 <strong>Merit:</strong> You start at 80 pts. Tasks on time = +5, late = +2. Below 30 = workspace access suspended.</li>
+<li>🌿 <strong>Leave:</strong> Apply leave in advance via the Attendance page. Emergency leave must be communicated to Shubhrat directly and applied immediately.</li>
+<li>🚫 <strong>Zero tolerance:</strong> No client assets, campaign ideas, or strategy shared outside the team under any circumstances.</li>
 </ul>`,
-  Design:`<p style="margin-bottom:10px">As part of the <strong>Design</strong> team at 4 Knotts Kreativ:</p>
+  chaitanya:`<p style="margin-bottom:10px">Hey Chaitanya — as <strong>Designer</strong> at Kreativ by 4 Knotts, here's your SOP:</p>
 <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px">
-<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Clock in via Workspace.</li>
-<li>☑ <strong>Daily Task:</strong> Complete your daily task before end of shift for Incentive Time.</li>
-<li>🖼 <strong>File Standards:</strong> Deliver in PDF/PNG/Figma link as specified. Maintain source files.</li>
-<li>🔁 <strong>Revisions:</strong> Max 2 free revisions. Additional rounds require founder approval.</li>
-<li>📐 <strong>Brand Consistency:</strong> Always use the approved brand kit. No off-brand fonts or colors.</li>
-<li>📊 <strong>Merit:</strong> 80 pts start. On-time tasks = +5. Late = +2. Below 30 = access suspended.</li>
-<li>🌿 <strong>Leave:</strong> Apply leave in advance via Attendance page.</li>
-<li>🤝 <strong>Collaboration:</strong> Coordinate with Creative Lead before starting major pieces.</li>
+<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Clock in and out every session — no exceptions.</li>
+<li>☑ <strong>Daily Task:</strong> Complete your assigned daily task before your shift ends to stay eligible for Incentive Time.</li>
+<li>📐 <strong>Brand Consistency:</strong> Always design using the approved brand kit — correct fonts, colors, and logo usage only. No improvisation without Creative Lead sign-off.</li>
+<li>🖼 <strong>File Delivery:</strong> Submit in the format specified in your task (PNG/PDF/Figma link). Always maintain and share your source file.</li>
+<li>🔁 <strong>Revisions:</strong> 2 rounds included per deliverable. Log any additional revision requests in your task notes and flag to Keshav.</li>
+<li>🤝 <strong>Coordination:</strong> Check in with Keshav before starting any major piece. Don't start something without a brief — ask if one is missing.</li>
+<li>📊 <strong>Merit:</strong> You start at 80 pts. Tasks on time = +5, late = +2. Below 30 = workspace access suspended.</li>
+<li>🌿 <strong>Leave:</strong> Apply leave in advance via the Attendance page. Unannounced absences are auto-marked as absent.</li>
+<li>🚫 <strong>Confidentiality:</strong> Client assets, briefs, and internal tools stay internal. No sharing externally under any condition.</li>
 </ul>`,
-  Tech:`<p style="margin-bottom:10px">As <strong>Tech Lead</strong> at 4 Knotts Kreativ:</p>
+  manik:`<p style="margin-bottom:10px">Hey Manik — as <strong>Designer</strong> at Kreativ by 4 Knotts, here's your SOP:</p>
 <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px">
-<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Log via Workspace with work proof on clock-out.</li>
-<li>☑ <strong>Daily Task:</strong> Complete daily assigned task for Incentive Time eligibility.</li>
-<li>🛠 <strong>Code Standards:</strong> All code reviewed before production push. No direct commits to main.</li>
-<li>🔒 <strong>Security:</strong> Never expose API keys, credentials, or client data. Use env variables.</li>
-<li>📦 <strong>Deployments:</strong> Inform founder before any production deployment.</li>
-<li>📊 <strong>Merit:</strong> 80 pts start. Completing tasks on time = +5. Below 30 = access suspended.</li>
-<li>🌿 <strong>Leave:</strong> Apply leave in advance. Unannounced absences are auto-marked.</li>
-<li>📋 <strong>Documentation:</strong> Document all major changes and share with team.</li>
+<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Clock in and out every session — no exceptions.</li>
+<li>☑ <strong>Daily Task:</strong> Complete your assigned daily task before your shift ends to stay eligible for Incentive Time.</li>
+<li>📐 <strong>Brand Consistency:</strong> Always design using the approved brand kit — correct fonts, colors, and logo usage only. No improvisation without Creative Lead sign-off.</li>
+<li>🖼 <strong>File Delivery:</strong> Submit in the format specified in your task (PNG/PDF/Figma link). Always maintain and share your source file.</li>
+<li>🔁 <strong>Revisions:</strong> 2 rounds included per deliverable. Log any additional revision requests in your task notes and flag to Keshav.</li>
+<li>🤝 <strong>Coordination:</strong> Check in with Keshav before starting any major piece. Don't start something without a brief — ask if one is missing.</li>
+<li>📊 <strong>Merit:</strong> You start at 80 pts. Tasks on time = +5, late = +2. Below 30 = workspace access suspended.</li>
+<li>🌿 <strong>Leave:</strong> Apply leave in advance via the Attendance page. Unannounced absences are auto-marked as absent.</li>
+<li>🚫 <strong>Confidentiality:</strong> Client assets, briefs, and internal tools stay internal. No sharing externally under any condition.</li>
+</ul>`,
+  shubham:`<p style="margin-bottom:10px">Hey Shubham — as <strong>Tech Lead</strong> at Kreativ by 4 Knotts, here's your SOP:</p>
+<ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px">
+<li>⏱ <strong>Work Hours:</strong> Minimum 5 hours daily. Clock in and out every session with a work summary on clock-out.</li>
+<li>🛠 <strong>Code Standards:</strong> All production code is reviewed before push. No direct commits to main on client projects without a review pass.</li>
+<li>📦 <strong>Deployments:</strong> Inform Shubhrat before any production deployment — no surprise pushes to live environments.</li>
+<li>🔒 <strong>Security:</strong> No API keys, credentials, or client data in code or chat. Use environment variables always.</li>
+<li>📋 <strong>Documentation:</strong> Every major build, change, or integration gets documented and shared with the team before the sprint closes.</li>
+<li>💬 <strong>Client Tech Communication:</strong> All client-facing tech decisions are approved by Shubhrat first. You brief, founder approves, then it goes out.</li>
+<li>📊 <strong>Merit:</strong> You start at 80 pts. Tasks on time = +5, late = +2. Below 30 = workspace access suspended.</li>
+<li>🌿 <strong>Leave:</strong> Apply leave in advance via the Attendance page. Unannounced absences are auto-marked as absent.</li>
 </ul>`,
   General:`<p style="margin-bottom:10px">Welcome to <strong>4 Knotts Kreativ</strong> — please read the team SOP carefully:</p>
 <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px">
@@ -1075,15 +1090,18 @@ const SOP_CONTENT={
 };
 function showSOPIfNeeded(){
   if(!me()||me().isFounder)return;
-  const key='sop_seen_'+me().id+'_v2';
+  const key='sop_seen_'+me().id+'_v3';
   if(localStorage.getItem(key))return;
-  const dept=me().dept||'General';
-  const html=SOP_CONTENT[dept]||SOP_CONTENT.General;
+  const html=SOP_CONTENT[me().id]||SOP_CONTENT.General;
   document.getElementById('sop-body').innerHTML=html;
   setTimeout(()=>document.getElementById('mo-sop').classList.add('on'),1200);
 }
+function resetSOP(){
+  localStorage.removeItem('sop_seen_'+me().id+'_v3');
+  showSOPIfNeeded();
+}
 function dismissSOP(){
-  localStorage.setItem('sop_seen_'+me().id+'_v2','1');
+  localStorage.setItem('sop_seen_'+me().id+'_v3','1');
   document.getElementById('mo-sop').classList.remove('on');
 }
 function showResetNotice(){
@@ -1314,7 +1332,7 @@ function rAttendance(){
       html+=`<div class="adm-banner" style="margin-top:14px"><div><div class="adm-label">🌿 Leave Requests</div><div class="adm-sub">${pendingLeaves.length} pending approval</div></div></div>`;
       pendingLeaves.forEach(l=>{
         const mem=SESSION.members.find(m=>m.id===l.uid);
-        const typeLabel={sick:'🤒 Sick',casual:'☀️ Casual',planned:'📅 Planned'};
+        const typeLabel={sick:'🤒 Sick',casual:'☀️ Casual',planned:'📅 Planned',emergency:'🚨 Emergency'};
         html+=`<div class="panel" style="margin-top:8px"><div style="padding:14px 16px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="mav" style="background:${mem?mem.color:'#666'}">${mem?mem.initials:'?'}</div><div><div style="font-size:13px;font-weight:600;color:var(--ts)">${mem?mem.name:'Unknown'}</div><div style="font-size:10px;color:var(--tm)">${l.date} · ${typeLabel[l.type]||l.type}</div></div></div>
           <div style="font-size:11px;color:var(--ts);background:var(--s2);padding:8px;border-radius:6px;margin-bottom:10px">${l.reason}</div>
