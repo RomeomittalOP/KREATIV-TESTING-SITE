@@ -338,6 +338,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sbar" style="position:relative"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..." id="ws-search" oninput="wsSearch(this.value)" onfocus="wsSearch(this.value)" autocomplete="off"><div id="ws-search-drop" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--s1);border:1px solid var(--br2);border-radius:8px;max-height:260px;overflow-y:auto;z-index:100;box-shadow:0 12px 40px rgba(0,0,0,.5)"></div></div>
+      <button id="sop-btn" onclick="viewSOP()" title="My SOP" style="display:none;align-items:center;gap:5px;background:var(--s1);border:1px solid var(--br);border-radius:5px;padding:5px 10px;color:var(--ts);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit">📋 SOP</button>
         <div class="noti-bell" id="noti-bell" onclick="toggleNotifications()">🔔<span class="noti-badge" id="noti-badge"></span>
           <div class="noti-drop" id="noti-drop">
             <div class="noti-drop-head"><span>Notifications</span><span style="font-size:9px;color:var(--tm);cursor:pointer" onclick="event.stopPropagation();clearNotifications()">Clear all</span></div>
@@ -643,7 +644,7 @@ async function loadSession(memberId) {
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
     if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
     if (!saved._keshavEmergencyLeave20260717) { if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-17')){SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'approved',isAuto:false,appliedAt:Date.now(),approvedAt:Date.now(),approvedBy:'shubhrat'});} SESSION._keshavEmergencyLeave20260717=true; }
-    if (!saved._keshavLeavePending20260718) { const l17=(SESSION.leaves||[]).find(l=>l.uid==='keshav'&&l.date==='2026-07-17');if(l17&&l17.status==='approved'){l17.status='pending';delete l17.approvedAt;delete l17.approvedBy;} else if(!l17){SESSION.leaves.push({id:'lva'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-18')){SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} SESSION._keshavLeavePending20260718=true; }
+    if (!saved._keshavLeavePending20260718) { const l17=(SESSION.leaves||[]).find(l=>l.uid==='keshav'&&l.date==='2026-07-17');if(l17&&l17.status==='approved'){l17.status='pending';delete l17.approvedAt;delete l17.approvedBy;} else if(!l17){SESSION.leaves.push({id:'lva'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-18')){SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} SESSION._keshavLeavePending20260718=true; await persist(); }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
     SESSION.tasks.forEach(t=>{if(Array.isArray(t.notes)&&!t.taskNotes){t.taskNotes=t.notes;delete t.notes;}});
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
@@ -871,7 +872,7 @@ function canAccess(item){
   if(item.depts.includes(m.dept))return true;
   return false;
 }
-function buildApp(){buildSidebar();showPage('overview');initMobileMenu();}
+function buildApp(){buildSidebar();showPage('overview');initMobileMenu();const sb=document.getElementById('sop-btn');if(sb)sb.style.display=me()&&!me().isFounder?'flex':'none';}
 function initMobileMenu(){
   const sb=document.querySelector('.sb'),scrim=document.getElementById('mob-scrim'),btn=document.getElementById('mob-menu');
   if(!btn)return;
@@ -1099,6 +1100,11 @@ function showSOPIfNeeded(){
 function resetSOP(){
   localStorage.removeItem('sop_seen_'+me().id+'_v3');
   showSOPIfNeeded();
+}
+function viewSOP(){
+  if(!me()||me().isFounder)return;
+  document.getElementById('sop-body').innerHTML=SOP_CONTENT[me().id]||SOP_CONTENT.General;
+  document.getElementById('mo-sop').classList.add('on');
 }
 function dismissSOP(){
   localStorage.setItem('sop_seen_'+me().id+'_v3','1');
