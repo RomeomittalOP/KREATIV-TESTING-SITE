@@ -338,7 +338,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="sbar" style="position:relative"><span style="color:var(--tm);font-size:12px">⌕</span><input type="text" placeholder="Search..." id="ws-search" oninput="wsSearch(this.value)" onfocus="wsSearch(this.value)" autocomplete="off"><div id="ws-search-drop" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--s1);border:1px solid var(--br2);border-radius:8px;max-height:260px;overflow-y:auto;z-index:100;box-shadow:0 12px 40px rgba(0,0,0,.5)"></div></div>
-      <button id="sop-btn" onclick="viewSOP()" title="My SOP" style="display:none;align-items:center;gap:5px;background:var(--s1);border:1px solid var(--br);border-radius:5px;padding:5px 10px;color:var(--ts);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit">📋 SOP</button>
+      <button id="sop-btn" onclick="viewSOP()" title="View my SOP" style="display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--br2);border-radius:5px;padding:5px 11px;color:var(--tp);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;letter-spacing:.03em">📋 SOP</button>
         <div class="noti-bell" id="noti-bell" onclick="toggleNotifications()">🔔<span class="noti-badge" id="noti-badge"></span>
           <div class="noti-drop" id="noti-drop">
             <div class="noti-drop-head"><span>Notifications</span><span style="font-size:9px;color:var(--tm);cursor:pointer" onclick="event.stopPropagation();clearNotifications()">Clear all</span></div>
@@ -643,8 +643,6 @@ async function loadSession(memberId) {
     SESSION.members = saved.members || DEFAULT_MEMBERS;
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
     if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
-    if (!saved._keshavEmergencyLeave20260717) { if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-17')){SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'approved',isAuto:false,appliedAt:Date.now(),approvedAt:Date.now(),approvedBy:'shubhrat'});} SESSION._keshavEmergencyLeave20260717=true; }
-    if (!saved._keshavLeavePending20260718) { const l17=(SESSION.leaves||[]).find(l=>l.uid==='keshav'&&l.date==='2026-07-17');if(l17&&l17.status==='approved'){l17.status='pending';delete l17.approvedAt;delete l17.approvedBy;} else if(!l17){SESSION.leaves.push({id:'lva'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} if(!(SESSION.leaves||[]).some(l=>l.uid==='keshav'&&l.date==='2026-07-18')){SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'});} SESSION._keshavLeavePending20260718=true; await persist(); }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
     SESSION.tasks.forEach(t=>{if(Array.isArray(t.notes)&&!t.taskNotes){t.taskNotes=t.notes;delete t.notes;}});
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
@@ -662,6 +660,9 @@ async function loadSession(memberId) {
     SESSION.attendanceRequests = saved.attendanceRequests || [];
     SESSION.dailyTargets = saved.dailyTargets || [];
     SESSION.leaves = saved.leaves || [];
+    if (!saved._keshavEmergencyLeave20260717) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-17'))SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavEmergencyLeave20260717=true; }
+    if (!saved._keshavLeavePending20260718) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-18'))SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavLeavePending20260718=true; }
+    if (!saved._keshavEmergencyLeave20260717||!saved._keshavLeavePending20260718) await persist();
     SESSION.clientUpdates = saved.clientUpdates || [];
     // _dataResetJul2026 block permanently removed — already ran, keeping it was causing repeated data wipes on fresh sessions
   } else {
@@ -690,7 +691,7 @@ async function loadSession(memberId) {
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, attendanceRequests:SESSION.attendanceRequests, dailyTargets:SESSION.dailyTargets, leaves:SESSION.leaves, _meritResetJul2026:SESSION._meritResetJul2026||false, _dataResetJul2026:SESSION._dataResetJul2026||false};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, attendanceRequests:SESSION.attendanceRequests, dailyTargets:SESSION.dailyTargets, leaves:SESSION.leaves, _meritResetJul2026:SESSION._meritResetJul2026||false, _dataResetJul2026:SESSION._dataResetJul2026||false, _keshavEmergencyLeave20260717:SESSION._keshavEmergencyLeave20260717||false, _keshavLeavePending20260718:SESSION._keshavLeavePending20260718||false};
   if (!DB.firebaseOk) return;
   _selfWrite = true;
   try { await rtdb.ref('workspace/workspace_data').update(payload); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
@@ -872,7 +873,7 @@ function canAccess(item){
   if(item.depts.includes(m.dept))return true;
   return false;
 }
-function buildApp(){buildSidebar();showPage('overview');initMobileMenu();const sb=document.getElementById('sop-btn');if(sb)sb.style.display=me()&&!me().isFounder?'flex':'none';}
+function buildApp(){buildSidebar();showPage('overview');initMobileMenu();const sb=document.getElementById('sop-btn');if(sb&&me()&&me().isFounder)sb.style.display='none';}
 function initMobileMenu(){
   const sb=document.querySelector('.sb'),scrim=document.getElementById('mob-scrim'),btn=document.getElementById('mob-menu');
   if(!btn)return;
