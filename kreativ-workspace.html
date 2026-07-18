@@ -642,7 +642,7 @@ async function loadSession(memberId) {
   if (saved) {
     SESSION.members = saved.members || DEFAULT_MEMBERS;
     SESSION.members.forEach(m => { if (!m.salary) m.salary = {projectCuts:[]}; if (!m.metrics) m.metrics = {tasksCompleted:0,projectsLed:0,clientsManaged:0}; });
-    if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; }
+    if (!saved._meritResetJul2026) { SESSION.members.forEach(m => { if (m.id==='chaitanya'||m.id==='manik') m.merit=60; else if (!m.isFounder) m.merit=80; }); SESSION._meritResetJul2026=true; SESSION.attendanceDeductions={}; } else { SESSION._meritResetJul2026=true; }
     SESSION.tasks = saved.tasks || DEFAULT_TASKS;
     SESSION.tasks.forEach(t=>{if(Array.isArray(t.notes)&&!t.taskNotes){t.taskNotes=t.notes;delete t.notes;}});
     SESSION.payments = saved.payments || DEFAULT_PAYMENTS;
@@ -660,8 +660,8 @@ async function loadSession(memberId) {
     SESSION.attendanceRequests = saved.attendanceRequests || [];
     SESSION.dailyTargets = saved.dailyTargets || [];
     SESSION.leaves = saved.leaves || [];
-    if (!saved._keshavEmergencyLeave20260717) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-17'))SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavEmergencyLeave20260717=true; }
-    if (!saved._keshavLeavePending20260718) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-18'))SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavLeavePending20260718=true; }
+    if (!saved._keshavEmergencyLeave20260717) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-17'))SESSION.leaves.push({id:'lv'+Date.now(),uid:'keshav',date:'2026-07-17',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavEmergencyLeave20260717=true; } else { SESSION._keshavEmergencyLeave20260717=true; }
+    if (!saved._keshavLeavePending20260718) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-18'))SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavLeavePending20260718=true; } else { SESSION._keshavLeavePending20260718=true; }
     if (!saved._keshavEmergencyLeave20260717||!saved._keshavLeavePending20260718) await persist();
     SESSION.clientUpdates = saved.clientUpdates || [];
     // _dataResetJul2026 block permanently removed — already ran, keeping it was causing repeated data wipes on fresh sessions
