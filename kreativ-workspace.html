@@ -935,6 +935,7 @@ function showDenied(item){
 function todayKey(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});}
 function fmtDur(ms){const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);return `${h}h ${m}m`;}
+function safeText(v,f='—'){if(v===undefined||v===null||v==='undefined'||v==='null'||v==='NaN'||v==='Invalid Date'||v==='')return f;return String(v);}
 function myAttendanceToday(){return (SESSION.attendance||[]).filter(a=>a&&a.uid===me().id&&a.date===todayKey());}
 function myActiveSession(){return (SESSION.attendance||[]).find(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockIn&&!a.clockOut);}
 function myTotalHoursToday(){return (SESSION.attendance||[]).filter(a=>a&&a.uid===me().id&&a.date===todayKey()&&a.clockOut).reduce((s,a)=>s+(a.clockOut-a.clockIn),0);}
@@ -1896,7 +1897,7 @@ function rClientDetail(name){
         ${msgs.map(m=>{
           const sender=SESSION.members.find(x=>x.id===m.sender);
           const isMe=m.sender===me().id;
-          const t=new Date(m.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+          const t=new Date(m.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});
           return `<div style="display:flex;gap:8px;margin-bottom:12px;${isMe?'flex-direction:row-reverse':''}">
             <div class="mav" style="width:24px;height:24px;font-size:9px;background:${sender?sender.color:'#666'};flex-shrink:0">${sender?sender.initials:'?'}</div>
             <div style="max-width:75%">
@@ -1924,22 +1925,26 @@ async function editClientBrief(name){
 }
 async function seekProject(name){
   if(me().merit<70){toast(`Merit score ${me().merit} — need 70+ to join projects.`,'error');return;}
-  const meta=SESSION.clientMeta[name]||{brief:'',interested:[]};
-  if(!meta.interested.includes(me().id))meta.interested.push(me().id);
-  SESSION.clientMeta[name]=meta;
-  await logAct('project_interest',`${me().name.split(' ')[0]} expressed interest in "${name}"`,'🙋');
-  await persist();openClientDetail(name);
-  toast('Interest noted — founder can see you want to work on this.','success');
+  try{
+    const meta=SESSION.clientMeta[name]||{brief:'',interested:[]};
+    if(!meta.interested.includes(me().id))meta.interested.push(me().id);
+    SESSION.clientMeta[name]=meta;
+    await logAct('project_interest',`${me().name.split(' ')[0]} expressed interest in "${name}"`,'🙋');
+    await persist();openClientDetail(name);
+    toast('Interest noted — founder can see you want to work on this.','success');
+  }catch(e){console.error('seekProject failed',e);toast('Could not record interest — check your connection.','error');}
 }
 async function sendChatMessage(name){
   const input=document.getElementById('chat-input');
   const text=input.value.trim();
   if(!text)return;
-  if(!SESSION.chats[name])SESSION.chats[name]=[];
-  SESSION.chats[name].push({sender:me().id,text,ts:Date.now()});
-  await persist();
-  openClientDetail(name);
-  setTimeout(()=>{const sc=document.getElementById('chat-scroll');if(sc)sc.scrollTop=sc.scrollHeight;},50);
+  try{
+    if(!SESSION.chats[name])SESSION.chats[name]=[];
+    SESSION.chats[name].push({sender:me().id,text,ts:Date.now()});
+    await persist();
+    openClientDetail(name);
+    setTimeout(()=>{const sc=document.getElementById('chat-scroll');if(sc)sc.scrollTop=sc.scrollHeight;},50);
+  }catch(e){console.error('sendChatMessage failed',e);toast('Message failed to send — check your connection.','error');}
 }
 function rUpdates(){
   const updates=(SESSION.clientUpdates||[]).slice().reverse();
@@ -2010,22 +2015,26 @@ function dashReject(id){const a=SESSION.approvals.find(x=>x.id===id);if(!a)retur
 async function approveTaskProof(id){
   if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can approve task proofs.','error');return;}
   const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;
-  a.status='approved';
-  const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
-  if(taskIdx!==-1)await _markTaskDone(taskIdx);
-  await logAct('task_approved',`"${a.taskName}" approved by ${me().name.split(' ')[0]}`,'✅', a.uid);
-  await persist();showPage('approvals');
+  try{
+    a.status='approved';
+    const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
+    if(taskIdx!==-1)await _markTaskDone(taskIdx);
+    await logAct('task_approved',`"${safeText(a.taskName,'task')}" approved by ${me().name.split(' ')[0]}`,'✅', a.uid);
+    await persist();showPage('approvals');
+  }catch(e){console.error('approveTaskProof failed',e);toast('Approval failed — check your connection.','error');}
 }
 async function rejectTaskProof(id){
   if(!me().isFounder&&me().id!=='keshav'){toast('Only Shubhrat or Keshav can reject task proofs.','error');return;}
   const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;
   const reason=await showPrompt('Reject Task Proof','Reason for rejection',{type:'textarea',required:true,placeholder:'Explain why this is being rejected...',confirmText:'Reject'});
   if(!reason)return;
-  a.status='rejected';a.rejectionReason=reason;a.rejectedBy=me().id;a.rejectedByName=me().name;a.rejectedAt=Date.now();
-  const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
-  if(taskIdx!==-1){const t=SESSION.tasks[taskIdx];t.pendingProof=false;t.proofText='';t.proofFileName='';t.proofFileData='';}
-  await logAct('task_rejected',`"${a.taskName}" proof rejected — ${reason.slice(0,60)}`,'❌', a.uid);
-  await persist();showPage('approvals');
+  try{
+    a.status='rejected';a.rejectionReason=reason;a.rejectedBy=me().id;a.rejectedByName=me().name;a.rejectedAt=Date.now();
+    const taskIdx=SESSION.tasks.findIndex(t=>t.id===a.taskId);
+    if(taskIdx!==-1){const t=SESSION.tasks[taskIdx];t.pendingProof=false;t.proofText='';t.proofFileName='';t.proofFileData='';}
+    await logAct('task_rejected',`"${safeText(a.taskName,'task')}" proof rejected — ${reason.slice(0,60)}`,'❌', a.uid);
+    await persist();showPage('approvals');
+  }catch(e){console.error('rejectTaskProof failed',e);toast('Rejection failed — check your connection.','error');}
 }
 async function submitApproval(){
   const title=document.getElementById('apr-title').value.trim();
@@ -2039,17 +2048,18 @@ async function submitApproval(){
   closeModal('mo-approval');showPage('approvals');
 }
 async function actionApproval(id,status){
-  const a=SESSION.approvals.find(x=>x.id===id);
+  const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;
   if(status==='rejected'){
     const reason=await showPrompt('Reject Request','Reason for rejection',{type:'textarea',required:true,placeholder:'Explain why this is being rejected...',confirmText:'Reject'});
     if(!reason)return;
     a.rejectionReason=reason;a.rejectedBy=me().id;a.rejectedByName=me().name;a.rejectedAt=Date.now();
   }
-  a.status=status;
-  const req=SESSION.members.find(m=>m.id===a.requestedBy);
-  if(status==='approved'){await autoMerit(a.requestedBy,'clientApproval','Approval granted: '+a.title);}
-  await logAct('approval_'+status,`"${a.title||a.taskName||'Request'}" ${status} by ${me().name.split(' ')[0]}`,(status==='approved'?'✅':'❌'));
-  await persist();showPage('approvals');
+  try{
+    a.status=status;
+    if(status==='approved'){await autoMerit(a.requestedBy,'clientApproval','Approval granted: '+(a.title||''));}
+    await logAct('approval_'+status,`"${safeText(a.title||a.taskName,'Request')}" ${status} by ${me().name.split(' ')[0]}`,(status==='approved'?'✅':'❌'));
+    await persist();showPage('approvals');
+  }catch(e){console.error('actionApproval failed',e);toast('Action failed — check your connection.','error');}
 }
 function rPayments(){
   const received=SESSION.payments.filter(p=>p.status==='Received');
@@ -2087,8 +2097,8 @@ function rPayments(){
   }
   return html;
 }
-async function markPaid(i){SESSION.payments[i].status='Received';await autoMerit(me().id,'paymentReceived','Payment received: '+SESSION.payments[i].client);await logAct('payment_received',`₹${SESSION.payments[i].amount.toLocaleString('en-IN')} from ${SESSION.payments[i].client} marked paid`,'💰');await persist();showPage('payments');}
-async function deletePayment(i){if(await showConfirm('Delete Payment','Delete this payment entry permanently?','Delete')){await logAct('payment_delete',`Payment ₹${SESSION.payments[i].amount.toLocaleString('en-IN')} for ${SESSION.payments[i].client} deleted`,'🗑');SESSION.payments.splice(i,1);await persist();showPage('payments');}}
+async function markPaid(i){try{SESSION.payments[i].status='Received';await autoMerit(me().id,'paymentReceived','Payment received: '+SESSION.payments[i].client);await logAct('payment_received',`₹${SESSION.payments[i].amount.toLocaleString('en-IN')} from ${SESSION.payments[i].client} marked paid`,'💰');await persist();showPage('payments');}catch(e){console.error('markPaid failed',e);toast('Could not mark payment — check your connection.','error');}}
+async function deletePayment(i){if(await showConfirm('Delete Payment','Delete this payment entry permanently?','Delete')){try{await logAct('payment_delete',`Payment ₹${SESSION.payments[i].amount.toLocaleString('en-IN')} for ${SESSION.payments[i].client} deleted`,'🗑');SESSION.payments.splice(i,1);await persist();showPage('payments');}catch(e){console.error('deletePayment failed',e);toast('Delete failed — check your connection.','error');}}}
 function populatePayModal(){document.getElementById('pay-client').innerHTML=(SESSION.clients.length?SESSION.clients.map(c=>`<option>${c}</option>`).join(''):'<option value="">— No clients, add one first —</option>');}
 async function savePayment(){
   const amt=parseFloat(document.getElementById('pay-amt').value);if(!amt||amt<=0){toast('Enter valid amount.','error');return;}
@@ -2144,7 +2154,7 @@ async function submitMeritRequest(){
     if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
     fileName=f.name;fileData=await fileToBase64(f);
   }
-  SESSION.meritRequests.push({id:'mr'+Date.now(),uid:me().id,reason,fileName,fileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})});
+  SESSION.meritRequests.push({id:'mr'+Date.now(),uid:me().id,reason,fileName,fileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
   await persist();
   document.getElementById('mr-reason').value='';document.getElementById('mr-file').value='';
   closeModal('mo-meritreq');showPage('merit');
@@ -2155,18 +2165,20 @@ async function approveMeritReq(i){
   const ptsStr=await showPrompt('Grant Merit Points','How many points to grant?',{inputType:'number',defaultValue:'5',required:true});
   if(ptsStr===null)return;const pts=parseInt(ptsStr);
   if(isNaN(pts)||pts<=0){toast('Enter a valid points number.','error');return;}
-  const mem=SESSION.members.find(m=>m.id===req.uid);
-  if(mem)mem.merit=Math.min(100,mem.merit+pts);
-  req.status='approved';
-  await persist();buildSidebar();showPage('merit');
+  try{
+    const mem=SESSION.members.find(m=>m.id===req.uid);
+    if(mem)mem.merit=Math.min(100,mem.merit+pts);
+    req.status='approved';
+    await persist();buildSidebar();showPage('merit');
+  }catch(e){console.error('approveMeritReq failed',e);toast('Could not approve — check your connection.','error');}
 }
 async function denyMeritReq(i){
-  SESSION.meritRequests[i].status='denied';
-  await persist();showPage('merit');
+  try{SESSION.meritRequests[i].status='denied';await persist();showPage('merit');}
+  catch(e){console.error('denyMeritReq failed',e);toast('Could not deny — check your connection.','error');}
 }
-async function saveMerit(id){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const v=parseInt(document.getElementById('mi-'+id).value);if(isNaN(v)||v<0||v>100){toast('0–100 only','error');return;}const old=mem.merit;mem.merit=v;await logAct('merit_set',`${mem.name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}
-async function saveMeritReview(id){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const text=document.getElementById('mr-note-'+id).value.trim();mem.meritReview=text;await persist();toast('Review note saved.','success');}
-async function quickMerit(id,d){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const old=mem.merit;mem.merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${mem.name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${mem.merit})`,'⚖');await persist();buildSidebar();showPage('merit');}
+async function saveMerit(id){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;const v=parseInt(document.getElementById('mi-'+id).value);if(isNaN(v)||v<0||v>100){toast('0–100 only','error');return;}try{const old=mem.merit;mem.merit=v;await logAct('merit_set',`${mem.name.split(' ')[0]} merit set ${old}→${v}`,'⚖');await persist();buildSidebar();showPage('merit');}catch(e){console.error('saveMerit failed',e);toast('Save failed — check your connection.','error');}}
+async function saveMeritReview(id){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;try{const text=document.getElementById('mr-note-'+id).value.trim();mem.meritReview=text;await persist();toast('Review note saved.','success');}catch(e){console.error('saveMeritReview failed',e);toast('Save failed — check your connection.','error');}}
+async function quickMerit(id,d){const mem=SESSION.members.find(m=>m.id===id);if(!mem)return;try{const old=mem.merit;mem.merit=Math.max(0,Math.min(100,old+d));await logAct('merit_adjust',`${mem.name.split(' ')[0]} merit ${d>0?'+':''}${d} (${old}→${mem.merit})`,'⚖');await persist();buildSidebar();showPage('merit');}catch(e){console.error('quickMerit failed',e);toast('Update failed — check your connection.','error');}}
 async function editMemberPrompt(id){openEditMemberModal(id);}
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
@@ -2269,7 +2281,7 @@ function rAnalytics(){
     const data=ca[cid];const sessions=(data.sessions||[]).slice(-10).reverse();
     html+=`<div style="padding:12px 16px;border-bottom:1px solid var(--br)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">${data.name||cid}</div><span class="badge b-blue">${(data.sessions||[]).length} sessions</span></div>`;
     sessions.forEach(s=>{
-      const loginDate=s.login?new Date(s.login).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+      const loginDate=s.login?new Date(s.login).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}):'—';
       const dur=s.duration?Math.round(s.duration/60000)+'m':'active';
       const pages=s.pages||[];
       html+=`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:11px"><span style="color:var(--tm);width:120px">${loginDate}</span><span class="badge ${s.duration?'b-green':'b-amber'}">${dur}</span><span style="color:var(--tm)">${pages.length} page${pages.length!==1?'s':''}</span></div>`;
@@ -2587,12 +2599,14 @@ async function submitSalAction(){
   const type=window._salActionType;
   const mem=SESSION.members.find(m=>m.id===memberId);if(!mem)return;
   const dateStr=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'});
+  try{
   SESSION.salaryPayments.push({id:'sp'+Date.now(),memberId,amount:amt,type,note,date:dateStr});
   const icons={salary:'💰',bonus:'🎁',cut:'✂'};
   const labels={salary:'salary paid to',bonus:'bonus given to',cut:'deducted from'};
   await logAct(type==='cut'?'salary_cut':type==='bonus'?'bonus_added':'salary_paid',`₹${amt.toLocaleString('en-IN')} ${labels[type]} ${mem.name.split(' ')[0]}${note?' — '+note:''}`,(icons[type]||'💰'));
   await persist();closeModal('mo-sal-action');showPage('salary');
   toast(`₹${amt.toLocaleString('en-IN')} ${type} recorded for ${mem.name.split(' ')[0]}.`,'success');
+  }catch(e){console.error('submitSalAction failed',e);toast('Could not save — check your connection.','error');}
 }
 
 /* ── Edit member modal ── */
@@ -2616,9 +2630,11 @@ async function submitEditMember(){
   m.dept=document.getElementById('mem-e-dept').value;
   m.email=document.getElementById('mem-e-email').value.trim();
   m.phone=document.getElementById('mem-e-phone').value.trim();
-  await logAct('member_edit',`${m.name} profile updated by founder`,'✎');
-  await persist();closeModal('mo-edit-mem');buildSidebar();showPage(_currentPage);
-  toast(`${m.name.split(' ')[0]}'s profile updated.`,'success');
+  try{
+    await logAct('member_edit',`${m.name} profile updated by founder`,'✎');
+    await persist();closeModal('mo-edit-mem');buildSidebar();showPage(_currentPage);
+    toast(`${m.name.split(' ')[0]}'s profile updated.`,'success');
+  }catch(e){console.error('submitEditMember failed',e);toast('Save failed — check your connection.','error');}
 }
 
 /* ── Add cut entry modal ── */
@@ -2638,9 +2654,11 @@ async function submitCutEntry(){
   const cut=parseInt(document.getElementById('cut-amt').value);
   if(!project){toast('Enter project name.','error');return;}
   if(isNaN(pct)||isNaN(cut)){toast('Enter valid % and amount.','error');return;}
-  mem.salary.projectCuts.push({project,pct,cut});
-  await persist();closeModal('mo-cut-add');showPage('salary');
-  toast(`Cut entry added for ${mem.name.split(' ')[0]}.`,'success');
+  try{
+    mem.salary.projectCuts.push({project,pct,cut});
+    await persist();closeModal('mo-cut-add');showPage('salary');
+    toast(`Cut entry added for ${mem.name.split(' ')[0]}.`,'success');
+  }catch(e){console.error('submitCutEntry failed',e);toast('Save failed — check your connection.','error');}
 }
 
 /* ── Task notes system ── */
