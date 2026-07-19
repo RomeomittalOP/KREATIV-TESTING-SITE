@@ -496,6 +496,8 @@ const DB = {
   },
   startRealtimeSync() {
     if (!this.firebaseOk) return;
+    if (this._syncStarted) return;
+    this._syncStarted = true;
     rtdb.ref('workspace/workspace_data').on('value', snap => {
       if (_selfWrite) return;
       if (!snap.exists()) return;
@@ -772,6 +774,8 @@ document.addEventListener('click',function(e){if(!e.target.closest('.sbar'))docu
 function timeAgoShort(ts){const d=Date.now()-ts;if(d<60000)return 'now';if(d<3600000)return Math.floor(d/60000)+'m';if(d<86400000)return Math.floor(d/3600000)+'h';return Math.floor(d/86400000)+'d';}
 function startRealtimeNotifications(){
   if(!DB.firebaseOk)return;
+  if(window._notifyIntervalStarted)return;
+  window._notifyIntervalStarted=true;
   let _lastActivityCount=(SESSION.activityLog||[]).length;
   setInterval(()=>{
     const log=SESSION.activityLog||[];
@@ -875,8 +879,10 @@ function canAccess(item){
 }
 function buildApp(){buildSidebar();showPage('overview');initMobileMenu();const sb=document.getElementById('sop-btn');if(sb&&me()&&me().isFounder)sb.style.display='none';}
 function initMobileMenu(){
+  if(window._mobileMenuInit)return;
   const sb=document.querySelector('.sb'),scrim=document.getElementById('mob-scrim'),btn=document.getElementById('mob-menu');
   if(!btn)return;
+  window._mobileMenuInit=true;
   function openSb(){sb.classList.add('mob-open');scrim.classList.add('on');}
   function closeSb(){sb.classList.remove('mob-open');scrim.classList.remove('on');}
   btn.addEventListener('click',openSb);
