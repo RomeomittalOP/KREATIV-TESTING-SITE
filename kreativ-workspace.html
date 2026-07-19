@@ -1009,27 +1009,33 @@ async function submitLeave(){
   if(existing){toast('Leave already applied for this date.','error');return;}
   const hasAtt=(SESSION.attendance||[]).some(a=>a&&a.uid===me().id&&a.date===date&&a.clockIn);
   if(hasAtt){toast('You have attendance recorded on this date. Leave cannot be applied.','error');return;}
-  SESSION.leaves.push({id:'lv'+Date.now()+Math.random().toString(36).slice(2,5),uid:me().id,date,type,reason,status:'pending',isAuto:false,appliedAt:Date.now()});
-  await logAct('leave_apply',`${me().name.split(' ')[0]} applied ${type} leave for ${date}`,'🌿');
-  await persist();
-  closeModal('mo-leave');
-  showPage('attendance');
+  try{
+    SESSION.leaves.push({id:'lv'+Date.now()+Math.random().toString(36).slice(2,5),uid:me().id,date,type,reason,status:'pending',isAuto:false,appliedAt:Date.now()});
+    await logAct('leave_apply',`${me().name.split(' ')[0]} applied ${type} leave for ${date}`,'🌿');
+    await persist();
+    closeModal('mo-leave');
+    showPage('attendance');
+  }catch(e){console.error('submitLeave failed',e);toast('Leave application failed — check your connection.','error');}
 }
 async function approveLeave(id){
   const lv=(SESSION.leaves||[]).find(l=>l.id===id);
   if(!lv)return;
-  lv.status='approved';lv.approvedBy=me().id;
-  const mem=SESSION.members.find(m=>m.id===lv.uid);
-  await logAct('leave_approve',`Leave approved for ${mem?mem.name.split(' ')[0]:'?'} on ${lv.date}`,'✅');
-  await persist();showPage('attendance');
+  try{
+    lv.status='approved';lv.approvedBy=me().id;
+    const mem=SESSION.members.find(m=>m.id===lv.uid);
+    await logAct('leave_approve',`Leave approved for ${mem?mem.name.split(' ')[0]:'?'} on ${lv.date}`,'✅');
+    await persist();showPage('attendance');
+  }catch(e){console.error('approveLeave failed',e);toast('Approval failed — check your connection.','error');}
 }
 async function rejectLeave(id){
   const lv=(SESSION.leaves||[]).find(l=>l.id===id);
   if(!lv)return;
-  lv.status='rejected';lv.rejectedBy=me().id;
-  const mem=SESSION.members.find(m=>m.id===lv.uid);
-  await logAct('leave_reject',`Leave rejected for ${mem?mem.name.split(' ')[0]:'?'} on ${lv.date}`,'❌');
-  await persist();showPage('attendance');
+  try{
+    lv.status='rejected';lv.rejectedBy=me().id;
+    const mem=SESSION.members.find(m=>m.id===lv.uid);
+    await logAct('leave_reject',`Leave rejected for ${mem?mem.name.split(' ')[0]:'?'} on ${lv.date}`,'❌');
+    await persist();showPage('attendance');
+  }catch(e){console.error('rejectLeave failed',e);toast('Rejection failed — check your connection.','error');}
 }
 function openLeaveModal(){
   document.getElementById('lv-date').value=todayKey();
@@ -1568,22 +1574,26 @@ async function submitClockOut(){
 
 async function approveClockoutProof(id){
   const ap=SESSION.approvals.find(a=>a.id===id);if(!ap)return;
-  ap.status='approved';ap.approvedBy=me().id;ap.approvedAt=Date.now();
-  const rec=(SESSION.attendance||[]).find(a=>a&&a.uid===ap.uid&&a.clockIn===ap.clockIn);
-  if(rec){rec.pendingApproval=false;rec.approved=true;}
-  await checkOver5hMerit(ap.uid);
-  const mem=SESSION.members.find(m=>m.id===ap.uid);
-  await logAct('clockout_approved',`${me().name.split(' ')[0]} approved clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'✅',ap.uid);
-  await persist();showPage('attendance');
+  try{
+    ap.status='approved';ap.approvedBy=me().id;ap.approvedAt=Date.now();
+    const rec=(SESSION.attendance||[]).find(a=>a&&a.uid===ap.uid&&a.clockIn===ap.clockIn);
+    if(rec){rec.pendingApproval=false;rec.approved=true;}
+    await checkOver5hMerit(ap.uid);
+    const mem=SESSION.members.find(m=>m.id===ap.uid);
+    await logAct('clockout_approved',`${me().name.split(' ')[0]} approved clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'✅',ap.uid);
+    await persist();showPage('attendance');
+  }catch(e){console.error('approveClockoutProof failed',e);toast('Approval failed — check your connection.','error');}
 }
 async function rejectClockoutProof(id){
   const ap=SESSION.approvals.find(a=>a.id===id);if(!ap)return;
-  ap.status='rejected';ap.rejectedBy=me().id;
-  const rec=(SESSION.attendance||[]).find(a=>a&&a.uid===ap.uid&&a.clockIn===ap.clockIn);
-  if(rec){rec.pendingApproval=false;rec.approved=false;}
-  const mem=SESSION.members.find(m=>m.id===ap.uid);
-  await logAct('clockout_rejected',`${me().name.split(' ')[0]} rejected clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'❌',ap.uid);
-  await persist();showPage('attendance');
+  try{
+    ap.status='rejected';ap.rejectedBy=me().id;
+    const rec=(SESSION.attendance||[]).find(a=>a&&a.uid===ap.uid&&a.clockIn===ap.clockIn);
+    if(rec){rec.pendingApproval=false;rec.approved=false;}
+    const mem=SESSION.members.find(m=>m.id===ap.uid);
+    await logAct('clockout_rejected',`${me().name.split(' ')[0]} rejected clock-out for ${mem?mem.name.split(' ')[0]:'?'}`,'❌',ap.uid);
+    await persist();showPage('attendance');
+  }catch(e){console.error('rejectClockoutProof failed',e);toast('Rejection failed — check your connection.','error');}
 }
 async function addManualSession(){
   const uid=document.getElementById('man-member').value;
@@ -1599,36 +1609,42 @@ async function addManualSession(){
   const clockOut=new Date(base);clockOut.setHours(outH,outM,0,0);
   if(clockOut<=clockIn){toast('Clock-out must be after clock-in.','error');return;}
   const mem=SESSION.members.find(m=>m.id===uid);
-  SESSION.attendance.push({uid,date:dateStr,clockIn:clockIn.getTime(),clockOut:clockOut.getTime(),proofText:'Manual entry by '+me().name.split(' ')[0],approved:true});
-  await checkOver5hMerit(uid);
-  await logAct('manual_session',`${me().name.split(' ')[0]} added manual session for ${mem?mem.name.split(' ')[0]:'?'} (${dateStr} ${inVal}→${outVal})`,'📝',uid);
-  await persist();
-  document.getElementById('man-in').value='';
-  document.getElementById('man-out').value='';
-  document.getElementById('man-member').value='';
-  showPage('attendance');
+  try{
+    SESSION.attendance.push({uid,date:dateStr,clockIn:clockIn.getTime(),clockOut:clockOut.getTime(),proofText:'Manual entry by '+me().name.split(' ')[0],approved:true});
+    await checkOver5hMerit(uid);
+    await logAct('manual_session',`${me().name.split(' ')[0]} added manual session for ${mem?mem.name.split(' ')[0]:'?'} (${dateStr} ${inVal}→${outVal})`,'📝',uid);
+    await persist();
+    document.getElementById('man-in').value='';
+    document.getElementById('man-out').value='';
+    document.getElementById('man-member').value='';
+    showPage('attendance');
+  }catch(e){console.error('addManualSession failed',e);toast('Save failed — check your connection.','error');}
 }
 async function adjustAttHours(){
   const uid=document.getElementById('adj-member').value;
   const mins=parseInt(document.getElementById('adj-mins').value)||0;
   if(!uid||mins===0){toast('Select a member and enter non-zero minutes.','error');return;}
-  const entry=getDailyEntry(uid);
-  entry.adjustmentMs=(entry.adjustmentMs||0)+(mins*60000);
-  const mem=SESSION.members.find(m=>m.id===uid);
-  await logAct('att_adjust',`${me().name.split(' ')[0]} adjusted ${mem?mem.name.split(' ')[0]:'?'}\'s hours by ${mins>0?'+':''}${mins} min`,'⚙');
-  await checkOver5hMerit(uid);
-  await persist();document.getElementById('adj-mins').value='';showPage('attendance');
+  try{
+    const entry=getDailyEntry(uid);
+    entry.adjustmentMs=(entry.adjustmentMs||0)+(mins*60000);
+    const mem=SESSION.members.find(m=>m.id===uid);
+    await logAct('att_adjust',`${me().name.split(' ')[0]} adjusted ${mem?mem.name.split(' ')[0]:'?'}\'s hours by ${mins>0?'+':''}${mins} min`,'⚙');
+    await checkOver5hMerit(uid);
+    await persist();document.getElementById('adj-mins').value='';showPage('attendance');
+  }catch(e){console.error('adjustAttHours failed',e);toast('Save failed — check your connection.','error');}
 }
 async function grantManualIncentive(){
   const uid=document.getElementById('inc-member').value;
   const hrs=parseFloat(document.getElementById('inc-hrs').value)||0;
   if(!uid||hrs<=0){toast('Select a member and enter hours > 0.','error');return;}
-  const entry=getDailyEntry(uid);
-  entry.incentiveMs=(entry.incentiveMs||0)+(hrs*3600000);
-  const mem=SESSION.members.find(m=>m.id===uid);
-  await autoMerit(uid,'over5h',`Manual incentive granted by ${me().name.split(' ')[0]}`);
-  await logAct('manual_incentive',`${me().name.split(' ')[0]} granted ${hrs}h incentive to ${mem?mem.name.split(' ')[0]:'?'}`,'⭐',uid);
-  await persist();document.getElementById('inc-hrs').value='';showPage('attendance');
+  try{
+    const entry=getDailyEntry(uid);
+    entry.incentiveMs=(entry.incentiveMs||0)+(hrs*3600000);
+    const mem=SESSION.members.find(m=>m.id===uid);
+    await autoMerit(uid,'over5h',`Manual incentive granted by ${me().name.split(' ')[0]}`);
+    await logAct('manual_incentive',`${me().name.split(' ')[0]} granted ${hrs}h incentive to ${mem?mem.name.split(' ')[0]:'?'}`,'⭐',uid);
+    await persist();document.getElementById('inc-hrs').value='';showPage('attendance');
+  }catch(e){console.error('grantManualIncentive failed',e);toast('Save failed — check your connection.','error');}
 }
 function viewProof(uid){
   const sessions=(SESSION.attendance||[]).filter(a=>a&&a.uid===uid&&a.date===todayKey()&&a.proofText);
@@ -1721,17 +1737,20 @@ async function _markTaskDone(i){
 }
 async function directMarkDone(i){
   if(!me().isFounder){toast('Only founders can mark tasks done directly.','error');return;}
-  await _markTaskDone(i);
-  await persist();showPage('tasks');
+  try{
+    await _markTaskDone(i);
+    await persist();showPage('tasks');
+  }catch(e){console.error('directMarkDone failed',e);toast('Could not mark done — check your connection.','error');}
 }
 async function reopenTask(i){
   const t=SESSION.tasks[i];
-  t.done=false; t.pendingProof=false; t.proofText=''; t.proofFileName=''; t.proofFileData=''; t.updatedAt=Date.now();
-  // cancel any pending approval for this task
-  SESSION.approvals=SESSION.approvals.filter(a=>!(a.type==='task_proof'&&a.taskId===t.id&&a.status==='pending'));
-  if(t.isDaily&&t.assignee){const entry=getDailyEntry(t.assignee);entry.incentiveMs=0;}
-  await logAct('task_reopen',`"${t.name}" reopened`,'↺');
-  await persist();showPage('tasks');
+  try{
+    t.done=false; t.pendingProof=false; t.proofText=''; t.proofFileName=''; t.proofFileData=''; t.updatedAt=Date.now();
+    SESSION.approvals=SESSION.approvals.filter(a=>!(a.type==='task_proof'&&a.taskId===t.id&&a.status==='pending'));
+    if(t.isDaily&&t.assignee){const entry=getDailyEntry(t.assignee);entry.incentiveMs=0;}
+    await logAct('task_reopen',`"${t.name}" reopened`,'↺');
+    await persist();showPage('tasks');
+  }catch(e){console.error('reopenTask failed',e);toast('Could not reopen task — check your connection.','error');}
 }
 let _proofTaskIdx=null;
 function openTaskProofModal(ri){
@@ -1864,20 +1883,30 @@ function rClients(){
     <div class="sg sg-2" style="gap:8px;margin-bottom:0"><div style="font-size:10px;color:var(--tm)">Open Tasks<span style="font-size:13px;font-weight:700;color:var(--tp);display:block;margin-top:2px">${clientTasks}</span></div><div style="font-size:10px;color:var(--tm)">Value<span style="font-size:13px;font-weight:700;color:var(--tp);display:block;margin-top:2px">₹${totalVal.toLocaleString('en-IN')}</span></div></div></div>`;}).join('')}
   ${canEdit()?`<div class="cc" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:110px;cursor:pointer" onclick="addClient()"><div style="text-align:center;color:var(--tm)"><div style="font-size:20px;margin-bottom:4px">+</div><div style="font-size:11px">Add client</div></div></div>`:''}</div>`;
 }
-async function addClient(){const name=await showPrompt('Add Client','Client name',{placeholder:'Enter client name',required:true});if(!name||!name.trim())return;SESSION.clients.push(name.trim());await logAct('client_add',`New client "${name.trim()}" added`,'👤');await persist();showPage('clients');}
+async function addClient(){
+  const name=await showPrompt('Add Client','Client name',{placeholder:'Enter client name',required:true});
+  if(!name||!name.trim())return;
+  try{SESSION.clients.push(name.trim());await logAct('client_add',`New client "${name.trim()}" added`,'👤');await persist();showPage('clients');}
+  catch(e){console.error('addClient failed',e);toast('Could not add client — check your connection.','error');}
+}
 async function renameClient(oldName){
   const newName=await showPrompt('Rename Client','New client name',{defaultValue:oldName,required:true});
   if(!newName||!newName.trim()||newName===oldName)return;
-  const idx=SESSION.clients.indexOf(oldName);
-  if(idx>-1)SESSION.clients[idx]=newName.trim();
-  if(SESSION.clientMeta[oldName]){SESSION.clientMeta[newName]=SESSION.clientMeta[oldName];delete SESSION.clientMeta[oldName];}
-  if(SESSION.chats[oldName]){SESSION.chats[newName]=SESSION.chats[oldName];delete SESSION.chats[oldName];}
-  await persist();openClientDetail(newName.trim());
+  try{
+    const idx=SESSION.clients.indexOf(oldName);
+    if(idx>-1)SESSION.clients[idx]=newName.trim();
+    if(SESSION.clientMeta[oldName]){SESSION.clientMeta[newName]=SESSION.clientMeta[oldName];delete SESSION.clientMeta[oldName];}
+    if(SESSION.chats[oldName]){SESSION.chats[newName]=SESSION.chats[oldName];delete SESSION.chats[oldName];}
+    await persist();openClientDetail(newName.trim());
+  }catch(e){console.error('renameClient failed',e);toast('Rename failed — check your connection.','error');}
 }
 async function removeClientConfirm(name){
   if(!await showConfirm('Remove Client',`Remove ${name} from the clients list?`,'Remove'))return;
-  SESSION.clients=SESSION.clients.filter(c=>c!==name);
-  await persist();showPage('clients');
+  try{
+    SESSION.clients=SESSION.clients.filter(c=>c!==name);
+    await persist();showPage('clients');
+  }catch(e){console.error('removeClientConfirm failed',e);toast('Remove failed — check your connection.','error');}
+
 }
 function openClientDetail(name){
   document.getElementById('content').innerHTML=rClientDetail(name);
@@ -1933,9 +1962,11 @@ async function editClientBrief(name){
   const meta=SESSION.clientMeta[name]||{brief:'',interested:[]};
   const newBrief=await showPrompt('Edit Brief','Project brief',{type:'textarea',defaultValue:meta.brief,placeholder:'Describe the project...'});
   if(newBrief===null)return;
-  meta.brief=newBrief;
-  SESSION.clientMeta[name]=meta;
-  await persist();openClientDetail(name);
+  try{
+    meta.brief=newBrief;
+    SESSION.clientMeta[name]=meta;
+    await persist();openClientDetail(name);
+  }catch(e){console.error('editClientBrief failed',e);toast('Save failed — check your connection.','error');}
 }
 async function seekProject(name){
   if(me().merit<70){toast(`Merit score ${me().merit} — need 70+ to join projects.`,'error');return;}
@@ -2054,12 +2085,14 @@ async function submitApproval(){
   const title=document.getElementById('apr-title').value.trim();
   const desc=document.getElementById('apr-desc').value.trim();
   if(!title){toast('Enter a title.','error');return;}
-  SESSION.approvals.push({id:'ap'+Date.now(),title,desc,requestedBy:me().id,requestedByName:me().name,target:document.getElementById('apr-target').value,status:'pending',createdAt:Date.now(),submittedAt:Date.now(),date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
-  await autoMerit(me().id,'approvalSubmitted','Submitted approval request');
-  await logAct('approval_submit',`${me().name.split(' ')[0]} requested approval: "${title}"`,'📋');
-  await persist();
-  document.getElementById('apr-title').value='';document.getElementById('apr-desc').value='';
-  closeModal('mo-approval');showPage('approvals');
+  try{
+    SESSION.approvals.push({id:'ap'+Date.now(),title,desc,requestedBy:me().id,requestedByName:me().name,target:document.getElementById('apr-target').value,status:'pending',createdAt:Date.now(),submittedAt:Date.now(),date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
+    await autoMerit(me().id,'approvalSubmitted','Submitted approval request');
+    await logAct('approval_submit',`${me().name.split(' ')[0]} requested approval: "${title}"`,'📋');
+    await persist();
+    document.getElementById('apr-title').value='';document.getElementById('apr-desc').value='';
+    closeModal('mo-approval');showPage('approvals');
+  }catch(e){console.error('submitApproval failed',e);toast('Submission failed — check your connection.','error');}
 }
 async function actionApproval(id,status){
   const a=SESSION.approvals.find(x=>x.id===id);if(!a)return;
@@ -2117,9 +2150,11 @@ function populatePayModal(){document.getElementById('pay-client').innerHTML=(SES
 async function savePayment(){
   const amt=parseFloat(document.getElementById('pay-amt').value);if(!amt||amt<=0){toast('Enter valid amount.','error');return;}
   const payClient=document.getElementById('pay-client').value;
-  SESSION.payments.push({id:'p'+Date.now(),client:payClient,amount:amt,type:document.getElementById('pay-type').value,status:document.getElementById('pay-status').value,desc:document.getElementById('pay-desc').value||'',due:document.getElementById('pay-date').value||''});
-  await logAct('payment_add',`Payment ₹${amt.toLocaleString('en-IN')} added for ${payClient}`,'💳');
-  await persist();closeModal('mo-payment');showPage('payments');
+  try{
+    SESSION.payments.push({id:'p'+Date.now(),client:payClient,amount:amt,type:document.getElementById('pay-type').value,status:document.getElementById('pay-status').value,desc:document.getElementById('pay-desc').value||'',due:document.getElementById('pay-date').value||''});
+    await logAct('payment_add',`Payment ₹${amt.toLocaleString('en-IN')} added for ${payClient}`,'💳');
+    await persist();closeModal('mo-payment');showPage('payments');
+  }catch(e){console.error('savePayment failed',e);toast('Could not save payment — check your connection.','error');}
 }
 function rMerit(){
   const adm=canEdit();let html='';
@@ -2168,11 +2203,13 @@ async function submitMeritRequest(){
     if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
     fileName=f.name;fileData=await fileToBase64(f);
   }
-  SESSION.meritRequests.push({id:'mr'+Date.now(),uid:me().id,reason,fileName,fileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
-  await persist();
-  document.getElementById('mr-reason').value='';document.getElementById('mr-file').value='';
-  closeModal('mo-meritreq');showPage('merit');
-  toast('Request submitted — admin will review.','success');
+  try{
+    SESSION.meritRequests.push({id:'mr'+Date.now(),uid:me().id,reason,fileName,fileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
+    await persist();
+    document.getElementById('mr-reason').value='';document.getElementById('mr-file').value='';
+    closeModal('mo-meritreq');showPage('merit');
+    toast('Request submitted — admin will review.','success');
+  }catch(e){console.error('submitMeritRequest failed',e);toast('Submission failed — check your connection.','error');}
 }
 async function approveMeritReq(i){
   const req=SESSION.meritRequests[i];
@@ -2428,7 +2465,8 @@ async function gdriveConnect(){
 }
 async function gdriveRefresh(){
   if(!GDRIVE.token){toast('Connect to Google Drive first.','error');return;}
-  await loadCloudFiles();showPage('cloudfiles');
+  try{await loadCloudFiles();showPage('cloudfiles');}
+  catch(e){console.error('gdriveRefresh failed',e);toast('Refresh failed — check your connection.','error');}
 }
 async function gdriveUpload(){
   if(!GDRIVE.apisReady){toast('Drive API is still loading. Please wait a moment and try again.','error');return;}
@@ -2825,6 +2863,17 @@ function badgeCount(section){
   if(section==='updates')return 0;
   return 0;
 }
+
+/* ── Global error boundary ── */
+window.addEventListener('unhandledrejection',e=>{
+  console.error('[Kreativ] Unhandled promise rejection:',e.reason);
+  const msg=(e.reason&&e.reason.message)||String(e.reason||'Unknown error');
+  if(msg&&!msg.includes('AbortError'))toast('Something went wrong — check your connection and try again.','error');
+});
+window.onerror=function(msg,src,line,col,err){
+  console.error('[Kreativ] Uncaught error:',msg,'at',src+':'+line+':'+col,err);
+  return false;
+};
 
 window.addEventListener('DOMContentLoaded',boot);
 </script>
