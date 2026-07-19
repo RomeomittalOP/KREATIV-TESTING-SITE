@@ -1247,7 +1247,7 @@ function rOverview(){
   <div class="sg sg-2">
     <div class="panel"><div class="ph"><div class="pt">${canEdit()?'Today\'s Tasks':'My Tasks'}</div><span class="pa" onclick="showPage('tasks')">View all</span></div>
     ${(canEdit()?SESSION.tasks:SESSION.tasks.filter(t=>t.assignee===me().id)).slice(0,5).map(t=>{const mem=SESSION.members.find(m=>m.id===t.assignee)||{initials:'?',color:'#666'};const pc=t.priority==='Urgent'||t.priority==='High'?'b-red':t.priority==='Mid'?'b-amber':'b-blue';
-    return `<div class="ti" onclick="showPage('tasks')" style="cursor:pointer"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${t.name}</div><div class="tm2">${t.project} · Due ${t.due}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}
+    return `<div class="ti" onclick="showPage('tasks')" style="cursor:pointer"><div class="tc${t.done?' done':''}"></div><div style="flex:1"><div class="tn${t.done?' done':''}">${safeText(t.name,'Untitled')}</div><div class="tm2">${t.project||'—'} · Due ${t.due||'TBD'}</div></div><div class="tr"><div class="mav" style="background:${mem.color}">${mem.initials}</div><span class="badge ${pc}">${t.priority}</span></div></div>`;}).join('')}
     ${(canEdit()?SESSION.tasks:SESSION.tasks.filter(t=>t.assignee===me().id)).length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No tasks assigned to you.</div>':''}</div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="panel"><div class="ph"><div class="pt">Pending Approvals</div><span class="pa" onclick="showPage('approvals')">View all</span></div>
@@ -1260,7 +1260,7 @@ function rOverview(){
     </div></div>
   <div class="panel"><div class="ph"><div class="pt">Recent Activity</div><span class="pa" onclick="showPage('activity')">View all</span></div>
     ${(SESSION.activityLog||[]).length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No activity yet.</div>':
-    (SESSION.activityLog||[]).slice(0,5).map(l=>{const mem=SESSION.members.find(m=>m.id===l.uid);return `<div class="acti"><div style="font-size:14px;width:20px;text-align:center">${l.icon||'◌'}</div><div style="flex:1"><div class="atxt">${l.detail||l.action}</div><div class="atime">${mem?mem.name.split(' ')[0]:'System'}</div></div></div>`;}).join('')}</div>`;
+    (SESSION.activityLog||[]).slice(0,5).map(l=>{const mem=SESSION.members.find(m=>m.id===l.uid);return `<div class="acti"><div style="font-size:14px;width:20px;text-align:center">${l.icon||'◌'}</div><div style="flex:1"><div class="atxt">${safeText(l.detail||l.action,'—')}</div><div class="atime">${mem?mem.name.split(' ')[0]:'System'}</div></div></div>`;}).join('')}</div>`;
 }
 
 function rAttendance(){
@@ -1331,7 +1331,7 @@ function rAttendance(){
     html+=`<div class="panel" style="margin-top:12px">
       <div class="ph"><div class="pt">🌿 My Leaves</div><button class="btn-sm" style="color:var(--g);border-color:var(--g)" onclick="openLeaveModal()">+ Apply Leave</button></div>
       ${myLeaves.length===0?'<div style="padding:16px;text-align:center;font-size:11px;color:var(--tm)">No leave records this month.</div>':''}
-      ${myLeaves.map(l=>`<div class="ar"><div class="ai" style="background:var(--s3);font-size:12px">${l.isAuto?'⚠':'🌿'}</div><div class="ainfo"><div class="at">${l.date} · ${leaveTypeLabel[l.type]||l.type}</div><div class="as2">${l.reason.slice(0,60)}</div></div><span class="badge ${leaveStatusBadge[l.status]||'b-grey'}">${l.status==='auto'?'Absent':l.status.charAt(0).toUpperCase()+l.status.slice(1)}</span></div>`).join('')}
+      ${myLeaves.map(l=>`<div class="ar"><div class="ai" style="background:var(--s3);font-size:12px">${l.isAuto?'⚠':'🌿'}</div><div class="ainfo"><div class="at">${l.date||'—'} · ${leaveTypeLabel[l.type]||l.type||'Leave'}</div><div class="as2">${(l.reason||'No reason provided').slice(0,60)}</div></div><span class="badge ${leaveStatusBadge[l.status]||'b-grey'}">${l.status==='auto'?'Absent':((l.status||'pending').charAt(0).toUpperCase()+(l.status||'pending').slice(1))}</span></div>`).join('')}
     </div>`;
   }
   if(isAdmin()){
@@ -1343,14 +1343,14 @@ function rAttendance(){
         const typeLabel={sick:'🤒 Sick',casual:'☀️ Casual',planned:'📅 Planned',emergency:'🚨 Emergency'};
         html+=`<div class="panel" style="margin-top:8px"><div style="padding:14px 16px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="mav" style="background:${mem?mem.color:'#666'}">${mem?mem.initials:'?'}</div><div><div style="font-size:13px;font-weight:600;color:var(--ts)">${mem?mem.name:'Unknown'}</div><div style="font-size:10px;color:var(--tm)">${l.date} · ${typeLabel[l.type]||l.type}</div></div></div>
-          <div style="font-size:11px;color:var(--ts);background:var(--s2);padding:8px;border-radius:6px;margin-bottom:10px">${l.reason}</div>
+          <div style="font-size:11px;color:var(--ts);background:var(--s2);padding:8px;border-radius:6px;margin-bottom:10px">${l.reason||'No reason provided'}</div>
           <div style="display:flex;gap:8px"><button class="btn-sm green" onclick="approveLeave('${l.id}')">✓ Approve</button><button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectLeave('${l.id}')">✕ Reject</button></div>
         </div></div>`;
       });
     }
   }
   const myLogs=(SESSION.attendance||[]).filter(a=>a&&a.uid===me().id);
-  const thisMonth=myLogs.filter(a=>a.date.startsWith(todayKey().slice(0,7)));
+  const thisMonth=myLogs.filter(a=>a.date&&a.date.startsWith(todayKey().slice(0,7)));
   const totalMs=thisMonth.reduce((s,a)=>s+(a.clockOut&&a.clockIn?a.clockOut-a.clockIn:0),0);
   const uniqueDays=new Set(thisMonth.filter(a=>a.clockOut).map(a=>a.date)).size;
   html+=`<div class="sg sg-3" style="margin-top:18px">
@@ -1654,10 +1654,12 @@ function rProfile(){
   return html;
 }
 async function saveProfileContact(){
-  me().email=document.getElementById('pf-email').value.trim();
-  me().phone=document.getElementById('pf-phone').value.trim();
-  await persist();
-  toast('Contact details saved.','success');
+  try{
+    me().email=document.getElementById('pf-email').value.trim();
+    me().phone=document.getElementById('pf-phone').value.trim();
+    await persist();
+    toast('Contact details saved.','success');
+  }catch(e){console.error('saveProfileContact failed',e);toast('Save failed — check your connection.','error');}
 }
 
 function rTasks(){
@@ -1674,7 +1676,7 @@ function rTasks(){
     const canJoin=(isUnassigned||t.needsHelp)&&!t.done&&!isPending&&!isMine;
     return `<div class="ti" style="cursor:default">
     <div class="tc${t.done?' done':''}" style="cursor:default;${isPending?'border-color:var(--a)':''}"></div>
-    <div style="flex:1"><div class="tn${t.done?' done':''}">${t.isDaily?'<span class="badge b-blue" style="font-size:9px;margin-right:4px">📅 Daily</span>':''}${t.name}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due} · ${t.merit}pts</div></div>
+    <div style="flex:1"><div class="tn${t.done?' done':''}">${t.isDaily?'<span class="badge b-blue" style="font-size:9px;margin-right:4px">📅 Daily</span>':''}${safeText(t.name,'Untitled')}${t.needsHelp?` <span class="badge b-amber">🆘 Needs Help</span>`:''}</div><div class="tm2">${t.project||'—'} · ${displayMem.name.split(' ')[0]}${isUnassigned?' (open)':''} · Due ${t.due||'TBD'} · ${t.merit||0}pts</div></div>
     <div class="tr" style="flex-wrap:nowrap;min-width:fit-content">
       <div class="mav" style="background:${displayMem.color}">${displayMem.initials}</div>
       <span class="badge ${pc}">${t.priority}</span>
@@ -1747,23 +1749,28 @@ async function submitTaskProof(){
     if(f.size>4*1024*1024){toast('File too large — max 4MB.','error');return;}
     proofFileName=f.name; proofFileData=await fileToBase64(f);
   }
+  try{
   t.pendingProof=true; t.proofText=proofText; t.proofFileName=proofFileName; t.proofFileData=proofFileData;
   SESSION.approvals.push({id:'tap'+Date.now(),type:'task_proof',taskId:t.id,taskIdx:ri,taskName:t.name,uid:me().id,proofText,proofFileName,proofFileData,status:'pending',date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})});
   await logAct('task_proof',`${me().name.split(' ')[0]} submitted proof for "${t.name}"`,'📎',null,'admin');
   await persist();closeModal('mo-task-proof');showPage('tasks');
+  }catch(e){console.error('submitTaskProof failed',e);toast('Submission failed — check your connection.','error');}
 }
 async function joinTask(i){
   if(me().merit<70){toast(`Your merit score is ${me().merit}. Members below 70 cannot join projects/tasks.`,'error');return;}
-  SESSION.tasks[i].assignee=me().id;
-  SESSION.tasks[i].needsHelp=false;
-  await logAct('task_join',`${me().name.split(' ')[0]} joined task "${SESSION.tasks[i].name}"`,'🙋');
-  await autoMerit(me().id,'helpGiven','Volunteered for task');
-  await persist();showPage('tasks');
+  try{
+    SESSION.tasks[i].assignee=me().id;SESSION.tasks[i].needsHelp=false;
+    await logAct('task_join',`${me().name.split(' ')[0]} joined task "${SESSION.tasks[i].name}"`,'🙋');
+    await autoMerit(me().id,'helpGiven','Volunteered for task');
+    await persist();showPage('tasks');
+  }catch(e){console.error('joinTask failed',e);toast('Could not join task — check your connection.','error');}
 }
 async function toggleSeekHelp(i){
-  SESSION.tasks[i].needsHelp=!SESSION.tasks[i].needsHelp;
-  await logAct(SESSION.tasks[i].needsHelp?'seek_help':'cancel_help',`${me().name.split(' ')[0]} ${SESSION.tasks[i].needsHelp?'requested help on':'cancelled help for'} "${SESSION.tasks[i].name}"`,'🆘');
-  await persist();showPage('tasks');
+  try{
+    SESSION.tasks[i].needsHelp=!SESSION.tasks[i].needsHelp;
+    await logAct(SESSION.tasks[i].needsHelp?'seek_help':'cancel_help',`${me().name.split(' ')[0]} ${SESSION.tasks[i].needsHelp?'requested help on':'cancelled help for'} "${SESSION.tasks[i].name}"`,'🆘');
+    await persist();showPage('tasks');
+  }catch(e){console.error('toggleSeekHelp failed',e);toast('Could not update task — check your connection.','error');}
 }
 function editTaskPrompt(i){
   const t=SESSION.tasks[i];
@@ -1775,7 +1782,7 @@ function editTaskPrompt(i){
 async function deleteTask(i){
   const t=SESSION.tasks[i];
   const ok=await showConfirm('Delete Task',`Delete "${t.name}" permanently? This cannot be undone.`,'Delete');
-  if(ok){await logAct('task_delete',`Task "${t.name}" deleted`,'🗑');SESSION.tasks.splice(i,1);await persist();showPage('tasks');}
+  if(ok){try{await logAct('task_delete',`Task "${t.name}" deleted`,'🗑');SESSION.tasks.splice(i,1);await persist();showPage('tasks');}catch(e){console.error('deleteTask failed',e);toast('Delete failed — check your connection.','error');}}
 }
 function populateTaskModal(editIdx){
   document.getElementById('t-assignee').innerHTML='<option value="">— Leave Unassigned (open task) —</option>'+SESSION.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
@@ -1902,7 +1909,7 @@ function rClientDetail(name){
             <div class="mav" style="width:24px;height:24px;font-size:9px;background:${sender?sender.color:'#666'};flex-shrink:0">${sender?sender.initials:'?'}</div>
             <div style="max-width:75%">
               <div style="font-size:10px;color:var(--tm);margin-bottom:2px;${isMe?'text-align:right':''}">${sender?sender.name.split(' ')[0]:'Unknown'} · ${t}</div>
-              <div style="background:${isMe?'var(--red-bg)':'var(--s2)'};border:1px solid ${isMe?'var(--red-br)':'var(--br)'};border-radius:8px;padding:8px 12px;font-size:12px;color:var(--ts);line-height:1.5">${m.text}</div>
+              <div style="background:${isMe?'var(--red-bg)':'var(--s2)'};border:1px solid ${isMe?'var(--red-br)':'var(--br)'};border-radius:8px;padding:8px 12px;font-size:12px;color:var(--ts);line-height:1.5">${safeText(m.text,'[message]')}</div>
             </div>
           </div>`;
         }).join('')}
@@ -1955,7 +1962,7 @@ function rUpdates(){
       <textarea class="cta" id="upd-text" placeholder="Write today's update..."></textarea>
       <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:10px"><button class="btn-sm red" onclick="sendClientUpdate()">Send →</button></div></div></div>
     <div class="panel"><div class="ph"><div class="pt">Sent</div><span class="badge b-green">${updates.length}</span></div>
-      ${updates.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div>':updates.map(u=>`<div class="pr" style="flex-direction:column;align-items:flex-start;gap:4px"><div style="display:flex;width:100%;align-items:center;justify-content:space-between"><span style="font-size:11px;font-weight:600;color:var(--ts)">${u.clients.join(', ')}</span><span style="font-size:10px;color:var(--tm)">${new Date(u.sentAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})}</span></div><div style="font-size:12px;color:var(--ts);white-space:pre-wrap;margin-top:2px">${u.text}</div><div style="font-size:10px;color:var(--tm)">by ${u.sentByName.split(' ')[0]}</div></div>`).join('')}</div></div>`;
+      ${updates.length===0?'<div style="padding:20px;text-align:center;font-size:12px;color:var(--tm)">No updates sent yet.</div>':updates.map(u=>`<div class="pr" style="flex-direction:column;align-items:flex-start;gap:4px"><div style="display:flex;width:100%;align-items:center;justify-content:space-between"><span style="font-size:11px;font-weight:600;color:var(--ts)">${u.clients.join(', ')}</span><span style="font-size:10px;color:var(--tm)">${new Date(u.sentAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})}</span></div><div style="font-size:12px;color:var(--ts);white-space:pre-wrap;margin-top:2px">${u.text}</div><div style="font-size:10px;color:var(--tm)">by ${(u.sentByName||'—').split(' ')[0]}</div></div>`).join('')}</div></div>`;
 }
 async function sendClientUpdate(){
   const text=document.getElementById('upd-text').value.trim();
@@ -2182,10 +2189,13 @@ async function quickMerit(id,d){const mem=SESSION.members.find(m=>m.id===id);if(
 async function editMemberPrompt(id){openEditMemberModal(id);}
 async function removeMemberPrompt(id){
   const m=SESSION.members.find(x=>x.id===id);
+  if(!m)return;
   if(!await showConfirm('Remove Member',`Remove ${m.name} from the workspace? Their existing tasks and payments will remain but show as unassigned.`,'Remove'))return;
-  await logAct('member_remove',`${m.name} removed from workspace`,'❌');
-  SESSION.members=SESSION.members.filter(x=>x.id!==id);
-  await persist();buildSidebar();showPage('merit');
+  try{
+    await logAct('member_remove',`${m.name} removed from workspace`,'❌');
+    SESSION.members=SESSION.members.filter(x=>x.id!==id);
+    await persist();buildSidebar();showPage('merit');
+  }catch(e){console.error('removeMemberPrompt failed',e);toast('Remove failed — check your connection.','error');}
 }
 function rSalary(){
   const ed=canEdit();
@@ -2223,7 +2233,14 @@ function rSalary(){
 async function editCut(mi,ci){
   const cur=SESSION.members[mi].salary.projectCuts[ci];
   const np=await showPrompt('Edit Cut %',`New % for ${SESSION.members[mi].name.split(' ')[0]} on ${cur.project}`,{inputType:'number',defaultValue:String(cur.pct),required:true});
-  if(np!==null&&!isNaN(parseInt(np))){SESSION.members[mi].salary.projectCuts[ci].pct=parseInt(np);SESSION.members[mi].salary.projectCuts[ci].cut=Math.round(cur.cut*parseInt(np)/cur.pct);await persist();showPage('salary');}
+  if(np!==null&&!isNaN(parseInt(np))){
+    try{
+      const newPct=parseInt(np);
+      SESSION.members[mi].salary.projectCuts[ci].pct=newPct;
+      if(cur.pct&&cur.pct!==0)SESSION.members[mi].salary.projectCuts[ci].cut=Math.round(cur.cut*newPct/cur.pct);
+      await persist();showPage('salary');
+    }catch(e){console.error('editCut failed',e);toast('Save failed — check your connection.','error');}
+  }
 }
 async function addCutEntry(){openCutEntryModal();}
 async function paySalary(memberId){openSalAction(memberId,'salary');}
@@ -2247,7 +2264,7 @@ async function saveDataEntry(){
     await persist();closeModal('mo-data');showPage('vault');
   }catch(e){console.error('saveDataEntry failed',e);toast('Failed to save entry — check your connection.','error');}
 }
-async function deleteEntry(i){if(await showConfirm('Delete Entry',`Delete "${SESSION.dataEntries[i].key}" from the vault permanently?`,'Delete')){await logAct('vault_delete',`Vault entry "${SESSION.dataEntries[i].key}" deleted`,'🗑');SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}}
+async function deleteEntry(i){if(await showConfirm('Delete Entry',`Delete "${SESSION.dataEntries[i].key}" from the vault permanently?`,'Delete')){try{await logAct('vault_delete',`Vault entry "${SESSION.dataEntries[i].key}" deleted`,'🗑');SESSION.dataEntries.splice(i,1);await persist();showPage('vault');}catch(e){console.error('deleteEntry failed',e);toast('Delete failed — check your connection.','error');}}}
 function rActivity(){
   const log=SESSION.activityLog||[];
   function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return 'just now';if(d<3600000)return Math.floor(d/60000)+'m ago';if(d<86400000)return Math.floor(d/3600000)+'h ago';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'});}
@@ -2481,9 +2498,12 @@ function rTeamManage(){
 async function tmEditMember(id){openEditMemberModal(id);}
 async function tmToggleAdmin(id){
   const m=SESSION.members.find(x=>x.id===id);
-  m.isAdmin=!m.isAdmin;
-  await logAct('role_change',`${m.name.split(' ')[0]} ${m.isAdmin?'promoted to Admin':'demoted to Member'}`,'👑');
-  await persist();buildSidebar();showPage('team_manage');
+  if(!m)return;
+  try{
+    m.isAdmin=!m.isAdmin;
+    await logAct('role_change',`${m.name.split(' ')[0]} ${m.isAdmin?'promoted to Admin':'demoted to Member'}`,'👑');
+    await persist();buildSidebar();showPage('team_manage');
+  }catch(e){console.error('tmToggleAdmin failed',e);toast('Role update failed — check your connection.','error');}
 }
 function openRoleModal(){
   document.getElementById('role-list').innerHTML=SESSION.members.filter(m=>!m.isFounder).map((m,i)=>`
@@ -2491,11 +2511,16 @@ function openRoleModal(){
   openModal('mo-roles');
 }
 async function toggleAdminRole(id,btn){
-  const m=SESSION.members.find(x=>x.id===id);m.isAdmin=!m.isAdmin;
-  btn.textContent=m.isAdmin?'Revoke Admin':'Grant Admin';btn.className=`btn-sm ${m.isAdmin?'':'gold'}`;
-  document.getElementById('rb-'+id).className=`badge ${m.isAdmin?'b-pu':'b-grey'}`;document.getElementById('rb-'+id).textContent=m.isAdmin?'Admin':'Member';
-  await logAct('role_change',`${m.name.split(' ')[0]} ${m.isAdmin?'promoted to Admin':'demoted to Member'}`,'👑');
-  await persist();buildSidebar();
+  const m=SESSION.members.find(x=>x.id===id);
+  if(!m)return;
+  try{
+    m.isAdmin=!m.isAdmin;
+    btn.textContent=m.isAdmin?'Revoke Admin':'Grant Admin';btn.className=`btn-sm ${m.isAdmin?'':'gold'}`;
+    const badge=document.getElementById('rb-'+id);
+    if(badge){badge.className=`badge ${m.isAdmin?'b-pu':'b-grey'}`;badge.textContent=m.isAdmin?'Admin':'Member';}
+    await logAct('role_change',`${m.name.split(' ')[0]} ${m.isAdmin?'promoted to Admin':'demoted to Member'}`,'👑');
+    await persist();buildSidebar();
+  }catch(e){console.error('toggleAdminRole failed',e);toast('Role update failed — check your connection.','error');}
 }
 async function addMember(){
   const name=document.getElementById('am-name').value.trim();const init=document.getElementById('am-init').value.trim().toUpperCase();
@@ -2775,9 +2800,11 @@ async function adjustAttendance(memberId){
   const reason=await showPrompt('Adjust Attendance','Reason for adjustment',{type:'textarea',required:true,placeholder:'Explain the adjustment...'});
   if(!reason)return;
   const mem=SESSION.members.find(m=>m.id===memberId);
-  await logAct('att_adjust',`Attendance adjusted for ${mem?mem.name.split(' ')[0]:'?'} — ${reason.slice(0,80)}`,'⚖',memberId);
-  await persist();
-  toast('Adjustment logged.','success');
+  try{
+    await logAct('att_adjust',`Attendance adjusted for ${mem?mem.name.split(' ')[0]:'?'} — ${reason.slice(0,80)}`,'⚖',memberId);
+    await persist();
+    toast('Adjustment logged.','success');
+  }catch(e){console.error('adjustAttendance failed',e);toast('Save failed — check your connection.','error');}
 }
 
 /* ── Notification badge tracking ── */
