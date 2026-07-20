@@ -101,6 +101,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
 .tb-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:.04em;flex:1}
 .content{flex:1;overflow-y:auto;padding:22px}
 .sg{display:grid;gap:12px;margin-bottom:20px}
+.sg-5{grid-template-columns:repeat(5,1fr)}
 .sg-4{grid-template-columns:repeat(4,1fr)}
 .sg-3{grid-template-columns:repeat(3,1fr)}
 .sg-2{grid-template-columns:1fr 1fr}
@@ -255,6 +256,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
   .topbar{padding:0 12px;gap:8px}
   .tb-title{font-size:16px}
   .content{padding:14px 12px}
+  .sg-5{grid-template-columns:repeat(3,1fr)}
   .sg-4,.sg-3{grid-template-columns:1fr 1fr}
   .sg-2{grid-template-columns:1fr}
   .lock-wrap{width:90vw;padding:0 10px}
@@ -275,7 +277,7 @@ button,.btn-sm,.btn-full,.ni,.lo-btn,.noti-bell,.mem-btn,.tc{cursor:pointer}
   .mo .mbox{max-height:90vh;overflow-y:auto}
 }
 @media(max-width:400px){
-  .sg-4,.sg-3,.sg-2{grid-template-columns:1fr}
+  .sg-5,.sg-4,.sg-3,.sg-2{grid-template-columns:1fr}
   .topbar{height:48px}
   .content{padding:10px 8px}
   .sc{padding:12px 14px}
@@ -537,6 +539,7 @@ const DB = {
       SESSION.attendanceRequests = val.attendanceRequests || SESSION.attendanceRequests;
       SESSION.dailyTargets = val.dailyTargets || SESSION.dailyTargets;
       SESSION.leaves = val.leaves || SESSION.leaves;
+      SESSION.leads = val.leads || SESSION.leads;
       if (!SESSION.user) return;
       SESSION.user = SESSION.members.find(m => m.id === SESSION.user.id) || SESSION.user;
       buildSidebar();
@@ -561,7 +564,7 @@ function updateSyncStatus(ok) {
 /* ═══════════════════════════════════════════════════════
    Session & Default Data
    ═══════════════════════════════════════════════════════ */
-let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}, attendanceRequests:[], dailyTargets:[], leaves:[]};
+let SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}, attendanceRequests:[], dailyTargets:[], leaves:[], leads:[]};
 
 const DEFAULT_MEMBERS = [
   {id:'shubhrat',name:'Shubhrat Srivastava',initials:'SS',role:'Founder',dept:'Founder',color:'#C9A84C',merit:100,isFounder:true,isAdmin:true,email:'shubhrat.sryvstv@gmail.com',phone:'',metrics:{tasksCompleted:0,projectsLed:0,clientsManaged:0},salary:{projectCuts:[]}},
@@ -666,6 +669,7 @@ async function loadSession(memberId) {
     if (!saved._keshavLeavePending20260718) { if(!SESSION.leaves.some(l=>l.uid==='keshav'&&l.date==='2026-07-18'))SESSION.leaves.push({id:'lvb'+(Date.now()+1),uid:'keshav',date:'2026-07-18',type:'emergency',reason:'Emergency leave',status:'pending',isAuto:false,appliedAt:Date.now(),requestedByName:'Keshav Mathur'}); SESSION._keshavLeavePending20260718=true; } else { SESSION._keshavLeavePending20260718=true; }
     if (!saved._keshavEmergencyLeave20260717||!saved._keshavLeavePending20260718) await persist();
     SESSION.clientUpdates = saved.clientUpdates || [];
+    SESSION.leads = saved.leads || [];
     // _dataResetJul2026 block permanently removed — already ran, keeping it was causing repeated data wipes on fresh sessions
   } else {
     SESSION.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
@@ -693,7 +697,7 @@ async function loadSession(memberId) {
 }
 
 async function persist() {
-  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, attendanceRequests:SESSION.attendanceRequests, dailyTargets:SESSION.dailyTargets, leaves:SESSION.leaves, _meritResetJul2026:SESSION._meritResetJul2026||false, _dataResetJul2026:SESSION._dataResetJul2026||false, _keshavEmergencyLeave20260717:SESSION._keshavEmergencyLeave20260717||false, _keshavLeavePending20260718:SESSION._keshavLeavePending20260718||false};
+  const payload = {members:SESSION.members, tasks:SESSION.tasks, payments:SESSION.payments, clients:SESSION.clients, dataEntries:SESSION.dataEntries, attendance:SESSION.attendance, approvals:SESSION.approvals, chats:SESSION.chats, meritRequests:SESSION.meritRequests, clientMeta:SESSION.clientMeta, activityLog:SESSION.activityLog, clientAnalytics:SESSION.clientAnalytics, salaryPayments:SESSION.salaryPayments, attendanceDeductions:SESSION.attendanceDeductions, attendanceRequests:SESSION.attendanceRequests, dailyTargets:SESSION.dailyTargets, leaves:SESSION.leaves, leads:SESSION.leads||[], clientUpdates:SESSION.clientUpdates||[], _meritResetJul2026:SESSION._meritResetJul2026||false, _dataResetJul2026:SESSION._dataResetJul2026||false, _keshavEmergencyLeave20260717:SESSION._keshavEmergencyLeave20260717||false, _keshavLeavePending20260718:SESSION._keshavLeavePending20260718||false};
   if (!DB.firebaseOk) return;
   _selfWrite = true;
   try { await rtdb.ref('workspace/workspace_data').update(payload); updateSyncStatus(true); } catch(e) { console.warn('DB write failed:', e); updateSyncStatus(false); }
@@ -839,7 +843,7 @@ function doLogout() {
   logAct('logout', me().name + ' signed out', '⎋');
   try{rtdb.ref('workspace/workspace_data').off();}catch(e){}
   auth.signOut().then(() => {
-    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}, attendanceRequests:[], dailyTargets:[], leaves:[]};
+    SESSION = {user:null, members:[], tasks:[], payments:[], clients:[], dataEntries:[], attendance:[], approvals:[], chats:{}, meritRequests:[], clientMeta:{}, activityLog:[], clientAnalytics:{}, salaryPayments:[], attendanceDeductions:{}, attendanceRequests:[], dailyTargets:[], leaves:[], leads:[]};
     window.location.href = '/kreativ-login';
   });
 }
@@ -860,8 +864,9 @@ const NAV = [
   {id:'vault',label:'Secure Vault',ic:'🔐',sec:'Team',minMerit:0,depts:['Founder']},
   {id:'profile',label:'My Profile',ic:'⚙',sec:'Team',minMerit:0,depts:'all'},
   {id:'activity',label:'Activity',ic:'◌',sec:'Team',minMerit:30,depts:'all'},
-  {id:'analytics',label:'Client Analytics',ic:'📊',sec:'Team',minMerit:0,depts:['Founder']},
+  {id:'analytics',label:'Client Analytics',ic:'📊',sec:'Team',minMerit:0,depts:'all'},
   {id:'cloudfiles',label:'Cloud Storage',ic:'☁',sec:'Team',minMerit:0,depts:'all'},
+  {id:'leads',label:'Leads & Enquiries',ic:'◎',sec:'Admin',minMerit:0,depts:['Founder']},
   {id:'team_manage',label:'Team Management',ic:'👥',sec:'Admin',minMerit:0,depts:['Founder']},
 ];
 function me(){return SESSION.user;}
@@ -910,7 +915,7 @@ function buildSidebar(){
 }
 function skelLoad(rows=4){let h='';for(let i=0;i<rows;i++)h+=`<div class="skel skel-block"></div>`;return h;}
 function emptyState(icon,title,sub){return `<div style="text-align:center;padding:48px 16px;color:var(--ts)"><div style="font-size:36px;margin-bottom:12px">${icon}</div><div style="font-size:15px;font-weight:600;margin-bottom:6px">${title}</div><div style="font-size:12px;color:var(--t3)">${sub}</div></div>`;}
-const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Client Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage',team_manage:'Team Management'};
+const PAGE_TITLES={overview:'Dashboard',attendance:'Attendance & Work Log',tasks:'Tasks',clients:'Clients',updates:'Client Updates',approvals:'Approvals',payments:'Client Payments',merit:'Merit Points',salary:'Salary & Cuts',vault:'Secure Vault',profile:'My Profile',activity:'Activity',analytics:'Client Analytics',cloudfiles:'Cloud Storage',leads:'Leads & Enquiries',team_manage:'Team Management'};
 function showPage(id,navEl){
   if(window._closeMobileSb)window._closeMobileSb();
   _currentPage=id;
@@ -920,7 +925,7 @@ function showPage(id,navEl){
   if(navEl)navEl.classList.add('act');else{const el=document.querySelector(`.ni[data-page="${id}"]`);if(el)el.classList.add('act');}
   document.getElementById('tb-title').textContent=PAGE_TITLES[id]||id;
   document.getElementById('tb-extra').innerHTML='';
-  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics,cloudfiles:rCloudFiles,team_manage:rTeamManage};
+  const R={overview:rOverview,attendance:rAttendance,tasks:rTasks,clients:rClients,updates:rUpdates,approvals:rApprovals,payments:rPayments,merit:rMerit,salary:rSalary,vault:rVault,profile:rProfile,activity:rActivity,analytics:rAnalytics,cloudfiles:rCloudFiles,leads:rLeads,team_manage:rTeamManage};
   if(R[id]){const _c=document.getElementById('content');_c.classList.remove('pg-content');void _c.offsetWidth;_c.innerHTML=R[id]();_c.classList.add('pg-content');}
   if(id==='tasks'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-task');populateTaskModal()">+ Assign Task</button>`;
   if(id==='payments'&&canEdit())document.getElementById('tb-extra').innerHTML=`<button class="btn-sm red" onclick="openModal('mo-payment');populatePayModal()">+ Add Payment</button>`;
@@ -1392,7 +1397,7 @@ function rAttendance(){
           <div class="ainfo" style="flex:1;min-width:180px">
             <div class="at">${mem.name.split(' ')[0]} · ${fmtTime(ap.clockIn)} → ${fmtTime(ap.clockOut)} · <strong>${fmtDur(ap.duration)}</strong></div>
             <div class="as2" style="margin-top:3px">${ap.proofText}</div>
-            ${ap.proofFileName?`<div class="as2">📎 ${ap.proofFileName}</div>`:''}
+            ${proofAttachment(ap.proofFileName,ap.proofFileData)}
           </div>
           <div class="aact"><button class="b-ok" onclick="approveClockoutProof('${ap.id}')">✓ Approve</button><button class="b-no" onclick="rejectClockoutProof('${ap.id}')">✕ Reject</button></div>
         </div>`;
@@ -1450,15 +1455,22 @@ function rAttendance(){
 async function clockIn(){
   const active=myActiveSession();
   if(active){toast('You already have an active session. Clock out first.','error');return;}
+  const newSession={uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''};
+  SESSION.attendance.push(newSession);
+  setupAutoClockOut();
+  showPage('attendance');
+  startLiveTimer();
   try{
-    SESSION.attendance.push({uid:me().id,date:todayKey(),clockIn:Date.now(),clockOut:null,proofText:'',proofFileName:'',proofFileData:''});
     await autoMerit(me().id,'clockInOnTime','Clocked in');
     await logAct('clock_in',`${me().name.split(' ')[0]} clocked in`,'⏰');
     await persist();
-    setupAutoClockOut();
+  }catch(e){
+    console.error('clockIn persist failed',e);
+    const idx=SESSION.attendance.indexOf(newSession);
+    if(idx!==-1)SESSION.attendance.splice(idx,1);
     showPage('attendance');
-  }catch(e){console.error('clockIn failed',e);toast('Clock-in failed — check your connection and try again.','error');}
-  startLiveTimer();
+    toast('Clock-in failed — check your connection and try again.','error');
+  }
 }
 function setupAutoClockOut(){
   // Intentionally disabled — Firebase onDisconnect() was triggering on screen lock/sleep
@@ -2030,7 +2042,7 @@ function rApprovals(){
   if(canApproveProofs&&taskProofPending.length>0){
     html+=`<div class="panel" style="margin-bottom:14px;border-color:var(--a)"><div class="ph"><div class="pt">📎 Task Proof — Awaiting Your Review</div><span class="badge b-amber">${taskProofPending.length}</span></div>`;
     taskProofPending.forEach(a=>{const req=SESSION.members.find(m=>m.id===a.uid);
-      html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2"><strong>Proof:</strong> ${a.proofText}</div><div class="as2">${req?req.name.split(' ')[0]:'—'} · ${a.date}${a.proofFileName?` · 📄 ${a.proofFileName}`:''}</div></div><div class="aact"><button class="b-ok" onclick="approveTaskProof('${a.id}')">✓ Approve</button><button class="b-no" onclick="rejectTaskProof('${a.id}')">✕ Reject</button></div></div>`;});
+      html+=`<div class="ar"><div class="ai" style="background:var(--a-bg)">📎</div><div class="ainfo"><div class="at">${a.taskName}</div><div class="as2"><strong>Proof:</strong> ${a.proofText}</div><div class="as2">${req?req.name.split(' ')[0]:'—'} · ${a.date}</div>${proofAttachment(a.proofFileName,a.proofFileData)}</div><div class="aact"><button class="b-ok" onclick="approveTaskProof('${a.id}')">✓ Approve</button><button class="b-no" onclick="rejectTaskProof('${a.id}')">✕ Reject</button></div></div>`;});
     html+=`</div>`;
   }
   if(!isAdm&&myTaskProofs.length>0){
@@ -2331,21 +2343,63 @@ function rActivity(){
 function rAnalytics(){
   const ca=SESSION.clientAnalytics||{};
   const clients=Object.keys(ca);
-  let html=`<div class="adm-banner"><div><div class="adm-label">📊 Client Analytics — Auto-tracked</div><div class="adm-sub">Login times, session duration, page views — all automated via portal tracking</div></div></div>`;
+  const allSess=clients.flatMap(c=>(ca[c].sessions||[]).filter(s=>s.login).map(s=>({...s,clientName:ca[c].name||c})));
+  const now=Date.now();
+  const todayStr=todayKey();
+  const msDay=86400000;
+  const sessToday=allSess.filter(s=>new Date(s.login).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'})===todayStr).length;
+  const sess7d=allSess.filter(s=>s.login>=now-7*msDay).length;
+  const sess30d=allSess.filter(s=>s.login>=now-30*msDay).length;
+  const durSess=allSess.filter(s=>s.duration);
+  const avgDur=durSess.length?Math.round(durSess.reduce((a,s)=>a+s.duration,0)/durSess.length/60000):0;
+  // Most visited pages
+  const pageCount={};allSess.forEach(s=>(s.pages||[]).forEach(p=>{pageCount[p]=(pageCount[p]||0)+1;}));
+  const topPages=Object.entries(pageCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  // 30-day chart data
+  const chartDays=[];for(let i=29;i>=0;i--){const d=new Date(now-i*msDay);chartDays.push(d.toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}));}
+  const dayCounts=Object.fromEntries(chartDays.map(d=>[d,0]));
+  allSess.forEach(s=>{const dk=new Date(s.login).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});if(dayCounts[dk]!==undefined)dayCounts[dk]++;});
+  const maxCnt=Math.max(1,...Object.values(dayCounts));
+
+  let html=`<div class="adm-banner"><div><div class="adm-label">📊 Client Analytics — Auto-tracked</div><div class="adm-sub">Login times, session duration, page views — all automated via portal tracking</div></div><button class="btn-sm" onclick="loadClientAnalytics().then(()=>showPage('analytics'))">↻ Refresh</button></div>`;
   if(clients.length===0){
     html+=`<div class="panel"><div style="padding:40px;text-align:center;font-size:12px;color:var(--tm)">No client activity yet. Analytics will populate automatically when clients use the portal.</div></div>`;
     return html;
   }
-  html+=`<div class="sg sg-3"><div class="sc"><div class="sl">Total Clients</div><div class="sv">${clients.length}</div></div><div class="sc"><div class="sl">Sessions Today</div><div class="sv" style="color:var(--g)">${clients.reduce((s,c)=>{const sess=ca[c].sessions||[];return s+sess.filter(x=>x.login&&new Date(x.login).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'})===todayKey()).length;},0)}</div></div><div class="sc"><div class="sl">Avg Session</div><div class="sv" style="color:var(--b)">${(()=>{let total=0,count=0;clients.forEach(c=>{(ca[c].sessions||[]).forEach(s=>{if(s.duration){total+=s.duration;count++;}});});return count?Math.round(total/count/60000)+'m':'—';})()}</div></div></div>`;
-  html+=`<div class="panel"><div class="ph"><div class="pt">Client Sessions</div></div>`;
+  // Summary stats
+  html+=`<div class="sg sg-5"><div class="sc"><div class="sl">Total Clients</div><div class="sv">${clients.length}</div></div><div class="sc"><div class="sl">Today</div><div class="sv" style="color:var(--g)">${sessToday}</div></div><div class="sc"><div class="sl">Last 7 days</div><div class="sv" style="color:var(--b)">${sess7d}</div></div><div class="sc"><div class="sl">Last 30 days</div><div class="sv">${sess30d}</div></div><div class="sc"><div class="sl">Avg Session</div><div class="sv" style="color:var(--a)">${avgDur?avgDur+'m':'—'}</div></div></div>`;
+  // 30-day bar chart
+  html+=`<div class="panel"><div class="ph"><div class="pt">Sessions — Last 30 Days</div><span class="badge b-blue">${sess30d} total</span></div><div style="padding:14px 16px">`;
+  html+=`<div style="display:flex;align-items:flex-end;gap:2px;height:80px;border-bottom:1px solid var(--br)">`;
+  chartDays.forEach((d,i)=>{
+    const cnt=dayCounts[d];const pct=Math.round(cnt/maxCnt*100);
+    const isToday=d===todayStr;
+    const label=i===0||i===6||i===13||i===20||i===29?new Date(d+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'}):'';
+    html+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="${d}: ${cnt} session${cnt!==1?'s':''}"><div style="width:100%;background:${isToday?'var(--red)':'var(--b)'};opacity:${cnt?1:0.15};height:${Math.max(cnt?4:2,pct)}%;border-radius:2px 2px 0 0;transition:height .2s"></div></div>`;
+  });
+  html+=`</div><div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--tm)">`;
+  [0,6,13,20,29].forEach(i=>{html+=`<span>${new Date(chartDays[i]+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'})}</span>`;});
+  html+=`</div></div></div>`;
+  // Most visited pages
+  if(topPages.length>0){
+    const maxP=topPages[0][1];
+    html+=`<div class="panel"><div class="ph"><div class="pt">Most Visited Pages</div></div><div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px">`;
+    topPages.forEach(([page,count])=>{
+      const pct=Math.round(count/maxP*100);
+      html+=`<div style="display:flex;align-items:center;gap:10px"><div style="width:100px;font-size:11px;color:var(--ts);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${page}</div><div style="flex:1;height:6px;background:var(--br);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--b);border-radius:3px"></div></div><span style="font-size:11px;color:var(--tm);width:28px;text-align:right">${count}</span></div>`;
+    });
+    html+=`</div></div>`;
+  }
+  // Per-client sessions
+  html+=`<div class="panel"><div class="ph"><div class="pt">Client Sessions</div><span class="badge b-green">${allSess.length} total</span></div>`;
   clients.forEach(cid=>{
-    const data=ca[cid];const sessions=(data.sessions||[]).slice(-10).reverse();
-    html+=`<div style="padding:12px 16px;border-bottom:1px solid var(--br)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">${data.name||cid}</div><span class="badge b-blue">${(data.sessions||[]).length} sessions</span></div>`;
+    const data=ca[cid];const sessions=(data.sessions||[]).slice().reverse().slice(0,10);
+    html+=`<div style="padding:12px 16px;border-bottom:1px solid var(--br)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;font-weight:600">${data.name||cid}</div><span class="badge b-blue">${(data.sessions||[]).length} sessions</span></div>`;
     sessions.forEach(s=>{
       const loginDate=s.login?new Date(s.login).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}):'—';
       const dur=s.duration?Math.round(s.duration/60000)+'m':'active';
       const pages=s.pages||[];
-      html+=`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:11px"><span style="color:var(--tm);width:120px">${loginDate}</span><span class="badge ${s.duration?'b-green':'b-amber'}">${dur}</span><span style="color:var(--tm)">${pages.length} page${pages.length!==1?'s':''}</span></div>`;
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:3px 0;font-size:11px"><span style="color:var(--tm);width:120px;flex-shrink:0">${loginDate}</span><span class="badge ${s.duration?'b-green':'b-amber'}">${dur}</span><span style="color:var(--tm)">${pages.length?pages.slice(0,3).join(', ')+(pages.length>3?'…':''):'-'}</span></div>`;
     });
     html+=`</div>`;
   });
@@ -2504,6 +2558,103 @@ async function gdriveDelete(fileId,fileName){
     await loadCloudFiles();showPage('cloudfiles');
   }catch(e){toast('Delete failed: '+e.message,'error');}
 }
+function proofAttachment(fn,fd){
+  if(!fn||!fd)return '';
+  const isImg=/\.(jpg|jpeg|png|gif|webp)$/i.test(fn);
+  return isImg
+    ?`<div style="margin-top:6px"><img src="${fd}" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid var(--br)" alt="${fn}"></div>`
+    :`<div style="margin-top:6px"><a href="${fd}" download="${fn}" style="color:var(--b);font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">⬇ Download ${fn}</a></div>`;
+}
+
+// ─── LEADS & ENQUIRIES ────────────────────────────────────────────────────────
+function rLeads(){
+  const leads=SESSION.leads||[];
+  const q=(document.getElementById('leads-search')||{}).value||'';
+  const sf=(document.getElementById('leads-filter')||{}).value||'all';
+  const statusColors={new:'b-red',contacted:'b-blue',in_discussion:'b-amber',converted:'b-green',dead:'b-grey'};
+  const statusLabels={new:'New',contacted:'Contacted',in_discussion:'In Discussion',converted:'Converted',dead:'Dead'};
+  const total=leads.length;
+  const byStatus=s=>leads.filter(l=>l.status===s).length;
+  let filtered=leads.filter(l=>{
+    const matchQ=!q||(l.name||'').toLowerCase().includes(q.toLowerCase())||(l.email||'').toLowerCase().includes(q.toLowerCase())||(l.company||'').toLowerCase().includes(q.toLowerCase());
+    const matchS=sf==='all'||l.status===sf;
+    return matchQ&&matchS;
+  }).slice().sort((a,b)=>(b.submittedAt||0)-(a.submittedAt||0));
+  let html=`<div class="adm-banner"><div><div class="adm-label">◎ Leads & Enquiries — CRM Pipeline</div><div class="adm-sub">Track, update status, and promote enquiries to active clients</div></div><button class="btn-sm red" onclick="openModal('mo-add-lead')">+ Add Lead</button></div>`;
+  html+=`<div class="sg sg-5"><div class="sc"><div class="sl">Total</div><div class="sv">${total}</div></div><div class="sc"><div class="sl">New</div><div class="sv" style="color:var(--red)">${byStatus('new')}</div></div><div class="sc"><div class="sl">Contacted</div><div class="sv" style="color:var(--b)">${byStatus('contacted')}</div></div><div class="sc"><div class="sl">In Discussion</div><div class="sv" style="color:var(--a)">${byStatus('in_discussion')}</div></div><div class="sc"><div class="sl">Converted</div><div class="sv" style="color:var(--g)">${byStatus('converted')}</div></div></div>`;
+  html+=`<div class="panel"><div class="ph" style="gap:8px;flex-wrap:wrap"><input id="leads-search" type="text" placeholder="Search name, email, company…" value="${q}" oninput="showPage('leads')" style="flex:1;min-width:160px;background:var(--s2);border:1px solid var(--br);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ts)"><select id="leads-filter" onchange="showPage('leads')" style="background:var(--s2);border:1px solid var(--br);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ts)"><option value="all">All Status</option><option value="new" ${sf==='new'?'selected':''}>New</option><option value="contacted" ${sf==='contacted'?'selected':''}>Contacted</option><option value="in_discussion" ${sf==='in_discussion'?'selected':''}>In Discussion</option><option value="converted" ${sf==='converted'?'selected':''}>Converted</option><option value="dead" ${sf==='dead'?'selected':''}>Dead</option></select><button class="btn-sm" onclick="exportLeadsCSV()">⬇ CSV</button></div>`;
+  if(filtered.length===0){
+    html+=`<div style="padding:40px;text-align:center;font-size:12px;color:var(--tm)">${total===0?'No leads yet — click "+ Add Lead" to get started.':'No leads match your search.'}</div>`;
+  }else{
+    filtered.forEach(l=>{
+      const sc=statusColors[l.status]||'b-grey';const sl=statusLabels[l.status]||l.status;
+      const promoted=l.promotedToClientId?`<span class="badge b-green" style="font-size:9px">✓ Client</span>`:'';
+      html+=`<div class="ar" style="cursor:pointer" onclick="openLeadDetail('${l.id}')"><div class="ai" style="background:var(--s2);font-size:16px">◎</div><div class="ainfo"><div class="at">${safeText(l.name,'—')} ${promoted}</div><div class="as2">${safeText(l.company,'')}${l.company&&l.email?' · ':''}<span style="color:var(--tm)">${safeText(l.email,'')}</span>${l.phone?' · '+l.phone:''}</div><div class="as2" style="margin-top:2px">${l.message?(l.message.slice(0,80)+(l.message.length>80?'…':'')):'—'}</div><div class="as2">${l.submittedAt?formatIST(l.submittedAt,{day:'numeric',month:'short',year:'numeric'}):'—'}${l.sourcePage?' · '+l.sourcePage:''}</div></div><span class="badge ${sc}">${sl}</span></div>`;
+    });
+  }
+  html+=`</div>`;
+  // Add Lead modal
+  html+=`<div id="mo-add-lead" class="modal" style="display:none"><div class="modal-box" style="max-width:420px"><div class="modal-hd"><div class="modal-title">+ Add Lead</div><button class="modal-close" onclick="closeModal('mo-add-lead')">✕</button></div><div class="modal-bd"><div class="fg"><label class="fl">Name *</label><input id="lead-name" class="fi" placeholder="Contact name"></div><div class="fg"><label class="fl">Email</label><input id="lead-email" class="fi" type="email" placeholder="email@example.com"></div><div class="fg"><label class="fl">Phone</label><input id="lead-phone" class="fi" placeholder="+91 98765 43210"></div><div class="fg"><label class="fl">Company</label><input id="lead-company" class="fi" placeholder="Company / Organization"></div><div class="fg"><label class="fl">Message / Requirements</label><textarea id="lead-message" class="fi" rows="3" placeholder="What are they looking for?"></textarea></div><div class="fg"><label class="fl">Source</label><input id="lead-source" class="fi" placeholder="e.g. Website, Instagram, Referral"></div><button class="btn-primary" onclick="saveLead()" style="width:100%;margin-top:8px">Save Lead</button></div></div></div>`;
+  // Lead detail modal
+  const detail=leads.find(l=>l._showDetail);
+  if(detail){
+    const sc=statusColors[detail.status]||'b-grey';const sl=statusLabels[detail.status]||detail.status;
+    html+=`<div id="mo-lead-detail" class="modal" style="display:flex"><div class="modal-box" style="max-width:460px"><div class="modal-hd"><div class="modal-title">${safeText(detail.name,'Lead Detail')}</div><button class="modal-close" onclick="closeLeadDetail()">✕</button></div><div class="modal-bd"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><span class="badge ${sc}">${sl}</span>${detail.promotedToClientId?`<span class="badge b-green">✓ Promoted to Client</span>`:''}</div><div class="sg sg-2" style="margin-bottom:12px"><div class="sc"><div class="sl">Email</div><div class="sv" style="font-size:12px">${safeText(detail.email,'—')}</div></div><div class="sc"><div class="sl">Phone</div><div class="sv" style="font-size:12px">${safeText(detail.phone,'—')}</div></div></div><div class="fg"><div class="fl">Company</div><div style="font-size:12px;color:var(--ts)">${safeText(detail.company,'—')}</div></div><div class="fg"><div class="fl">Message</div><div style="font-size:12px;color:var(--ts);white-space:pre-wrap">${safeText(detail.message,'—')}</div></div><div class="fg"><div class="fl">Source</div><div style="font-size:12px;color:var(--ts)">${safeText(detail.sourcePage,'—')}</div></div><div class="fg"><div class="fl">Added</div><div style="font-size:12px;color:var(--ts)">${detail.submittedAt?new Date(detail.submittedAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}):'—'}</div></div><div class="fg" style="margin-top:8px"><div class="fl">Update Status</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${Object.entries(statusLabels).map(([k,v])=>`<button class="btn-sm ${detail.status===k?'red':''}" onclick="updateLeadStatus('${detail.id}','${k}')">${v}</button>`).join('')}</div></div>${!detail.promotedToClientId?`<button class="btn-primary" onclick="promoteLeadToClient('${detail.id}')" style="width:100%;margin-top:14px;background:var(--g)">★ Promote to Client</button>`:''}</div></div></div>`;
+  }
+  return html;
+}
+async function saveLead(){
+  const name=(document.getElementById('lead-name')||{}).value||'';
+  if(!name.trim()){toast('Name is required.','error');return;}
+  const lead={
+    id:'ld'+Date.now(),
+    name:name.trim(),
+    email:(document.getElementById('lead-email')||{}).value||'',
+    phone:(document.getElementById('lead-phone')||{}).value||'',
+    company:(document.getElementById('lead-company')||{}).value||'',
+    message:(document.getElementById('lead-message')||{}).value||'',
+    sourcePage:(document.getElementById('lead-source')||{}).value||'',
+    submittedAt:Date.now(),
+    status:'new',
+    promotedToClientId:null
+  };
+  SESSION.leads.push(lead);
+  try{await persist();closeModal('mo-add-lead');showPage('leads');toast('Lead saved.','success');}
+  catch(e){SESSION.leads.pop();toast('Save failed — try again.','error');}
+}
+async function updateLeadStatus(id,status){
+  const l=SESSION.leads.find(x=>x.id===id);if(!l)return;
+  const prev=l.status;l.status=status;
+  try{await persist();showPage('leads');}
+  catch(e){l.status=prev;toast('Update failed — try again.','error');}
+}
+async function promoteLeadToClient(id){
+  const l=SESSION.leads.find(x=>x.id===id);if(!l)return;
+  if(l.promotedToClientId){toast('Already promoted.','info');return;}
+  const clientId='cl'+Date.now();
+  l.status='converted';l.promotedToClientId=clientId;
+  SESSION.clients=SESSION.clients||[];
+  SESSION.clients.push({id:clientId,name:l.name,company:l.company||'',email:l.email||'',phone:l.phone||'',notes:l.message||'',addedAt:Date.now(),promotedFrom:l.id,sourcePage:l.sourcePage||''});
+  try{await persist();showPage('leads');toast(`${l.name} promoted to Client.`,'success');}
+  catch(e){l.status='in_discussion';l.promotedToClientId=null;SESSION.clients.pop();toast('Promotion failed — try again.','error');}
+}
+function openLeadDetail(id){
+  SESSION.leads.forEach(l=>{l._showDetail=l.id===id;});
+  showPage('leads');
+}
+function closeLeadDetail(){
+  SESSION.leads.forEach(l=>{delete l._showDetail;});
+  showPage('leads');
+}
+function exportLeadsCSV(){
+  const leads=SESSION.leads||[];
+  if(!leads.length){toast('No leads to export.','info');return;}
+  const cols=['id','name','email','phone','company','message','sourcePage','submittedAt','status','promotedToClientId'];
+  const rows=[cols.join(','),...leads.map(l=>cols.map(c=>{const v=l[c]??'';return `"${String(v).replace(/"/g,'""')}"`;}).join(','))];
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kreativ-leads-'+todayKey()+'.csv';a.click();
+}
+
 function rTeamManage(){
   if(!isFounder())return `<div class="denied"><div class="di">🔒</div><div class="dt">Founder Only</div><div class="ds">Only the founder can manage team members.</div></div>`;
   let html=`<div class="adm-banner"><div><div class="adm-label">👥 Team Management — Founder Panel</div><div class="adm-sub">Recruit, edit roles, set admin access, remove members — all from here</div></div><button class="btn-sm red" onclick="openModal('mo-addmem')">+ Recruit Member</button></div>`;
